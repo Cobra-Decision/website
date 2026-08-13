@@ -37,7 +37,7 @@ test("auth provides login and registration views", async () => {
   const loginHtml = await login.text();
   expect(loginHtml).toContain('hx-post="/auth/login"');
   expect(loginHtml).toContain('name="identifier"');
-  expect(loginHtml).toContain("cf-turnstile");
+  expect(loginHtml).toContain("altcha-widget");
 
   const register = await app.request("/auth/register");
   expect(await register.text()).toContain('hx-post="/auth/register"');

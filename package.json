@@ -9,6 +9,7 @@
     "check": "bunx tsc --noEmit"
   },
   "dependencies": {
+    "altcha-lib": "^2.3.2",
     "hono": "^4.0.0"
   },
   "devDependencies": {

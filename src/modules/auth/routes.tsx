@@ -1,6 +1,8 @@
 import { Hono } from "hono";
 import { setCookie } from "hono/cookie";
 import { sign } from "hono/jwt";
+import { create, deriveHmacKeySecret, randomInt } from "altcha-lib/frameworks/hono";
+import { deriveKey } from "altcha-lib/algorithms/pbkdf2";
 import { database } from "../../lib/database";
 import { Login, Register } from "./views";
 
@@ -8,32 +10,29 @@ const schema = await Bun.file(new URL("./schema.sql", import.meta.url)).text();
 database.exec(schema);
 database.run("INSERT OR IGNORE INTO roles (title, description) VALUES (?, ?)", ["member", "Default user role"]);
 
-const turnstileSecret = process.env.TURNSTILE_SECRET_KEY;
+const altchaSecret = process.env.ALTCHA_HMAC_SECRET ?? "development-secret";
+const altcha = create({
+  hmacSignatureSecret: altchaSecret,
+  hmacKeySignatureSecret: await deriveHmacKeySecret(altchaSecret),
+  deriveKey,
+  createChallengeParameters: () => ({
+    algorithm: "PBKDF2/SHA-256",
+    cost: 5000,
+    counter: randomInt(5000, 10000),
+    expiresAt: new Date(Date.now() + 600_000),
+  }),
+});
 const jwtSecret = process.env.JWT_SECRET ?? "development-secret";
 const invalidCredentials = () => <p class="alert alert-error">Invalid credentials.</p>;
-
-async function verifyTurnstile(token: string | undefined, remoteIp?: string) {
-  if (!turnstileSecret || !token) return false;
-  const body = new URLSearchParams({ secret: turnstileSecret, response: token });
-  if (remoteIp) body.set("remoteip", remoteIp);
-  const response = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
-    method: "POST",
-    body,
-  });
-  return response.ok && (await response.json() as { success?: boolean }).success === true;
-}
 
 export const auth = new Hono()
   .get("/", (c) => c.html(<Login />))
   .get("/register", (c) => c.html(<Register />))
-  .post("/login", async (c) => {
+  .get("/altcha/challenge", altcha.challengeHandler)
+  .post("/login", altcha.middleware(), async (c) => {
     const form = await c.req.parseBody();
     const identifier = String(form.identifier ?? "").trim();
     const password = String(form.password ?? "");
-    const captcha = String(form["cf-turnstile-response"] ?? "");
-    if (!(await verifyTurnstile(captcha, c.req.header("cf-connecting-ip")))) {
-      return c.html(<p class="alert alert-error">Captcha verification failed.</p>, 400);
-    }
     const user = database.query<{
       id: number; username: string; password_hash: string; role_id: number; role_title: string;
     }, [string, string, string]>(`SELECT u.id, u.username, u.password_hash, u.role_id, r.title role_title
@@ -45,12 +44,8 @@ export const auth = new Hono()
     setCookie(c, "session", token, { httpOnly: true, secure: true, sameSite: "Lax", path: "/" });
     return c.html(<p class="alert alert-success">Signed in successfully.</p>);
   })
-  .post("/register", async (c) => {
+  .post("/register", altcha.middleware(), async (c) => {
     const form = await c.req.parseBody();
-    const captcha = String(form["cf-turnstile-response"] ?? "");
-    if (!(await verifyTurnstile(captcha, c.req.header("cf-connecting-ip")))) {
-      return c.html(<p class="alert alert-error">Captcha verification failed.</p>, 400);
-    }
     const username = String(form.username ?? "").trim();
     const email = String(form.email ?? "").trim();
     const phone = String(form.phone ?? "").trim();

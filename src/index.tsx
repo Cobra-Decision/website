@@ -17,6 +17,7 @@ app.get("/", (c) =>
         />
         <script src="https://cdn.tailwindcss.com" />
         <script src="https://unpkg.com/htmx.org@2.0.4" />
+        <script async defer src="https://cdn.jsdelivr.net/gh/altcha-org/altcha/dist/altcha.min.js" type="module" />
         <script
           defer
           src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"

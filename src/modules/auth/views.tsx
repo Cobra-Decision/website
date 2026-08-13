@@ -1,4 +1,4 @@
-const Captcha = () => <div class="cf-turnstile mb-4" data-sitekey={Bun.env.TURNSTILE_SITE_KEY ?? ""}></div>;
+const Captcha = () => <altcha-widget challenge="/auth/altcha/challenge"></altcha-widget>;
 
 export const Login = () => (
   <main class="container mx-auto max-w-md p-8">
@@ -14,7 +14,7 @@ export const Login = () => (
             <span class="label-text">Password</span>
             <input class="input input-bordered" name="password" type="password" required />
           </label>
-          <Captcha />
+          <div class="mb-4"><Captcha /></div>
           <button class="btn btn-primary w-full" type="submit">Sign in</button>
           <div id="auth-result" class="mt-4"></div>
         </form>
@@ -36,7 +36,7 @@ export const Register = () => (
         <input class="input input-bordered mb-3 w-full" name="first_name" placeholder="First name" required />
         <input class="input input-bordered mb-3 w-full" name="last_name" placeholder="Last name" required />
         <input class="input input-bordered mb-3 w-full" name="password" type="password" placeholder="Password" required />
-        <Captcha />
+        <div class="mb-4"><Captcha /></div>
         <button class="btn btn-primary w-full" type="submit">Register</button>
         <div id="auth-result" class="mt-4"></div>
       </form>
