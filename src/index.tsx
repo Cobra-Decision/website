@@ -10,14 +10,25 @@ app.get("/", (c) =>
   c.html(
     <html>
       <head>
+        <link
+          href="https://cdn.jsdelivr.net/npm/daisyui@4.12.24/dist/full.min.css"
+          rel="stylesheet"
+          type="text/css"
+        />
+        <script src="https://cdn.tailwindcss.com" />
         <script src="https://unpkg.com/htmx.org@2.0.4" />
+        <script
+          defer
+          src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"
+        />
       </head>
-      <body>
-        <main>
-          <h1>Website</h1>
-          <nav>
-            <a href="/auth">Auth</a> <a href="/events">Events</a>{" "}
-            <a href="/mailer">Mailer</a>
+      <body class="min-h-screen bg-base-200">
+        <main class="container mx-auto p-8">
+          <h1 class="text-4xl font-bold">Website</h1>
+          <nav class="mt-6 flex gap-3" x-data>
+            <a class="btn btn-primary" href="/auth">Auth</a>
+            <a class="btn btn-secondary" href="/events">Events</a>
+            <a class="btn btn-accent" href="/mailer">Mailer</a>
           </nav>
         </main>
       </body>

@@ -7,6 +7,9 @@ test("home lists the three feature links", async () => {
   const html = await response.text();
 
   expect(response.status).toBe(200);
+  expect(html).toContain("cdn.tailwindcss.com");
+  expect(html).toContain("daisyui@4.12.24");
+  expect(html).toContain("alpinejs@3.x.x");
   expect(html).toContain('href="/auth"');
   expect(html).toContain('href="/events"');
   expect(html).toContain('href="/mailer"');
