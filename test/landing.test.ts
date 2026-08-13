@@ -34,9 +34,11 @@ test("landing renders cached content and contact endpoint persists valid emails"
   initCache(database);
   const page = await app.request("/");
   const html = await page.text();
-  expect(html).toContain("Total Users");
+  expect(html).toContain("Community members");
   expect(html).toContain('hx-post="/api/contact"');
-  expect(html).toContain("carousel");
+  expect(html).toContain("scroll-smooth");
+  expect(html).toContain("Featured conversations");
+  expect(html).toContain("No upcoming meets yet.");
 
   const form = new FormData();
   form.set("email", "hello@example.com");

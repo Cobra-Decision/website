@@ -11,7 +11,7 @@ test("home renders landing navigation", async () => {
   expect(html).not.toContain("cdn.tailwindcss.com");
   expect(html).toContain("alpinejs@3.x.x");
   expect(html).toContain('href="/auth"');
-  expect(html).toContain('href="#about"');
+  expect(html).toContain('href="#how-it-works"');
   expect(html).toContain('hx-post="/api/contact"');
 });
 
