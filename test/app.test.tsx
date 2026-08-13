@@ -2,7 +2,7 @@ import { expect, test } from "bun:test";
 import { app } from "../src/index";
 import { getCache, setCache } from "../src/lib/cache";
 
-test("home lists the three feature links", async () => {
+test("home renders landing navigation", async () => {
   const response = await app.request("/");
   const html = await response.text();
 
@@ -11,8 +11,8 @@ test("home lists the three feature links", async () => {
   expect(html).not.toContain("cdn.tailwindcss.com");
   expect(html).toContain("alpinejs@3.x.x");
   expect(html).toContain('href="/auth"');
-  expect(html).toContain('href="/events"');
-  expect(html).toContain('href="/mailer"');
+  expect(html).toContain('href="#about"');
+  expect(html).toContain('hx-post="/api/contact"');
 });
 
 test("favicon requests do not return a 404", async () => {
