@@ -60,6 +60,17 @@ test("login redirects to dashboard and dashboard shows the profile", async () =>
   expect(html).toContain('hx-post="/auth/logout"');
 });
 
+test("seeded admin can open the dashboard admin area", async () => {
+  await initializeDatabase(database, { email: "admin@example.com", password: "secret123" });
+  const form = new FormData();
+  form.set("identifier", "admin@example.com");
+  form.set("password", "secret123");
+  const login = await app.request("/auth/login", { method: "POST", body: form });
+  const response = await app.request("/dashboard/admin", { headers: { cookie: login.headers.get("set-cookie")!.split(";")[0] } });
+  expect(response.status).toBe(302);
+  expect(response.headers.get("location")).toBe("/dashboard/admin/users");
+});
+
 test("authenticated users are redirected away from auth pages", async () => {
   await initializeDatabase(database, { email: "admin@example.com", password: "secret123" });
   const form = new FormData();

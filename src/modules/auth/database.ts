@@ -10,12 +10,17 @@ export async function initializeDatabase(database: Database, admin: AdminSeed = 
   database.run("INSERT OR IGNORE INTO roles (title, description) VALUES (?, ?), (?, ?), (?, ?)", [
     "member", "Default user role", "admin", "Administrator", "Super Admin", "Full administrative access",
   ]);
-  for (const endpoint of ["/dashboard", "/admin", "/admin/users", "/admin/meets", "/admin/tags", "/admin/roles", "/admin/endpoints", "/admin/reports/users", "/admin/reports/meets"])
+  for (const endpoint of ["/dashboard", "/dashboard/admin", "/dashboard/admin/users", "/dashboard/admin/meets", "/dashboard/admin/tags", "/dashboard/admin/roles", "/dashboard/admin/endpoints", "/dashboard/admin/reports/users", "/dashboard/admin/reports/meets"])
     database.run("INSERT OR IGNORE INTO endpoints (title, description) VALUES (?, ?)", [endpoint, "Administrative endpoint"]);
   database.exec(`INSERT OR IGNORE INTO role_endpoints (role_id, endpoint_id, description)
     SELECT r.id, e.id, 'Dashboard access' FROM roles r, endpoints e
     WHERE r.title IN ('admin', 'Super Admin') AND r.deleted_at IS NULL
       AND e.title = '/dashboard' AND e.deleted_at IS NULL`);
+
+  database.exec(`INSERT OR IGNORE INTO role_endpoints (role_id, endpoint_id, description)
+    SELECT r.id, e.id, 'Admin access' FROM roles r, endpoints e
+    WHERE r.title IN ('admin', 'Super Admin') AND r.deleted_at IS NULL
+      AND e.title LIKE '/dashboard/admin%' AND e.deleted_at IS NULL`);
 
   database.exec(`INSERT OR IGNORE INTO role_endpoints (role_id, endpoint_id, description)
     SELECT r.id, e.id, 'Super Admin access' FROM roles r, endpoints e
