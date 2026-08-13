@@ -63,6 +63,6 @@ export const Dashboard = ({ user }: { user: Profile }) => {
         <div class="card dropdown-content z-10 mt-3 w-72 border border-base-300 bg-base-100 shadow-xl" tabindex={0}><div class="card-body gap-2 p-5"><p class="font-semibold">{name}</p><p class="text-sm text-base-content/60">{user.email}</p>{user.phone && <p class="text-sm text-base-content/60">{user.phone}</p>}<div class="divider my-1"></div><form hx-post="/auth/logout"><button class="btn btn-error btn-outline btn-sm w-full" type="submit">Log out</button></form></div></div>
       </div>
     </header>
-    <main class="container mx-auto p-6 sm:p-10"><div class="hero rounded-box bg-base-100 py-16 shadow-sm"><div class="hero-content text-center"><div><h1 class="text-4xl font-bold">Welcome, {name}</h1><p class="mt-3 text-base-content/60">Your account is ready.</p></div></div></div></main>
+    <main class="container mx-auto p-6 sm:p-10"><div class="hero rounded-box bg-base-100 py-16 shadow-sm"><div class="hero-content text-center"><div><h1 class="text-4xl font-bold">Welcome, {name}</h1><p class="mt-3 text-base-content/60">Your account is ready.</p>{user.role_title === "Super Admin" && <a class="btn btn-primary mt-6" href="/dashboard/admin">Open admin dashboard</a>}</div></div></div></main>
   </div>;
 };

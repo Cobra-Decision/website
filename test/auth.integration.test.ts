@@ -56,8 +56,9 @@ test("login redirects to dashboard and dashboard shows the profile", async () =>
   const html = await dashboard.text();
   expect(dashboard.status).toBe(200);
   expect(html).toContain("admin@example.com");
-  expect(html).toContain(">admin</span>");
+  expect(html).toContain(">Super Admin</span>");
   expect(html).toContain('hx-post="/auth/logout"');
+  expect(html).toContain('href="/dashboard/admin"');
 });
 
 test("seeded admin can open the dashboard admin area", async () => {
@@ -69,6 +70,19 @@ test("seeded admin can open the dashboard admin area", async () => {
   const response = await app.request("/dashboard/admin", { headers: { cookie: login.headers.get("set-cookie")!.split(";")[0] } });
   expect(response.status).toBe(302);
   expect(response.headers.get("location")).toBe("/dashboard/admin/users");
+});
+
+test("member dashboard does not show admin navigation", async () => {
+  const register = new FormData();
+  register.set("email", "member@example.com");
+  register.set("password", "secret123");
+  await app.request("/auth/register", { method: "POST", body: register });
+  const login = new FormData();
+  login.set("identifier", "member@example.com");
+  login.set("password", "secret123");
+  const response = await app.request("/auth/login", { method: "POST", body: login });
+  const dashboard = await app.request("/dashboard", { headers: { cookie: response.headers.get("set-cookie")!.split(";")[0] } });
+  expect(await dashboard.text()).not.toContain('href="/dashboard/admin"');
 });
 
 test("authenticated users are redirected away from auth pages", async () => {

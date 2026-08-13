@@ -30,7 +30,7 @@ test("optional admin seed is idempotent and uses a native password hash", async 
      WHERE u.email = 'admin@example.com' AND u.deleted_at IS NULL AND r.deleted_at IS NULL`,
   ).get()!;
   expect(admin.email).toBe(seed.email);
-  expect(admin.role).toBe("admin");
+  expect(admin.role).toBe("Super Admin");
   expect(await Bun.password.verify(seed.password, admin.password_hash)).toBe(true);
   expect(database.query("SELECT COUNT(*) total FROM users").get()).toEqual({ total: 1 });
 });

@@ -27,7 +27,7 @@ export async function initializeDatabase(database: Database, admin: AdminSeed = 
     WHERE r.title = 'Super Admin' AND e.deleted_at IS NULL`);
 
   if (admin.email && admin.password) {
-    const role = database.query<{ id: number }, []>("SELECT id FROM roles WHERE title = 'admin' AND deleted_at IS NULL").get()!;
+    const role = database.query<{ id: number }, []>("SELECT id FROM roles WHERE title = 'Super Admin' AND deleted_at IS NULL").get()!;
     const existing = database.query("SELECT id FROM users WHERE email = ? AND deleted_at IS NULL").get(admin.email);
     if (!existing) database.run("INSERT INTO users (email, password_hash, role_id) VALUES (?, ?, ?)", [admin.email.trim().toLowerCase(), await Bun.password.hash(admin.password), role.id]);
   }
