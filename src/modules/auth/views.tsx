@@ -57,7 +57,7 @@ export const Dashboard = ({ user }: { user: Profile }) => {
   const name = [user.first_name, user.last_name].filter(Boolean).join(" ") || user.username || user.email;
   return <div class="min-h-screen">
     <header class="navbar border-b border-base-300 bg-base-100 px-4 shadow-sm sm:px-8">
-      <div class="flex-1"><a class="text-xl font-bold" href="/dashboard">Dashboard</a></div>
+      <div class="flex-1"><a class="text-xl font-bold" href="/dashboard/member">Dashboard</a></div>
       <div class="dropdown dropdown-end" x-data>
         <button class="btn btn-ghost gap-3" tabindex={0}><div class="avatar placeholder"><div class="w-9 rounded-full bg-primary text-primary-content"><span>{name[0]?.toUpperCase()}</span></div></div><span class="hidden text-left sm:block"><span class="block text-sm font-semibold">{name}</span><span class="block text-xs opacity-60">{user.role_title}</span></span></button>
         <div class="card dropdown-content z-10 mt-3 w-72 border border-base-300 bg-base-100 shadow-xl" tabindex={0}><div class="card-body gap-2 p-5"><p class="font-semibold">{name}</p><p class="text-sm text-base-content/60">{user.email}</p>{user.phone && <p class="text-sm text-base-content/60">{user.phone}</p>}<div class="divider my-1"></div><form hx-post="/auth/logout"><button class="btn btn-error btn-outline btn-sm w-full" type="submit">Log out</button></form></div></div>
