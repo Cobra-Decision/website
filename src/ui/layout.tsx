@@ -1,4 +1,5 @@
 import type { Child } from "hono/jsx";
+import { html } from "hono/html";
 
 export const Layout = ({ children, title = "Website" }: { children: Child; title?: string }) => (
   <html lang="en" data-theme="corporate">
@@ -15,3 +16,6 @@ export const Layout = ({ children, title = "Website" }: { children: Child; title
     <body class="min-h-screen bg-base-200 text-base-content">{children}</body>
   </html>
 );
+
+export const Document = ({ children, title }: { children: Child; title?: string }) =>
+  html`<!DOCTYPE html>${<Layout title={title}>{children}</Layout>}`;

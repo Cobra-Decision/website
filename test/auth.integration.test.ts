@@ -18,10 +18,11 @@ afterEach(() => database.close());
 test("auth pages load the shared UI stack and ALTCHA", async () => {
   for (const path of ["/auth", "/auth/register"]) {
     const html = await (await app.request(path)).text();
+    expect(html.startsWith("<!DOCTYPE html>")).toBe(true);
     expect(html).toContain("daisyui");
     expect(html).toContain("htmx.org");
     expect(html).toContain("altcha.min.js");
-    expect(html).toContain('<altcha-widget challenge="/auth/altcha/challenge"');
+    expect(html).toContain('<altcha-widget challengeurl="/auth/altcha/challenge"');
   }
 });
 

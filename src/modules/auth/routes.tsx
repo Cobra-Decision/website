@@ -4,7 +4,7 @@ import { deleteCookie, getCookie, setCookie } from "hono/cookie";
 import { sign, verify } from "hono/jwt";
 import { create, deriveHmacKeySecret, randomInt } from "altcha-lib/frameworks/hono";
 import { deriveKey } from "altcha-lib/algorithms/pbkdf2";
-import { Layout } from "../../ui/layout";
+import { Document } from "../../ui/layout";
 import { normalizeRegistration } from "./service";
 import { Dashboard, Login, Register, type Profile } from "./views";
 
@@ -24,8 +24,8 @@ export async function createAltcha(): Promise<Captcha> {
 
 export function createAuthRoutes(database: Database, captcha: Captcha, jwtSecret: string) {
   return new Hono()
-    .get("/", (c) => c.html(<Layout title="Sign in"><Login /></Layout>))
-    .get("/register", (c) => c.html(<Layout title="Register"><Register /></Layout>))
+    .get("/", (c) => c.html(<Document title="Sign in"><Login /></Document>))
+    .get("/register", (c) => c.html(<Document title="Register"><Register /></Document>))
     .get("/altcha/challenge", captcha.challengeHandler)
     .post("/login", captcha.middleware, async (c) => {
       const form = await c.req.parseBody();
@@ -75,7 +75,7 @@ export function createDashboardRoute(database: Database, jwtSecret: string) {
         FROM users u JOIN roles r ON r.id = u.role_id
         WHERE u.id = ? AND u.deleted_at IS NULL AND r.deleted_at IS NULL`).get(Number(claims.sub));
       if (!user) return c.redirect("/auth");
-      return c.html(<Layout title="Dashboard"><Dashboard user={user} /></Layout>);
+      return c.html(<Document title="Dashboard"><Dashboard user={user} /></Document>);
     } catch {
       return c.redirect("/auth");
     }

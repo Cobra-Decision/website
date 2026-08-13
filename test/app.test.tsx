@@ -15,6 +15,10 @@ test("home lists the three feature links", async () => {
   expect(html).toContain('href="/mailer"');
 });
 
+test("favicon requests do not return a 404", async () => {
+  expect((await app.request("/favicon.ico")).status).toBe(204);
+});
+
 test("cache retains a recently read item", () => {
   for (let index = 0; index < 100; index++) setCache(String(index), index);
   expect(getCache("0")).toBe(0);
