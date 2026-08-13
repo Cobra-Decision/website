@@ -45,3 +45,12 @@ test("profile fields are optional and foreign keys are enforced", async () => {
   });
   expect(() => database.run("INSERT INTO users (email, password_hash, role_id) VALUES (?, ?, ?)", ["bad@example.com", "hash", 999])).toThrow();
 });
+
+test("existing configured seed user is promoted to Super Admin", async () => {
+  database = new Database(":memory:");
+  await initializeDatabase(database);
+  const member = database.query<{ id: number }, []>("SELECT id FROM roles WHERE title='member'").get()!;
+  database.run("INSERT INTO users (email,password_hash,role_id) VALUES (?,?,?)", ["admin@example.com", "hash", member.id]);
+  await initializeDatabase(database, { email: "admin@example.com", password: "secret" });
+  expect(database.query<{ title: string }, []>("SELECT r.title FROM users u JOIN roles r ON r.id=u.role_id WHERE u.email='admin@example.com'").get()).toEqual({ title: "Super Admin" });
+});

@@ -12,7 +12,8 @@ const guard = (db: Database, jwtSecret: string, path: string) => async (c: Conte
   if (!token) return c.redirect("/auth");
   try {
     const claims = await verify(token, jwtSecret, "HS256") as { sub: string; role_id: number };
-    if (!createPermissionChecker(db)(claims.role_id, path)) return c.html(<p class="alert alert-error">Forbidden</p>, 403);
+    const basePath = path.match(/^\/dashboard\/admin\/[^/]+/)?.[0] ?? path;
+    if (!createPermissionChecker(db)(claims.role_id, path) && !createPermissionChecker(db)(claims.role_id, basePath)) return c.html(<p class="alert alert-error">Forbidden</p>, 403);
     c.set("auth", claims); return next();
   } catch { return c.redirect("/auth"); }
 };
