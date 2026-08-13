@@ -19,7 +19,7 @@ export function createApp({ database, captcha, jwtSecret = process.env.JWT_SECRE
   app.route("/", createLandingRoutes(database));
   app.get("/favicon.ico", (c) => c.body(null, 204));
   app.route("/auth", createAuthRoutes(database, captcha, jwtSecret));
-  app.route("/dashboard", createDashboardRoute(database, jwtSecret));
+  app.route("/dashboard/member", createDashboardRoute(database, jwtSecret, "member"));
   app.route("/dashboard/admin", createAdminRoutes(database, jwtSecret));
   app.route("/events", events);
   app.route("/mailer", mailer);

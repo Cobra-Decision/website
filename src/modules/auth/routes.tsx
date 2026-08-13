@@ -41,7 +41,10 @@ export function createAuthRoutes(database: Database, captcha: Captcha, jwtSecret
     }
   };
   const redirectAuthenticated = async (c: Parameters<Handler>[0]) => {
-    if (await hasActiveSession(getCookie(c, "session"))) return c.redirect("/dashboard");
+    if (await hasActiveSession(getCookie(c, "session"))) {
+      const claims = (await verify(getCookie(c, "session")!, jwtSecret, "HS256")) as unknown as Claims;
+      return c.redirect(`/dashboard/${claims.role_title === "Super Admin" ? "admin" : "member"}`);
+    }
     return null;
   };
   return new Hono()
@@ -63,7 +66,7 @@ export function createAuthRoutes(database: Database, captcha: Captcha, jwtSecret
       const now = Math.floor(Date.now() / 1000);
       const token = await sign({ sub: String(user.id), username: user.username ?? user.email, role_title: user.role_title, role_id: user.role_id, iat: now, exp: now + sessionDuration }, jwtSecret, "HS256");
       setCookie(c, "session", token, cookieOptions);
-      c.header("HX-Redirect", "/dashboard");
+      c.header("HX-Redirect", `/dashboard/${user.role_title === "Super Admin" ? "admin" : "member"}`);
       return c.body(null);
     })
     .post("/register", captcha.middleware, async (c) => {
@@ -87,7 +90,7 @@ export function createAuthRoutes(database: Database, captcha: Captcha, jwtSecret
     });
 }
 
-export function createDashboardRoute(database: Database, jwtSecret: string) {
+export function createDashboardRoute(database: Database, jwtSecret: string, expectedRole: "admin" | "member" = "member") {
   return new Hono().get("/", async (c) => {
     const token = getCookie(c, "session");
     if (!token) return c.redirect("/auth");
@@ -97,6 +100,7 @@ export function createDashboardRoute(database: Database, jwtSecret: string) {
         FROM users u JOIN roles r ON r.id = u.role_id
         WHERE u.id = ? AND u.deleted_at IS NULL AND r.deleted_at IS NULL`).get(Number(claims.sub));
       if (!user) return c.redirect("/auth");
+      if ((expectedRole === "admin") !== (user.role_title === "Super Admin")) return c.redirect(`/dashboard/${user.role_title === "Super Admin" ? "admin" : "member"}`);
       return c.html(<Document title="Dashboard"><Dashboard user={user} /></Document>);
     } catch {
       return c.redirect("/auth");

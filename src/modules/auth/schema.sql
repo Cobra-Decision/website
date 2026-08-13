@@ -42,3 +42,13 @@ CREATE TABLE IF NOT EXISTS role_endpoints (
   deleted_at TEXT,
   UNIQUE(role_id, endpoint_id)
 );
+
+CREATE TABLE IF NOT EXISTS error_messages (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  type TEXT NOT NULL CHECK (type IN ('info', 'error', 'success', 'warning')),
+  title TEXT NOT NULL UNIQUE,
+  description TEXT NOT NULL DEFAULT '',
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  deleted_at TEXT
+);

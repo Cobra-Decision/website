@@ -12,7 +12,7 @@ export const Layout = ({ children, title = "Website" }: { children: Child; title
       <script async defer src="/altcha.js" type="module" />
       <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" />
     </head>
-    <body class="min-h-screen bg-base-200 text-base-content">{children}</body>
+    <body class="min-h-screen bg-base-200 text-base-content"><div id="toast-container" class="toast toast-top toast-end"></div>{children}</body>
   </html>
 );
 

@@ -47,18 +47,15 @@ test("login redirects to dashboard and dashboard shows the profile", async () =>
   form.set("identifier", "admin@example.com");
   form.set("password", "secret123");
   const login = await app.request("/auth/login", { method: "POST", body: form });
-  expect(login.headers.get("HX-Redirect")).toBe("/dashboard");
+  expect(login.headers.get("HX-Redirect")).toBe("/dashboard/admin");
   expect(login.headers.get("set-cookie")).toContain("HttpOnly");
   expect(login.headers.get("set-cookie")).toContain("SameSite=Lax");
   const cookie = login.headers.get("set-cookie")!.split(";")[0];
 
-  const dashboard = await app.request("/dashboard", { headers: { cookie } });
+  const dashboard = await app.request("/dashboard/admin", { headers: { cookie } });
   const html = await dashboard.text();
-  expect(dashboard.status).toBe(200);
-  expect(html).toContain("admin@example.com");
-  expect(html).toContain(">Super Admin</span>");
-  expect(html).toContain('hx-post="/auth/logout"');
-  expect(html).toContain('href="/dashboard/admin"');
+  expect(dashboard.status).toBe(302);
+  expect(dashboard.headers.get("location")).toBe("/dashboard/admin/users");
 });
 
 test("seeded admin can open the dashboard admin area", async () => {
@@ -96,12 +93,12 @@ test("authenticated users are redirected away from auth pages", async () => {
   for (const path of ["/auth", "/auth/register"]) {
     const response = await app.request(path, { headers: { cookie } });
     expect(response.status).toBe(302);
-    expect(response.headers.get("location")).toBe("/dashboard");
+    expect(response.headers.get("location")).toBe("/dashboard/admin");
   }
 });
 
 test("dashboard requires a session and logout clears it", async () => {
-  const dashboard = await app.request("/dashboard");
+  const dashboard = await app.request("/dashboard/member");
   expect(dashboard.status).toBe(302);
   expect(dashboard.headers.get("location")).toBe("/auth");
 

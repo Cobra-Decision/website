@@ -24,7 +24,10 @@ export async function initializeDatabase(database: Database, admin: AdminSeed = 
 
   database.exec(`INSERT OR IGNORE INTO role_endpoints (role_id, endpoint_id, description)
     SELECT r.id, e.id, 'Super Admin access' FROM roles r, endpoints e
-    WHERE r.title = 'Super Admin' AND e.deleted_at IS NULL`);
+      WHERE r.title = 'Super Admin' AND e.deleted_at IS NULL`);
+  database.run("INSERT OR IGNORE INTO error_messages (type,title,description) VALUES (?, ?, ?), (?, ?, ?), (?, ?, ?)", [
+    "success", "admin.created", "Record created.", "success", "admin.deleted", "Record deleted.", "error", "admin.super_admin_protected", "The Super Admin role is protected.",
+  ]);
 
   if (admin.email && admin.password) {
     const role = database.query<{ id: number }, []>("SELECT id FROM roles WHERE title = 'Super Admin' AND deleted_at IS NULL").get()!;
