@@ -1,6 +1,6 @@
 const Captcha = () => (
   <div class="rounded-box border border-base-300 bg-base-200 p-3">
-    <altcha-widget challengeurl="/auth/altcha/challenge"></altcha-widget>
+    <altcha-widget challenge="/auth/altcha/challenge"></altcha-widget>
   </div>
 );
 

@@ -7,8 +7,8 @@ test("home lists the three feature links", async () => {
   const html = await response.text();
 
   expect(response.status).toBe(200);
-  expect(html).toContain("cdn.tailwindcss.com");
-  expect(html).toContain("daisyui@4.12.24");
+  expect(html).toContain('href="/app.css"');
+  expect(html).not.toContain("cdn.tailwindcss.com");
   expect(html).toContain("alpinejs@3.x.x");
   expect(html).toContain('href="/auth"');
   expect(html).toContain('href="/events"');
@@ -17,6 +17,12 @@ test("home lists the three feature links", async () => {
 
 test("favicon requests do not return a 404", async () => {
   expect((await app.request("/favicon.ico")).status).toBe(204);
+});
+
+test("compiled application CSS is served locally", async () => {
+  const response = await app.request("/app.css");
+  expect(response.status).toBe(200);
+  expect(await response.text()).toContain("--p");
 });
 
 test("cache retains a recently read item", () => {
