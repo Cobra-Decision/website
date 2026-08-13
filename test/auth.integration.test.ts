@@ -48,6 +48,8 @@ test("login redirects to dashboard and dashboard shows the profile", async () =>
   form.set("password", "secret123");
   const login = await app.request("/auth/login", { method: "POST", body: form });
   expect(login.headers.get("HX-Redirect")).toBe("/dashboard");
+  expect(login.headers.get("set-cookie")).toContain("HttpOnly");
+  expect(login.headers.get("set-cookie")).toContain("SameSite=Lax");
   const cookie = login.headers.get("set-cookie")!.split(";")[0];
 
   const dashboard = await app.request("/dashboard", { headers: { cookie } });
@@ -56,6 +58,21 @@ test("login redirects to dashboard and dashboard shows the profile", async () =>
   expect(html).toContain("admin@example.com");
   expect(html).toContain(">admin</span>");
   expect(html).toContain('hx-post="/auth/logout"');
+});
+
+test("authenticated users are redirected away from auth pages", async () => {
+  await initializeDatabase(database, { email: "admin@example.com", password: "secret123" });
+  const form = new FormData();
+  form.set("identifier", "admin@example.com");
+  form.set("password", "secret123");
+  const login = await app.request("/auth/login", { method: "POST", body: form });
+  const cookie = login.headers.get("set-cookie")!.split(";")[0];
+
+  for (const path of ["/auth", "/auth/register"]) {
+    const response = await app.request(path, { headers: { cookie } });
+    expect(response.status).toBe(302);
+    expect(response.headers.get("location")).toBe("/dashboard");
+  }
 });
 
 test("dashboard requires a session and logout clears it", async () => {

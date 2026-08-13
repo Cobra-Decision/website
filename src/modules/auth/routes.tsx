@@ -10,6 +10,14 @@ import { Dashboard, Login, Register, type Profile } from "./views";
 
 type Captcha = { middleware: MiddlewareHandler; challengeHandler: Handler };
 type Claims = { sub: string; username: string; role_title: string; role_id: number };
+const sessionDuration = 60 * 60 * 8;
+const cookieOptions = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production",
+  sameSite: "Lax" as const,
+  path: "/",
+  maxAge: sessionDuration,
+};
 
 export async function createAltcha(): Promise<Captcha> {
   const secret = process.env.ALTCHA_HMAC_SECRET ?? "development-secret";
@@ -23,9 +31,22 @@ export async function createAltcha(): Promise<Captcha> {
 }
 
 export function createAuthRoutes(database: Database, captcha: Captcha, jwtSecret: string) {
+  const hasActiveSession = async (token: string | undefined) => {
+    if (!token) return false;
+    try {
+      const claims = (await verify(token, jwtSecret, "HS256")) as unknown as Claims;
+      return Boolean(database.query("SELECT 1 FROM users WHERE id = ? AND deleted_at IS NULL").get(Number(claims.sub)));
+    } catch {
+      return false;
+    }
+  };
+  const redirectAuthenticated = async (c: Parameters<Handler>[0]) => {
+    if (await hasActiveSession(getCookie(c, "session"))) return c.redirect("/dashboard");
+    return null;
+  };
   return new Hono()
-    .get("/", (c) => c.html(<Document title="Sign in"><Login /></Document>))
-    .get("/register", (c) => c.html(<Document title="Register"><Register /></Document>))
+    .get("/", async (c) => (await redirectAuthenticated(c)) ?? c.html(<Document title="Sign in"><Login /></Document>))
+    .get("/register", async (c) => (await redirectAuthenticated(c)) ?? c.html(<Document title="Register"><Register /></Document>))
     .get("/altcha/challenge", captcha.challengeHandler)
     .post("/login", captcha.middleware, async (c) => {
       const form = await c.req.parseBody();
@@ -39,8 +60,9 @@ export function createAuthRoutes(database: Database, captcha: Captcha, jwtSecret
       if (!user || !(await Bun.password.verify(String(form.password ?? ""), user.password_hash))) {
         return c.html(<p class="alert alert-error">Invalid credentials.</p>, 401);
       }
-      const token = await sign({ sub: String(user.id), username: user.username ?? user.email, role_title: user.role_title, role_id: user.role_id }, jwtSecret, "HS256");
-      setCookie(c, "session", token, { httpOnly: true, secure: true, sameSite: "Lax", path: "/" });
+      const now = Math.floor(Date.now() / 1000);
+      const token = await sign({ sub: String(user.id), username: user.username ?? user.email, role_title: user.role_title, role_id: user.role_id, iat: now, exp: now + sessionDuration }, jwtSecret, "HS256");
+      setCookie(c, "session", token, cookieOptions);
       c.header("HX-Redirect", "/dashboard");
       return c.body(null);
     })
@@ -59,7 +81,7 @@ export function createAuthRoutes(database: Database, captcha: Captcha, jwtSecret
       }
     })
     .post("/logout", (c) => {
-      deleteCookie(c, "session", { path: "/", secure: true });
+      deleteCookie(c, "session", cookieOptions);
       c.header("HX-Redirect", "/auth");
       return c.body(null);
     });
