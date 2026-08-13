@@ -23,7 +23,7 @@ test("cache retains a recently read item", () => {
   expect(getCache("1")).toBeUndefined();
 });
 
-test.each(["auth", "events", "mailer"])(
+test.each(["events", "mailer"])(
   "%s is a placeholder page",
   async (feature) => {
     const response = await app.request(`/${feature}`);
@@ -41,4 +41,15 @@ test("auth provides login and registration views", async () => {
 
   const register = await app.request("/auth/register");
   expect(await register.text()).toContain('hx-post="/auth/register"');
+});
+
+test("ALTCHA issues signed challenges and rejects an absent solution", async () => {
+  const challenge = await app.request("/auth/altcha/challenge");
+  const payload = await challenge.json() as Record<string, unknown>;
+  expect(challenge.status).toBe(200);
+  expect(payload.parameters).toBeTruthy();
+  expect(payload.signature).toBeTruthy();
+
+  const login = await app.request("/auth/login", { method: "POST", body: new FormData() });
+  expect(login.status).toBe(403);
 });
