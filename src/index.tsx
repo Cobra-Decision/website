@@ -5,6 +5,7 @@ import { createAltcha } from "./modules/auth/routes";
 import { initializeEventsDatabase } from "./modules/events/database";
 import { initializeLandingDatabase } from "./modules/landing/database";
 import { initCache } from "./lib/cache";
+import { seedSampleData } from "./lib/seed";
 
 await initializeDatabase(database, {
   email: process.env.SEED_ADMIN_EMAIL,
@@ -12,6 +13,7 @@ await initializeDatabase(database, {
 });
 initializeEventsDatabase(database);
 initializeLandingDatabase(database);
+await seedSampleData(database);
 initCache(database);
 
 export const app = createApp({ database, captcha: await createAltcha() });
