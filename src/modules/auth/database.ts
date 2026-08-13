@@ -7,21 +7,24 @@ export type AdminSeed = { email?: string; password?: string };
 export async function initializeDatabase(database: Database, admin: AdminSeed = {}) {
   database.exec(schema);
   migrateOptionalProfileFields(database);
-  database.run("INSERT OR IGNORE INTO roles (title, description) VALUES (?, ?), (?, ?)", [
-    "member", "Default user role", "admin", "Administrator",
+  database.run("INSERT OR IGNORE INTO roles (title, description) VALUES (?, ?), (?, ?), (?, ?)", [
+    "member", "Default user role", "admin", "Administrator", "Super Admin", "Full administrative access",
   ]);
-  database.run("INSERT OR IGNORE INTO endpoints (title, description) VALUES (?, ?)", ["/dashboard", "User dashboard"]);
+  for (const endpoint of ["/dashboard", "/admin", "/admin/users", "/admin/meets", "/admin/tags", "/admin/roles", "/admin/endpoints", "/admin/reports/users", "/admin/reports/meets"])
+    database.run("INSERT OR IGNORE INTO endpoints (title, description) VALUES (?, ?)", [endpoint, "Administrative endpoint"]);
   database.exec(`INSERT OR IGNORE INTO role_endpoints (role_id, endpoint_id, description)
     SELECT r.id, e.id, 'Dashboard access' FROM roles r, endpoints e
-    WHERE r.title = 'admin' AND r.deleted_at IS NULL
+    WHERE r.title IN ('admin', 'Super Admin') AND r.deleted_at IS NULL
       AND e.title = '/dashboard' AND e.deleted_at IS NULL`);
+
+  database.exec(`INSERT OR IGNORE INTO role_endpoints (role_id, endpoint_id, description)
+    SELECT r.id, e.id, 'Super Admin access' FROM roles r, endpoints e
+    WHERE r.title = 'Super Admin' AND e.deleted_at IS NULL`);
 
   if (admin.email && admin.password) {
     const role = database.query<{ id: number }, []>("SELECT id FROM roles WHERE title = 'admin' AND deleted_at IS NULL").get()!;
     const existing = database.query("SELECT id FROM users WHERE email = ? AND deleted_at IS NULL").get(admin.email);
-    if (!existing) database.run("INSERT INTO users (email, password_hash, role_id) VALUES (?, ?, ?)", [
-      admin.email.trim().toLowerCase(), await Bun.password.hash(admin.password), role.id,
-    ]);
+    if (!existing) database.run("INSERT INTO users (email, password_hash, role_id) VALUES (?, ?, ?)", [admin.email.trim().toLowerCase(), await Bun.password.hash(admin.password), role.id]);
   }
 }
 

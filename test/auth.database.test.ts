@@ -11,13 +11,12 @@ test("initialization seeds roles and dashboard permission once", async () => {
   await initializeDatabase(database);
 
   expect(database.query("SELECT title FROM roles WHERE deleted_at IS NULL ORDER BY title").all()).toEqual([
+    { title: "Super Admin" },
     { title: "admin" },
     { title: "member" },
   ]);
-  expect(database.query("SELECT title FROM endpoints WHERE deleted_at IS NULL").all()).toEqual([
-    { title: "/dashboard" },
-  ]);
-  expect(database.query("SELECT COUNT(*) total FROM role_endpoints WHERE deleted_at IS NULL").get()).toEqual({ total: 1 });
+  expect(database.query("SELECT title FROM endpoints WHERE deleted_at IS NULL").all()).toHaveLength(9);
+  expect(database.query("SELECT COUNT(*) total FROM role_endpoints WHERE deleted_at IS NULL").get()).toEqual({ total: 10 });
 });
 
 test("optional admin seed is idempotent and uses a native password hash", async () => {

@@ -6,6 +6,7 @@ import { createAuthRoutes, createDashboardRoute } from "./modules/auth/routes";
 import { events } from "./modules/events/routes";
 import { mailer } from "./modules/mailer/routes";
 import { createLandingRoutes } from "./modules/landing/routes";
+import { createAdminRoutes } from "./modules/admin/routes";
 
 export function createApp({ database, captcha, jwtSecret = process.env.JWT_SECRET ?? "development-secret" }: {
   database: Database;
@@ -19,6 +20,7 @@ export function createApp({ database, captcha, jwtSecret = process.env.JWT_SECRE
   app.get("/favicon.ico", (c) => c.body(null, 204));
   app.route("/auth", createAuthRoutes(database, captcha, jwtSecret));
   app.route("/dashboard", createDashboardRoute(database, jwtSecret));
+  app.route("/admin", createAdminRoutes(database));
   app.route("/events", events);
   app.route("/mailer", mailer);
   return app;
