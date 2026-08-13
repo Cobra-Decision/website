@@ -48,7 +48,7 @@ test("getUpcomingMeets excludes soft-deleted meets and tags", () => {
   database.run("UPDATE meets SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?", [deleted.id]);
 
   expect(getUpcomingMeets(database)).toEqual([{
-    id: active.id, title: "Upcoming", topics: ["Bun"], scheduled_date: "2099-01-01", scheduled_time: "19:00",
+    id: active.id, title: "Upcoming", description: "", topics: ["Bun"], scheduled_date: "2099-01-01", scheduled_time: "19:00",
     duration_minutes: 60, meet_url: null, image_url: null, presenter_id: null, created_at: expect.any(String),
     updated_at: expect.any(String), deleted_at: null, attendee_count: 1, presenter: null, attendee_ids: [userId], tags: [{ id: tags[0]!.id, title: "Active", description: null, created_at: expect.any(String), updated_at: expect.any(String), deleted_at: null }],
   }]);

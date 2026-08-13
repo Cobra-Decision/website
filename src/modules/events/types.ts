@@ -10,6 +10,7 @@ export type Tag = {
 export type Meet = {
   id: number;
   title: string;
+  description: string;
   topics: string | null;
   scheduled_date: string;
   scheduled_time: string;
@@ -34,6 +35,7 @@ export type MeetWithDetails = Omit<Meet, "topics"> & {
 
 export type CreateMeetInput = {
   title: string;
+  description?: string;
   topics: string[];
   scheduledDate: string;
   scheduledTime: string;

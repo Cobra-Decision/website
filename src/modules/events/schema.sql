@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS tags (
 CREATE TABLE IF NOT EXISTS meets (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   title TEXT NOT NULL,
+  description TEXT NOT NULL DEFAULT '',
   topics TEXT,
   scheduled_date DATE NOT NULL,
   scheduled_time TIME NOT NULL,

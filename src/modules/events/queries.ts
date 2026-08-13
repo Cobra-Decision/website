@@ -2,10 +2,10 @@ import type { Database } from "bun:sqlite";
 import type { CreateMeetInput, Meet, MeetWithDetails, Tag, UserSummary } from "./types";
 
 export function createMeet(database: Database, data: CreateMeetInput): Meet {
-  const insert = database.query(`INSERT INTO meets (title, topics, scheduled_date, scheduled_time, duration_minutes, meet_url, image_url, presenter_id)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?) RETURNING *`);
+  const insert = database.query(`INSERT INTO meets (title, description, topics, scheduled_date, scheduled_time, duration_minutes, meet_url, image_url, presenter_id)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING *`);
   const meet = database.transaction(() => {
-    const row = insert.get(data.title, JSON.stringify(data.topics), data.scheduledDate, data.scheduledTime,
+    const row = insert.get(data.title, data.description ?? "", JSON.stringify(data.topics), data.scheduledDate, data.scheduledTime,
       data.durationMinutes ?? 60, data.meetUrl ?? null, data.imageUrl ?? null, data.presenterId ?? null) as Meet;
     const map = database.query("INSERT INTO meet_tags (meet_id, tag_id) VALUES (?, ?)");
     for (const tagId of data.tagIds) map.run(row.id, tagId);
