@@ -30,11 +30,13 @@
 ### Task 1: Configure the project and prove the app is missing
 
 **Files:**
+
 - Create: `package.json`
 - Create: `tsconfig.json`
 - Create: `test/app.test.tsx`
 
 **Interfaces:**
+
 - Produces: test import contract `app` from `../src/index` with `app.request(path: string): Promise<Response>`.
 
 - [ ] **Step 1: Create Bun configuration**
@@ -44,7 +46,12 @@
   "name": "website",
   "private": true,
   "type": "module",
-  "scripts": { "dev": "bun --watch src/index.tsx", "start": "bun src/index.tsx", "test": "bun test", "check": "bunx tsc --noEmit" },
+  "scripts": {
+    "dev": "bun --watch src/index.tsx",
+    "start": "bun src/index.tsx",
+    "test": "bun test",
+    "check": "bunx tsc --noEmit"
+  },
   "dependencies": { "hono": "^4.0.0" },
   "devDependencies": { "bun-types": "^1.0.0", "typescript": "^5.0.0" }
 }
@@ -52,7 +59,13 @@
 
 ```json
 {
-  "compilerOptions": { "jsx": "react-jsx", "jsxImportSource": "hono/jsx", "strict": true, "noEmit": true, "types": ["bun-types"] },
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "jsxImportSource": "hono/jsx",
+    "strict": true,
+    "noEmit": true,
+    "types": ["bun-types"]
+  },
   "include": ["src", "test"]
 }
 ```
@@ -103,6 +116,7 @@ git commit -m "chore: configure Bun application"
 ### Task 2: Implement the minimal modular application
 
 **Files:**
+
 - Create: `src/index.tsx`
 - Create: `src/lib/database.ts`
 - Create: `src/lib/cache.ts`
@@ -112,17 +126,21 @@ git commit -m "chore: configure Bun application"
 - Modify: `test/app.test.tsx`
 
 **Interfaces:**
+
 - Consumes: `app` import contract from Task 1.
 - Produces: `app: Hono`, a home route, and `GET /auth`, `GET /events`, `GET /mailer` placeholder routes.
 
 - [ ] **Step 1: Extend the red test to cover feature pages**
 
 ```tsx
-test.each(["auth", "events", "mailer"])("%s is a placeholder page", async (feature) => {
-  const response = await app.request(`/${feature}`);
-  expect(response.status).toBe(200);
-  expect(await response.text()).toContain("Back home");
-});
+test.each(["auth", "events", "mailer"])(
+  "%s is a placeholder page",
+  async (feature) => {
+    const response = await app.request(`/${feature}`);
+    expect(response.status).toBe(200);
+    expect(await response.text()).toContain("Back home");
+  },
+);
 ```
 
 - [ ] **Step 2: Run the test to verify it still fails**
@@ -145,11 +163,15 @@ const limit = 100;
 const cache = new Map<string, unknown>();
 export function getCache(key: string) {
   const value = cache.get(key);
-  if (value !== undefined) { cache.delete(key); cache.set(key, value); }
+  if (value !== undefined) {
+    cache.delete(key);
+    cache.set(key, value);
+  }
   return value;
 }
 export function setCache(key: string, value: unknown) {
-  cache.delete(key); cache.set(key, value);
+  cache.delete(key);
+  cache.set(key, value);
   if (cache.size > limit) cache.delete(cache.keys().next().value!);
 }
 ```
@@ -157,19 +179,40 @@ export function setCache(key: string, value: unknown) {
 ```tsx
 // src/modules/auth/routes.tsx
 import { Hono } from "hono";
-export const auth = new Hono().get("/", (c) => c.html(<main><h1>Auth</h1><a href="/">Back home</a></main>));
+export const auth = new Hono().get("/", (c) =>
+  c.html(
+    <main>
+      <h1>Auth</h1>
+      <a href="/">Back home</a>
+    </main>,
+  ),
+);
 ```
 
 ```tsx
 // src/modules/events/routes.tsx
 import { Hono } from "hono";
-export const events = new Hono().get("/", (c) => c.html(<main><h1>Events</h1><a href="/">Back home</a></main>));
+export const events = new Hono().get("/", (c) =>
+  c.html(
+    <main>
+      <h1>Events</h1>
+      <a href="/">Back home</a>
+    </main>,
+  ),
+);
 ```
 
 ```tsx
 // src/modules/mailer/routes.tsx
 import { Hono } from "hono";
-export const mailer = new Hono().get("/", (c) => c.html(<main><h1>Mailer</h1><a href="/">Back home</a></main>));
+export const mailer = new Hono().get("/", (c) =>
+  c.html(
+    <main>
+      <h1>Mailer</h1>
+      <a href="/">Back home</a>
+    </main>,
+  ),
+);
 ```
 
 ```tsx
@@ -181,8 +224,27 @@ import { mailer } from "./modules/mailer/routes";
 import "./lib/database";
 
 export const app = new Hono();
-app.get("/", (c) => c.html(<html><head><script src="https://unpkg.com/htmx.org@2.0.4" /></head><body><main><h1>Website</h1><nav><a href="/auth">Auth</a> <a href="/events">Events</a> <a href="/mailer">Mailer</a></nav></main></body></html>));
-app.route("/auth", auth); app.route("/events", events); app.route("/mailer", mailer);
+app.get("/", (c) =>
+  c.html(
+    <html>
+      <head>
+        <script src="https://unpkg.com/htmx.org@2.0.4" />
+      </head>
+      <body>
+        <main>
+          <h1>Website</h1>
+          <nav>
+            <a href="/auth">Auth</a> <a href="/events">Events</a>{" "}
+            <a href="/mailer">Mailer</a>
+          </nav>
+        </main>
+      </body>
+    </html>,
+  ),
+);
+app.route("/auth", auth);
+app.route("/events", events);
+app.route("/mailer", mailer);
 
 export default { port: 3000, fetch: app.fetch };
 ```
