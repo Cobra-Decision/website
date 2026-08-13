@@ -69,6 +69,18 @@ test("seeded admin can open the dashboard admin area", async () => {
   expect(response.headers.get("location")).toBe("/dashboard/admin/users");
 });
 
+test("admin user form exposes profile fields and hashes its password", async () => {
+  await initializeDatabase(database, { email: "admin@example.com", password: "secret123" });
+  const login = new FormData(); login.set("identifier", "admin@example.com"); login.set("password", "secret123");
+  const cookie = (await app.request("/auth/login", { method: "POST", body: login })).headers.get("set-cookie")!.split(";")[0];
+  const form = await app.request("/dashboard/admin/users/new", { headers: { cookie } });
+  expect(await form.text()).toContain('name="first_name"');
+  const user = new FormData(); user.set("email", "editor@example.com"); user.set("password", "secret123"); user.set("role_id", "1");
+  await app.request("/dashboard/admin/users", { method: "POST", headers: { cookie }, body: user });
+  const row = database.query<{ password_hash: string }, []>("SELECT password_hash FROM users WHERE email='editor@example.com'").get()!;
+  expect(await Bun.password.verify("secret123", row.password_hash)).toBe(true);
+});
+
 test("member dashboard does not show admin navigation", async () => {
   const register = new FormData();
   register.set("email", "member@example.com");
