@@ -1,4 +1,5 @@
 import type { Context, Next } from "hono";
+import type { Database } from "bun:sqlite";
 import { getCookie } from "hono/cookie";
 import { verify } from "hono/jwt";
 import { database } from "../../lib/database";
@@ -6,19 +7,25 @@ import { database } from "../../lib/database";
 type Claims = { sub: string; username: string; role_title: string; role_id: number };
 const permissionCache = new Map<number, Set<string>>();
 
-function permissionsFor(roleId: number) {
-  const cached = permissionCache.get(roleId);
-  if (cached) return cached;
-  const rows = database.query<{ title: string }, [number]>(
-    `SELECT e.title FROM endpoints e
-     JOIN role_endpoints re ON re.endpoint_id = e.id
-     WHERE re.role_id = ? AND e.deleted_at IS NULL
-       AND re.deleted_at IS NULL`,
-  ).all(roleId);
-  const permissions = new Set(rows.map(({ title }) => title));
-  permissionCache.set(roleId, permissions);
-  return permissions;
+export function createPermissionChecker(db: Database) {
+  const cache = db === database ? permissionCache : new Map<number, Set<string>>();
+  const check = (roleId: number, path: string) => {
+    let permissions = cache.get(roleId);
+    if (!permissions) {
+      const rows = db.query<{ title: string }, [number]>(
+        `SELECT e.title FROM endpoints e JOIN role_endpoints re ON re.endpoint_id = e.id
+         WHERE re.role_id = ? AND e.deleted_at IS NULL AND re.deleted_at IS NULL`,
+      ).all(roleId);
+      permissions = new Set(rows.map(({ title }) => title));
+      cache.set(roleId, permissions);
+    }
+    return permissions.has(path);
+  };
+  check.clear = (roleId?: number) => roleId === undefined ? cache.clear() : cache.delete(roleId);
+  return check;
 }
+
+const canAccess = createPermissionChecker(database);
 
 export const requirePermission = (jwtSecret = process.env.JWT_SECRET ?? "development-secret") =>
   async (c: Context, next: Next) => {
@@ -26,7 +33,7 @@ export const requirePermission = (jwtSecret = process.env.JWT_SECRET ?? "develop
     if (!token) return c.html(<p class="alert alert-error">Authentication required.</p>, 401);
     try {
       const claims = (await verify(token, jwtSecret, "HS256")) as unknown as Claims;
-      if (!permissionsFor(claims.role_id).has(c.req.path)) {
+      if (!canAccess(claims.role_id, c.req.path)) {
         return c.html(<p class="alert alert-error">You do not have permission to access this page.</p>, 403);
       }
       c.set("auth", claims);
@@ -37,6 +44,5 @@ export const requirePermission = (jwtSecret = process.env.JWT_SECRET ?? "develop
   };
 
 export function clearPermissionCache(roleId?: number) {
-  if (roleId === undefined) permissionCache.clear();
-  else permissionCache.delete(roleId);
+  canAccess.clear(roleId);
 }
