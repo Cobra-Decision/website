@@ -20,8 +20,11 @@ test("cache retains a recently read item", () => {
   expect(getCache("1")).toBeUndefined();
 });
 
-test.each(["auth", "events", "mailer"])("%s is a placeholder page", async (feature) => {
-  const response = await app.request(`/${feature}`);
-  expect(response.status).toBe(200);
-  expect(await response.text()).toContain("Back home");
-});
+test.each(["auth", "events", "mailer"])(
+  "%s is a placeholder page",
+  async (feature) => {
+    const response = await app.request(`/${feature}`);
+    expect(response.status).toBe(200);
+    expect(await response.text()).toContain("Back home");
+  },
+);
