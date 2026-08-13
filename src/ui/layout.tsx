@@ -9,7 +9,7 @@ export const Layout = ({ children, title = "Website" }: { children: Child; title
       <title>{title}</title>
       <link href="/app.css" rel="stylesheet" />
       <script src="https://unpkg.com/htmx.org@2.0.4" />
-      <script async defer src="https://cdn.jsdelivr.net/npm/altcha@3.2.1/dist/altcha.min.js" type="module" />
+      <script async defer src="/altcha.js" type="module" />
       <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" />
     </head>
     <body class="min-h-screen bg-base-200 text-base-content">{children}</body>

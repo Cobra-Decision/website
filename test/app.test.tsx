@@ -25,6 +25,12 @@ test("compiled application CSS is served locally", async () => {
   expect(await response.text()).toContain("--p");
 });
 
+test("ALTCHA widget is served locally as JavaScript", async () => {
+  const response = await app.request("/altcha.js");
+  expect(response.status).toBe(200);
+  expect(response.headers.get("content-type")).toContain("text/javascript");
+});
+
 test("cache retains a recently read item", () => {
   for (let index = 0; index < 100; index++) setCache(String(index), index);
   expect(getCache("0")).toBe(0);

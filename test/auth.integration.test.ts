@@ -21,8 +21,10 @@ test("auth pages load the shared UI stack and ALTCHA", async () => {
     expect(html.startsWith("<!DOCTYPE html>")).toBe(true);
     expect(html).toContain('href="/app.css"');
     expect(html).not.toContain("cdn.tailwindcss.com");
+    expect(html).toContain('src="/altcha.js"');
+    expect(html).not.toContain("cdn.jsdelivr.net/npm/altcha");
     expect(html).toContain("htmx.org");
-    expect(html).toContain("altcha.min.js");
+    expect(html).toContain('src="/altcha.js"');
     expect(html).toContain('<altcha-widget challenge="/auth/altcha/challenge"');
   }
 });
