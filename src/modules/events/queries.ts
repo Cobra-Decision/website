@@ -1,6 +1,7 @@
 import type { Database } from "bun:sqlite";
 import type { CreateMeetInput, Meet, MeetWithDetails, Tag, UserSummary } from "./types";
 import { toUtcIso } from "./datetime";
+import { refreshLandingCache } from "../../lib/cache";
 
 export function createMeet(database: Database, data: CreateMeetInput): Meet {
   const insert = database.query(`INSERT INTO meets (title, description, topics, scheduled_at_utc, scheduled_date, scheduled_time, duration_minutes, meet_url, image_url, presenter_id)
@@ -12,6 +13,7 @@ export function createMeet(database: Database, data: CreateMeetInput): Meet {
     for (const tagId of data.tagIds) map.run(row.id, tagId);
     return row;
   })();
+  refreshLandingCache(database);
   return meet;
 }
 
@@ -19,9 +21,11 @@ export function toggleAttendance(database: Database, meetId: number, userId: num
   const exists = database.query("SELECT 1 FROM meet_attendees WHERE meet_id = ? AND user_id = ?").get(meetId, userId);
   if (exists) {
     database.run("DELETE FROM meet_attendees WHERE meet_id = ? AND user_id = ?", [meetId, userId]);
+    refreshLandingCache(database);
     return false;
   }
   database.run("INSERT INTO meet_attendees (meet_id, user_id) VALUES (?, ?)", [meetId, userId]);
+  refreshLandingCache(database);
   return true;
 }
 
