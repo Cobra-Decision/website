@@ -13,7 +13,7 @@ export const Layout = ({ children, title = "Website" }: { children: Child; title
       <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" />
       <script dangerouslySetInnerHTML={{ __html: "document.addEventListener('htmx:afterSettle',()=>document.querySelectorAll('[data-toast=success],[data-toast=info]').forEach((el)=>setTimeout(()=>el.remove(),4000)))" }} />
     </head>
-    <body class="min-h-screen bg-base-200 text-base-content"><div id="toast-container" class="toast toast-top toast-end"></div>{children}</body>
+    <body class="min-h-screen bg-base-200 text-base-content"><div id="toast-container" class="toast toast-top toast-end z-50"></div>{children}</body>
   </html>
 );
 

@@ -15,8 +15,8 @@ export function initCache(database: Database) {
   setCache("errors", new Map(database.query<ErrorMessage, []>("SELECT type,title,description FROM error_messages WHERE deleted_at IS NULL").all().map((message) => [message.title, message])));
 }
 
-export function getErrorMessage(title: string): ErrorMessage {
-  return (getCache("errors") as Map<string, ErrorMessage> | undefined)?.get(title) ?? { type: "info", title, description: "Action completed." };
+export function getErrorMessage(title: string): ErrorMessage | undefined {
+  return (getCache("errors") as Map<string, ErrorMessage> | undefined)?.get(title);
 }
 
 export function getLandingCache(): LandingCache {
