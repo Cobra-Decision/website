@@ -22,12 +22,23 @@ export async function initializeDatabase(database: Database, admin: AdminSeed = 
 
   const endpoints = [
     "/dashboard",
+    "/dashboard/user",
+    "/dashboard/user/meets",
+    "/dashboard/user/my-meets",
+    "/dashboard/account",
     "/dashboard/admin",
     "/dashboard/admin/users",
     "/dashboard/admin/meets",
     "/dashboard/admin/tags",
     "/dashboard/admin/roles",
     "/dashboard/admin/endpoints",
+    "/dashboard/admin/files",
+    "/dashboard/admin/files/upload",
+    "/dashboard/admin/files/upload-modal",
+    "/dashboard/admin/files/preview-modal",
+    "/dashboard/admin/files/rename",
+    "/dashboard/admin/files/rename-modal",
+    "/dashboard/admin/files/duplicate",
     "/dashboard/admin/report",
   ];
   for (const endpoint of endpoints) {

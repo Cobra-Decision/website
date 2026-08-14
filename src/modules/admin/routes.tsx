@@ -3,14 +3,15 @@ import { getCookie } from "hono/cookie";
 import { verify } from "hono/jwt";
 import type { Database } from "bun:sqlite";
 import { clearPermissionCache, createPermissionChecker } from "../auth/middleware";
-import { AdminLayout, CrudTable, MeetRelations, type Row } from "./views";
+import { AdminLayout, CrudTable, MeetRelations, type Row, Toast } from "./views";
 import { FormMessage } from "../../ui/form-message";
 import { getErrorMessage, refreshLandingCache } from "../../lib/cache";
-import { Toast } from "./views";
 import { validateReportSql } from "./report";
 import { SchemaTable } from "./report-views";
 import { generateId } from "../../lib/id";
 import { handleImageUpload } from "./upload";
+import { createFileAdminRoutes } from "./files/routes";
+import { MeetingLinkGenerator } from "../../ui/dashboard";
 
 const guard = (db: Database, jwtSecret: string, path: string) => async (c: Context, next: Next) => {
   const token = getCookie(c, "session");
@@ -49,6 +50,10 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
 
   app.use("*", async (c, next) => guard(db, jwtSecret, c.req.path)(c, next));
   app.get("/", (c) => c.redirect("/dashboard/admin/users"));
+
+  // File Management Subroutes
+  const fileRoutes = createFileAdminRoutes(db, page);
+  app.route("/files", fileRoutes);
 
   const config = {
     users: {
@@ -181,7 +186,7 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
               </div>
             )}
             {config[resource].fields.map((field) => (
-              <label class="form-control">
+              <label class="form-control" key={field}>
                 <span class="label-text">{field.replaceAll("_", " ")}</span>
                 {fieldInput(field)}
               </label>
@@ -206,6 +211,13 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
             </div>
           </form>
 
+          {/* Admin Attributed Link Generator for Meets */}
+          {resource === "meets" && id && (
+            <div class="mt-6 border-t border-base-200 pt-5">
+              <MeetingLinkGenerator meetId={id} />
+            </div>
+          )}
+
           {resource === "meets" && id && relationPanel(id)}
 
           {resource === "roles" && id && (
@@ -214,7 +226,7 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
               <div class="mt-2 flex gap-2">
                 <select id={`role-endpoint-${id}`} class="select select-bordered w-full" name="endpoint_id">
                   {endpoints.map((endpoint) => (
-                    <option value={endpoint.id}>{endpoint.title}</option>
+                    <option value={endpoint.id} key={endpoint.id}>{endpoint.title}</option>
                   ))}
                 </select>
                 <button type="button" class="btn btn-primary" hx-post={`/dashboard/admin/roles/${id}/endpoints`} hx-include={`#role-endpoint-${id}`} hx-target="#modal">
@@ -222,7 +234,7 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
                 </button>
               </div>
               {mappings.map((mapping) => (
-                <div class="mt-2 flex items-center justify-between gap-2">
+                <div class="mt-2 flex items-center justify-between gap-2" key={mapping.endpoint_id}>
                   <span class="text-sm">{mapping.title}</span>
                   <button type="button" class="btn btn-error btn-xs" hx-delete={`/dashboard/admin/roles/${id}/endpoints/${mapping.endpoint_id}`} hx-target="#modal">
                     Remove
@@ -455,7 +467,7 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
       <form class="flex gap-2" hx-post={`/dashboard/admin/roles/${c.req.param("id")}/endpoints`} hx-target="this">
         <select name="endpoint_id" class="select select-bordered">
           {db.query<{ id: string; title: string }, []>("SELECT id,title FROM endpoints WHERE deleted_at IS NULL ORDER BY title").all().map((endpoint) => (
-            <option value={endpoint.id}>{endpoint.title}</option>
+            <option value={endpoint.id} key={endpoint.id}>{endpoint.title}</option>
           ))}
         </select>
         <button class="btn btn-primary">Assign endpoint</button>
@@ -479,19 +491,19 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
       c,
       "SQL report",
       <div class="space-y-6">
-        <form hx-post="/dashboard/admin/report" hx-target="#report-result" class="card bg-base-100 shadow">
-          <div class="card-body">
-            <h1 class="card-title">Read-only SQL report</h1>
-            <textarea class="textarea textarea-bordered h-32 font-mono" name="sql" placeholder="SELECT * FROM users" required></textarea>
+        <form hx-post="/dashboard/admin/report" hx-target="#report-result" class="card border border-base-300 bg-base-100 shadow-sm">
+          <div class="card-body p-6">
+            <h1 class="card-title text-xl">Read-only SQL report</h1>
+            <textarea class="textarea textarea-bordered h-32 font-mono text-sm" name="sql" placeholder="SELECT * FROM users" required></textarea>
             <div class="modal-action">
               <button class="btn btn-primary">Run query</button>
             </div>
           </div>
         </form>
         <div id="report-result"></div>
-        <div class="card bg-base-100 shadow">
-          <div class="card-body">
-            <h2 class="card-title">Schema</h2>
+        <div class="card border border-base-300 bg-base-100 shadow-sm">
+          <div class="card-body p-6">
+            <h2 class="card-title text-xl">Database Schema</h2>
             {schema}
           </div>
         </div>
@@ -507,26 +519,26 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
       const rows = db.query(`SELECT * FROM (${valid}) LIMIT 200`).all() as Row[];
       const columns = Object.keys(rows[0] ?? {});
       return c.html(
-        <div id="report-result" class="overflow-x-auto">
-          <table class="table bg-base-100">
-            <thead>
+        <div id="report-result" class="overflow-x-auto rounded-2xl border border-base-300 bg-base-100 p-4 shadow-sm">
+          <table class="table table-zebra">
+            <thead class="bg-base-200/50 text-xs font-semibold uppercase tracking-wider text-base-content/70">
               <tr>
                 {columns.map((column) => (
-                  <th>{column}</th>
+                  <th key={column}>{column}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {rows.map((row) => (
-                <tr>
+                <tr key={String(row.id ?? Math.random())}>
                   {columns.map((column) => (
-                    <td>{String(row[column] ?? "—")}</td>
+                    <td key={column} class="text-sm">{String(row[column] ?? "—")}</td>
                   ))}
                 </tr>
               ))}
             </tbody>
           </table>
-          <p class="mt-2 text-sm opacity-60">{rows.length} row(s), maximum 200.</p>
+          <p class="mt-3 text-xs text-base-content/60">{rows.length} row(s) returned (maximum 200).</p>
         </div>
       );
     } catch {

@@ -25,6 +25,69 @@ export async function seedSampleData(database: Database) {
   const noah = await ensureUser("noah@example.com", "noah", "Noah", "Patel");
   await ensureUser("alex.admin@example.com", "alex-admin", "Alex", "Morgan", roles.admin);
 
+  // Register all system endpoints
+  const endpointsToRegister = [
+    "/dashboard",
+    "/dashboard/user",
+    "/dashboard/user/meets",
+    "/dashboard/user/my-meets",
+    "/dashboard/account",
+    "/dashboard/admin",
+    "/dashboard/admin/users",
+    "/dashboard/admin/meets",
+    "/dashboard/admin/tags",
+    "/dashboard/admin/roles",
+    "/dashboard/admin/endpoints",
+    "/dashboard/admin/files",
+    "/dashboard/admin/files/upload",
+    "/dashboard/admin/files/upload-modal",
+    "/dashboard/admin/files/preview-modal",
+    "/dashboard/admin/files/rename",
+    "/dashboard/admin/files/rename-modal",
+    "/dashboard/admin/files/duplicate",
+    "/dashboard/admin/report",
+  ];
+
+  for (const endpoint of endpointsToRegister) {
+    const existing = database.query<{ id: string }, [string]>("SELECT id FROM endpoints WHERE title = ?").get(endpoint);
+    if (!existing) {
+      database.run("INSERT INTO endpoints (id, title, description) VALUES (?, ?, ?)", [
+        generateId(),
+        endpoint,
+        "System endpoint",
+      ]);
+    }
+  }
+
+  // Map permissions for Super Admin and Admin
+  const adminRoles = database.query<{ id: string; title: string }, []>("SELECT id, title FROM roles WHERE title IN ('admin', 'Super Admin')").all();
+  const allEndpoints = database.query<{ id: string; title: string }, []>("SELECT id, title FROM endpoints").all();
+
+  for (const r of adminRoles) {
+    for (const e of allEndpoints) {
+      if (r.title === "admin" && e.title === "/dashboard/admin/report") continue;
+      database.run(
+        "INSERT OR IGNORE INTO role_endpoints (id, role_id, endpoint_id, description) VALUES (?, ?, ?, ?)",
+        [generateId(), r.id, e.id, "Dashboard access"]
+      );
+    }
+  }
+
+  // Member role endpoints
+  const memberRole = database.query<{ id: string }, [string]>("SELECT id FROM roles WHERE title = ?").get("member");
+  if (memberRole) {
+    const memberEndpoints = ["/dashboard", "/dashboard/user", "/dashboard/user/meets", "/dashboard/user/my-meets", "/dashboard/account"];
+    for (const path of memberEndpoints) {
+      const ep = database.query<{ id: string }, [string]>("SELECT id FROM endpoints WHERE title = ?").get(path);
+      if (ep) {
+        database.run(
+          "INSERT OR IGNORE INTO role_endpoints (id, role_id, endpoint_id, description) VALUES (?, ?, ?, ?)",
+          [generateId(), memberRole.id, ep.id, "Member dashboard access"]
+        );
+      }
+    }
+  }
+
   const defaultPlatforms = [
     { slug: "telegram", name: "Telegram" },
     { slug: "youtube", name: "YouTube" },
@@ -80,7 +143,7 @@ export async function seedSampleData(database: Database) {
 
   const samples = [
     {
-      title: "Designing with Bun & Hono",
+      title: "Designing with Bun",
       description: "A practical deep-dive into building blazing fast server-rendered TypeScript systems with HTMX.",
       topics: ["Bun", "Hono", "HTMX", "Architecture"],
       date: "2099-06-12",

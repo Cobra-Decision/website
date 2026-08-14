@@ -7,6 +7,7 @@ import { mailer } from "./modules/mailer/routes";
 import { createLandingRoutes } from "./modules/landing/routes";
 import { createAdminRoutes } from "./modules/admin/routes";
 import { createUserDashboardRoutes } from "./modules/dashboard/user/routes";
+import { createAccountRoutes } from "./modules/dashboard/account/routes";
 
 export function createApp({
   database,
@@ -35,8 +36,9 @@ export function createApp({
   // Dashboard Routes
   app.route("/dashboard/user", createUserDashboardRoutes(database, jwtSecret));
   app.route("/dashboard/member", createUserDashboardRoutes(database, jwtSecret));
-  app.route("/dashboard/member/profile", createProfileRoute(database, jwtSecret));
-  app.route("/dashboard/profile", createProfileRoute(database, jwtSecret));
+  app.route("/dashboard/account", createAccountRoutes(database, jwtSecret));
+  app.route("/dashboard/member/profile", createAccountRoutes(database, jwtSecret));
+  app.route("/dashboard/profile", createAccountRoutes(database, jwtSecret));
   app.route("/dashboard/admin", createAdminRoutes(database, jwtSecret));
 
   // Events & Meets
