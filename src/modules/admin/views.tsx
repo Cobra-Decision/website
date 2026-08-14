@@ -130,12 +130,14 @@ export function CrudTable({
   columns,
   searchFields = columns,
   query = {},
+  locale = "en",
 }: {
   resource: string;
   rows: Row[];
   columns: string[];
   searchFields?: string[];
   query?: Record<string, string>;
+  locale?: Locale;
 }) {
   const searchField = searchFields.includes(query.search_field ?? "") ? query.search_field! : searchFields[0]!;
   const sortUrl = (column: string) =>
@@ -298,22 +300,11 @@ export const Toast = ({
   description: string;
   locale?: Locale;
 }) => {
-  const localizedTitle = t(title as any, locale);
-  const displayTitle = localizedTitle !== title ? localizedTitle : title;
-
   return (
     <div id="toast-container" hx-swap-oob="beforeend">
       <div class={`alert alert-${type} shadow-lg flex items-center justify-between gap-3`} data-toast={type}>
         <div class="text-sm">
-          {displayTitle === description || !description ? (
-            <span>{displayTitle}</span>
-          ) : title === "admin.created" || title === "admin.deleted" ? (
-            <span>{description}</span>
-          ) : (
-            <span>
-              <strong class="font-semibold">{displayTitle}:</strong> {description}
-            </span>
-          )}
+          <span>{description || title}</span>
         </div>
         <button
           class="btn btn-ghost btn-xs btn-circle"
