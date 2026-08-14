@@ -15,6 +15,7 @@ export function createApp({ database, captcha, jwtSecret = process.env.JWT_SECRE
 }) {
   const app = new Hono();
   app.use("/app.css", serveStatic({ root: "./public" }));
+  app.use("/favicon.svg", serveStatic({ path: "./public/favicon.svg" }));
   app.use("/altcha.js", serveStatic({ path: "node_modules/altcha/dist/main/altcha.min.js" }));
   app.route("/", createLandingRoutes(database));
   app.get("/favicon.ico", (c) => c.body(null, 204));

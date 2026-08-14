@@ -1,12 +1,13 @@
 import type { Child } from "hono/jsx";
 import { html } from "hono/html";
 
-export const Layout = ({ children, title = "Website" }: { children: Child; title?: string }) => (
+export const Layout = ({ children }: { children: Child; title?: string }) => (
   <html lang="en" data-theme="corporate">
     <head>
       <meta charset="UTF-8" />
       <meta name="viewport" content="width=device-width, initial-scale=1" />
-      <title>{title}</title>
+      <title>CobraDecision</title>
+      <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
       <link href="/app.css" rel="stylesheet" />
       <script src="https://unpkg.com/htmx.org@2.0.4" />
       <script async defer src="/altcha.js" type="module" />
