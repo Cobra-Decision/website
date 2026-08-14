@@ -17,7 +17,9 @@ export const RsvpButton = ({
   locale?: Locale;
 }) => (
   <div class="rsvp-button" id={`rsvp-btn-${meet.id}`}>
-    {isAttending ? (
+    {meet.status === "completed" || meet.status === "cancelled" ? (
+      <span class="badge badge-ghost text-xs py-2 px-3">{t("meet.status.completed", locale)}</span>
+    ) : isAttending ? (
       <button
         type="button"
         hx-delete={`/meets/${meet.id}/attend`}
