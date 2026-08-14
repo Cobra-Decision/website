@@ -18,19 +18,113 @@ export function MarkdownEditor({
         content: ${JSON.stringify(initialValue)},
         previewHtml: '',
         renderPreview() {
-          let text = this.content || '';
-          text = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-          text = text.replace(/^### (.*$)/gim, '<h3 class="font-bold text-lg mt-2 mb-1">$1</h3>');
-          text = text.replace(/^## (.*$)/gim, '<h2 class="font-bold text-xl mt-3 mb-1 border-b pb-1">$1</h2>');
-          text = text.replace(/^# (.*$)/gim, '<h1 class="font-black text-2xl mt-4 mb-2 border-b pb-1">$1</h1>');
-          text = text.replace(/\\*\\*(.*?)\\*\\*/gim, '<strong>$1</strong>');
-          text = text.replace(/\\*(.*?)\\*/gim, '<em>$1</em>');
-          text = text.replace(/\`([^\`]+)\`/gim, '<code class="bg-base-300 px-1 rounded text-xs text-primary">$1</code>');
-          text = text.replace(/\\[([^\\]]+)\\]\\(([^)]+)\\)/gim, '<a href="$2" target="_blank" class="link link-primary">$1</a>');
-          text = text.replace(/^\\s*[-*]\\s+(.*)$/gim, '<li class="ml-4 list-disc">$1</li>');
-          text = text.replace(/^\\s*\\d+\\.\\s+(.*)$/gim, '<li class="ml-4 list-decimal">$1</li>');
-          text = text.replace(/\\n/gim, '<br/>');
-          this.previewHtml = text || '<span class="text-base-content/40 italic">Nothing to preview yet.</span>';
+          const text = this.content || '';
+          if (!text.trim()) {
+            this.previewHtml = '<span class="text-base-content/40 italic">Nothing to preview yet.</span>';
+            return;
+          }
+          const escape = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+          const parseInline = (s) => {
+            let res = s.replace(/\`([^\`]+)\`/g, '<code class="bg-base-300 px-1.5 py-0.5 rounded text-xs text-primary font-mono" dir="ltr">$1</code>');
+            res = res.replace(/\\*\\*\\*([^*]+)\\*\\*\\*/g, '<strong><em>$1</em></strong>');
+            res = res.replace(/\\*\\*([^*]+)\\*\\*/g, '<strong>$1</strong>');
+            res = res.replace(/\\*([^*]+)\\*/g, '<em>$1</em>');
+            res = res.replace(/\\[([^\\]]+)\\]\\(([^)]+)\\)/g, '<a href="$2" target="_blank" class="link link-primary font-medium hover:underline">$1</a>');
+            return res;
+          };
+
+          const lines = text.split(/\\r?\\n/);
+          const parts = [];
+          let inCode = false;
+          let codeBuf = [];
+          let inUl = false;
+          let inOl = false;
+
+          const flushList = () => {
+            if (inUl) { parts.push('</ul>'); inUl = false; }
+            if (inOl) { parts.push('</ol>'); inOl = false; }
+          };
+
+          for (let i = 0; i < lines.length; i++) {
+            const line = lines[i];
+            const trimmed = line.trim();
+
+            if (trimmed.startsWith('\`\`\`')) {
+              if (inCode) {
+                parts.push('<pre class="p-4 rounded-xl bg-base-300 overflow-x-auto text-sm my-3 font-mono text-left" dir="ltr"><code>' + codeBuf.join('\\n') + '</code></pre>');
+                codeBuf = [];
+                inCode = false;
+              } else {
+                flushList();
+                inCode = true;
+              }
+              continue;
+            }
+
+            if (inCode) {
+              codeBuf.push(escape(line));
+              continue;
+            }
+
+            if (!trimmed) {
+              flushList();
+              continue;
+            }
+
+            if (trimmed.startsWith('### ')) {
+              flushList();
+              parts.push('<h3 dir="auto" class="font-bold text-lg mt-3 mb-1">' + parseInline(escape(trimmed.slice(4))) + '</h3>');
+              continue;
+            }
+            if (trimmed.startsWith('## ')) {
+              flushList();
+              parts.push('<h2 dir="auto" class="font-bold text-xl mt-4 mb-2 border-b pb-1">' + parseInline(escape(trimmed.slice(3))) + '</h2>');
+              continue;
+            }
+            if (trimmed.startsWith('# ')) {
+              flushList();
+              parts.push('<h1 dir="auto" class="font-black text-2xl mt-5 mb-2 border-b pb-1">' + parseInline(escape(trimmed.slice(2))) + '</h1>');
+              continue;
+            }
+
+            if (trimmed.startsWith('> ')) {
+              flushList();
+              parts.push('<blockquote dir="auto" class="border-l-4 border-primary/40 pl-4 py-1 my-2 italic opacity-90">' + parseInline(escape(trimmed.slice(2))) + '</blockquote>');
+              continue;
+            }
+
+            const ulMatch = trimmed.match(/^[-*]\\s+(.*)$/);
+            if (ulMatch) {
+              if (!inUl) {
+                flushList();
+                parts.push('<ul class="list-disc list-inside space-y-1 my-2">');
+                inUl = true;
+              }
+              parts.push('<li dir="auto">' + parseInline(escape(ulMatch[1])) + '</li>');
+              continue;
+            }
+
+            const olMatch = trimmed.match(/^\\d+\\.\\s+(.*)$/);
+            if (olMatch) {
+              if (!inOl) {
+                flushList();
+                parts.push('<ol class="list-decimal list-inside space-y-1 my-2">');
+                inOl = true;
+              }
+              parts.push('<li dir="auto">' + parseInline(escape(olMatch[1])) + '</li>');
+              continue;
+            }
+
+            flushList();
+            parts.push('<p dir="auto" class="my-2 leading-relaxed">' + parseInline(escape(trimmed)) + '</p>');
+          }
+
+          flushList();
+          if (inCode) {
+            parts.push('<pre class="p-4 rounded-xl bg-base-300 overflow-x-auto text-sm my-3 font-mono text-left" dir="ltr"><code>' + codeBuf.join('\\n') + '</code></pre>');
+          }
+
+          this.previewHtml = parts.join('');
         },
         insertText(prefix, suffix) {
           const textarea = this.$refs.textarea;
@@ -136,6 +230,8 @@ export function MarkdownEditor({
           x-model="content"
           placeholder={placeholder}
           rows={rows}
+          dir="auto"
+          style="unicode-bidi: plaintext;"
           class="textarea textarea-ghost w-full focus:outline-none font-mono text-sm leading-relaxed p-3"
         >
           {initialValue}
