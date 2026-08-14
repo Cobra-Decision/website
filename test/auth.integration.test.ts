@@ -106,6 +106,18 @@ test("sql report renders readable schema and returns error toasts", async () => 
   expect(await (await app.request("/dashboard/admin/report", { method: "POST", headers: { cookie }, body: query })).text()).toContain('hx-swap-oob="beforeend:#toast-container"');
 });
 
+test("admin tables support safe search and sorting", async () => {
+  await initializeDatabase(database, { email: "admin@example.com", password: "secret123" });
+  const role = database.query<{ id: number }, []>("SELECT id FROM roles WHERE title='member'").get()!;
+  database.run("INSERT INTO users (email,password_hash,role_id) VALUES (?,?,?)", ["maya@example.com", "hash", role.id]);
+  database.run("INSERT INTO users (email,password_hash,role_id) VALUES (?,?,?)", ["noah@example.com", "hash", role.id]);
+  const login = new FormData(); login.set("identifier", "admin@example.com"); login.set("password", "secret123");
+  const cookie = (await app.request("/auth/login", { method: "POST", body: login })).headers.get("set-cookie")!.split(";")[0];
+  const html = await (await app.request("/dashboard/admin/users?q=maya&sort=email&direction=asc", { headers: { cookie } })).text();
+  expect(html).toContain("maya@example.com"); expect(html).not.toContain("noah@example.com");
+  expect((await app.request("/dashboard/admin/users?sort=email;DELETE", { headers: { cookie } })).status).toBe(200);
+});
+
 test("member dashboard does not show admin navigation", async () => {
   const register = new FormData();
   register.set("email", "member@example.com");

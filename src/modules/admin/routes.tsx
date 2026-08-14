@@ -32,9 +32,20 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
     roles: { table: "roles", columns: ["id", "title", "description", "created_at", "updated_at"], fields: ["title", "description"] },
     endpoints: { table: "endpoints", columns: ["id", "title", "description", "created_at", "updated_at"], fields: ["title", "description"] },
   } as const;
-  const rowsFor = (resource: keyof typeof config) => resource === "users"
-    ? db.query("SELECT u.id,u.email,u.username,u.phone,u.first_name,u.last_name,r.title role_title,u.created_at,u.updated_at FROM users u JOIN roles r ON r.id=u.role_id WHERE u.deleted_at IS NULL AND r.deleted_at IS NULL ORDER BY u.id DESC").all() as Row[]
-    : db.query(`SELECT ${config[resource].columns.join(", ")} FROM ${config[resource].table} WHERE deleted_at IS NULL ORDER BY id DESC`).all() as Row[];
+  const rowsFor = (resource: keyof typeof config, query: Record<string, string> = {}) => {
+    const direction = query.direction === "asc" ? "ASC" : "DESC";
+    const sort = query.sort && config[resource].columns.includes(query.sort as never) ? query.sort : "id";
+    const q = query.q?.trim();
+    if (resource === "users") {
+      const allowed = ["id", "email", "username", "phone", "first_name", "last_name", "role_title", "created_at", "updated_at"];
+      const userSort = allowed.includes(sort) ? sort : "id";
+      const sql = `SELECT u.id,u.email,u.username,u.phone,u.first_name,u.last_name,r.title role_title,u.created_at,u.updated_at FROM users u JOIN roles r ON r.id=u.role_id WHERE u.deleted_at IS NULL AND r.deleted_at IS NULL${q ? " AND (u.email LIKE ? OR u.username LIKE ? OR u.first_name LIKE ? OR u.last_name LIKE ?)" : ""} ORDER BY ${userSort === "role_title" ? "r.title" : `u.${userSort}`} ${direction}`;
+      return (q ? db.query(sql).all(`%${q}%`, `%${q}%`, `%${q}%`, `%${q}%`) : db.query(sql).all()) as Row[];
+    }
+    const searchable = resource === "meets" ? "title LIKE ? OR description LIKE ?" : "title LIKE ? OR description LIKE ?";
+    const sql = `SELECT ${config[resource].columns.join(", ")} FROM ${config[resource].table} WHERE deleted_at IS NULL${q ? ` AND (${searchable})` : ""} ORDER BY ${sort} ${direction}`;
+    return (q ? db.query(sql).all(`%${q}%`, `%${q}%`) : db.query(sql).all()) as Row[];
+  };
   const tableResponse = (resource: keyof typeof config, toastTitle?: string, fallback = "") => <><CrudTable resource={resource} columns={[...config[resource].columns]} rows={rowsFor(resource)} />{toastTitle && toast(toastTitle, fallback)}</>;
   const form = (resource: keyof typeof config, id?: number, values: Row = {}) => {
     const roles = db.query<{ id: number; title: string }, []>("SELECT id,title FROM roles WHERE deleted_at IS NULL ORDER BY title").all();
@@ -52,7 +63,7 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
   const isSuperAdmin = (c: Context) => (c.get("auth") as { role_id: number }).role_id === db.query<{ id: number }, []>("SELECT id FROM roles WHERE title='Super Admin' AND deleted_at IS NULL").get()?.id;
   for (const resource of Object.keys(config) as (keyof typeof config)[]) {
     const { table, columns, fields } = config[resource];
-    app.get(`/${resource}`, (c) => page(c, resource, <CrudTable resource={resource} columns={[...columns]} rows={rowsFor(resource)} />));
+    app.get(`/${resource}`, (c) => page(c, resource, <CrudTable resource={resource} columns={[...columns]} rows={rowsFor(resource, c.req.query())} query={c.req.query()} />));
     app.get(`/${resource}/new`, (c) => c.html(form(resource)));
     app.get(`/${resource}/:id/edit`, (c) => { const editable = resource === "users" ? fields.filter((field) => field !== "password") : fields; const row = db.query(`SELECT ${editable.join(", ")} FROM ${table} WHERE id=? AND deleted_at IS NULL`).get(Number(c.req.param("id"))) as Row | null; return row ? c.html(form(resource, Number(c.req.param("id")), row)) : c.notFound(); });
     app.get(`/${resource}/:id/confirm`, (c) => c.html(<dialog class="modal modal-open"><div class="modal-box"><h3 class="font-bold">Delete {resource}?</h3><p class="py-4">This item will be removed from active results.</p><form hx-delete={`/dashboard/admin/${resource}/${c.req.param("id")}`} hx-target={`#${resource}-table`} hx-swap="outerHTML"><button class="btn btn-error">Delete</button><button type="button" class="btn" onclick="this.closest('dialog').remove()">Cancel</button></form></div></dialog>));
