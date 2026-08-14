@@ -3,6 +3,7 @@ import { Database } from "bun:sqlite";
 import type { MiddlewareHandler } from "hono";
 import { createApp } from "../src/app";
 import { initializeDatabase } from "../src/modules/auth/database";
+import { initCache } from "../src/lib/cache";
 import { initializeEventsDatabase } from "../src/modules/events/database";
 
 let database: Database;
@@ -272,6 +273,7 @@ test("meet tags and attendees can be managed independently", async () => {
   const userId = database.query<{ id: number }, []>("SELECT id FROM users WHERE email='guest@example.com'").get()!.id;
   const login = new FormData(); login.set("identifier", "admin@example.com"); login.set("password", "secret123");
   const cookie = (await app.request("/auth/login", { method: "POST", body: login })).headers.get("set-cookie")!.split(";")[0];
+  initCache(database);
   const edit = await (await app.request(`/dashboard/admin/meets/${meetId}/edit`, { headers: { cookie } })).text();
   expect(edit).toContain(`/dashboard/admin/meets/${meetId}/tags`);
   expect(edit).toContain(`/dashboard/admin/meets/${meetId}/attendees`);
@@ -287,11 +289,18 @@ test("meet tags and attendees can be managed independently", async () => {
   expect(attendeeResponse.status).toBe(200);
   expect(await attendeeResponse.text()).toContain("guest@example.com");
   expect(database.query("SELECT 1 FROM meet_attendees WHERE meet_id=? AND user_id=?").get(meetId, userId)).toBeTruthy();
+  const landingBefore = await (await app.request("/")).text();
+  expect(landingBefore).toContain("Runtime meetup");
+  expect(landingBefore).toContain("Bun");
+  expect(landingBefore).toContain("1 attending");
 
   expect((await app.request(`/dashboard/admin/meets/${meetId}/tags/${tagId}`, { method: "DELETE", headers: { cookie } })).status).toBe(200);
   expect((await app.request(`/dashboard/admin/meets/${meetId}/attendees/${userId}`, { method: "DELETE", headers: { cookie } })).status).toBe(200);
   expect(database.query("SELECT 1 FROM meet_tags WHERE meet_id=? AND tag_id=?").get(meetId, tagId)).toBeNull();
   expect(database.query("SELECT 1 FROM meet_attendees WHERE meet_id=? AND user_id=?").get(meetId, userId)).toBeNull();
+  const landingAfter = await (await app.request("/")).text();
+  expect(landingAfter).not.toContain("Bun");
+  expect(landingAfter).toContain("0 people attending");
 });
 
 test("member dashboard does not show admin navigation", async () => {
