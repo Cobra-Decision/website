@@ -1,6 +1,8 @@
 import { Layout } from "../../ui/layout";
 import { DashboardNavbar, type DashboardUser } from "../../ui/dashboard";
 import { TagBadge } from "../../ui/tag-badge";
+import type { Locale } from "../../lib/i18n/translations";
+import { t } from "../../lib/i18n/context";
 
 export type Row = Record<string, string | number | null>;
 const managementLinks = [
@@ -21,14 +23,16 @@ export function AdminLayout({
   allowed,
   title = "Admin",
   user,
+  locale = "en",
 }: {
   children: any;
   allowed: string[];
   title?: string;
   user?: DashboardUser;
+  locale?: Locale;
 }) {
   return (
-    <Layout title={`${title} | CobraDecision Admin`}>
+    <Layout title={`${title} | CobraDecision Admin`} locale={locale}>
       <div class="drawer lg:drawer-open min-h-screen bg-base-200">
         <input id="admin-drawer" type="checkbox" class="drawer-toggle" />
         <div class="drawer-content flex flex-col">
@@ -38,6 +42,7 @@ export function AdminLayout({
             brandHref="/dashboard/admin"
             user={user}
             currentView="admin"
+            locale={locale}
           />
           <main class="p-4 sm:p-8 max-w-7xl mx-auto w-full space-y-6">{children}</main>
         </div>
@@ -72,6 +77,51 @@ export function AdminLayout({
       </div>
     </Layout>
   );
+}
+
+function renderCellContent(column: string, rawVal: string | number | null) {
+  if (rawVal === null || rawVal === undefined || rawVal === "") {
+    return <span class="text-base-content/40">—</span>;
+  }
+
+  const str = String(rawVal);
+
+  if (column === "status") {
+    const badgeColor = str === "live" ? "badge-success" : str === "completed" ? "badge-ghost" : "badge-primary";
+    return <span class={`badge ${badgeColor} badge-sm font-medium`}>{str}</span>;
+  }
+
+  if (column === "access_status") {
+    const badgeColor = str === "private" ? "badge-warning badge-outline" : "badge-ghost";
+    return <span class={`badge ${badgeColor} badge-sm font-medium`}>{str}</span>;
+  }
+
+  if (column.endsWith("_url") || str.startsWith("http://") || str.startsWith("https://") || str.startsWith("/uploads/")) {
+    return (
+      <a
+        href={str}
+        target="_blank"
+        rel="noopener noreferrer"
+        class="text-primary hover:underline block max-w-[180px] truncate text-xs font-mono"
+        title={str}
+      >
+        {str}
+      </a>
+    );
+  }
+
+  if (column === "description" || column === "topics" || str.length > 50) {
+    return (
+      <div
+        class="max-w-xs max-h-12 overflow-hidden text-ellipsis line-clamp-2 text-xs leading-relaxed text-base-content/80"
+        title={str}
+      >
+        {str}
+      </div>
+    );
+  }
+
+  return <span class="text-sm">{str}</span>;
 }
 
 export function CrudTable({
@@ -162,12 +212,12 @@ export function CrudTable({
       {/* Table Card */}
       <form id={`${resource}-bulk-form`}>
         <div class="overflow-x-auto rounded-2xl border border-base-300 bg-base-100 shadow-sm">
-          <table class="table table-zebra">
+          <table class="table table-zebra table-sm">
             <thead class="bg-base-200/50 text-xs font-semibold uppercase tracking-wider text-base-content/70">
               <tr>
                 <th class="w-10"></th>
                 {columns.map((column) => (
-                  <th key={column}>
+                  <th key={column} class="whitespace-nowrap">
                     <button
                       type="button"
                       class="btn btn-ghost btn-xs -ml-2 font-semibold uppercase tracking-wider"
@@ -196,12 +246,12 @@ export function CrudTable({
                       />
                     </td>
                     {columns.map((column) => (
-                      <td key={column} class="text-sm">
-                        {String(row[column] ?? "—")}
+                      <td key={column} class="max-h-16 align-middle">
+                        {renderCellContent(column, row[column])}
                       </td>
                     ))}
-                    <td class="text-right">
-                      <div class="flex items-center justify-end gap-1.5">
+                    <td class="text-right align-middle">
+                      <div class="flex items-center justify-end gap-1.5 whitespace-nowrap">
                         <button
                           type="button"
                           class="btn btn-xs btn-outline"
@@ -242,7 +292,11 @@ export const Toast = ({ type, title, description }: { type: string; title: strin
   <div id="toast-container" hx-swap-oob="beforeend">
     <div class={`alert alert-${type} shadow-lg`} data-toast={type}>
       <span>
-        <strong>{title}</strong> {description}
+        {title === description || !description
+          ? title
+          : title === "admin.created" || title === "admin.deleted"
+          ? description
+          : `<strong>${title}</strong> ${description}`}
       </span>
       <button
         class="btn btn-ghost btn-xs"

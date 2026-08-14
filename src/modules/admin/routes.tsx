@@ -9,17 +9,21 @@ import { getErrorMessage, refreshLandingCache } from "../../lib/cache";
 import { validateReportSql } from "./report";
 import { SchemaTable } from "./report-views";
 import { generateId } from "../../lib/id";
-import { handleImageUpload } from "./upload";
+import { handleImageUpload, handlePresentationUpload } from "./upload";
 import { createFileAdminRoutes } from "./files/routes";
 import { MeetingLinkGenerator } from "../../ui/dashboard";
+import { MarkdownEditor } from "../../ui/markdown-editor";
+import { getLocale } from "../../lib/i18n/context";
 
-const guard = (db: Database, jwtSecret: string, path: string) => async (c: Context, next: Next) => {
+const guard = (db: Database, jwtSecret: string) => async (c: Context, next: Next) => {
   const token = getCookie(c, "session");
   if (!token) return c.redirect("/auth");
   try {
     const claims = (await verify(token, jwtSecret, "HS256")) as { sub: string; role_id: string };
+    const path = c.req.path;
     const basePath = path.match(/^\/dashboard\/admin\/[^/]+/)?.[0] ?? path;
-    if (!createPermissionChecker(db)(claims.role_id, path) && !createPermissionChecker(db)(claims.role_id, basePath)) {
+    const can = createPermissionChecker(db);
+    if (!can(claims.role_id, path) && !can(claims.role_id, basePath) && !can(claims.role_id, "/dashboard/admin")) {
       return c.html(<p class="alert alert-error">Forbidden</p>, 403);
     }
     c.set("auth", claims);
@@ -33,6 +37,7 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
   const app = new Hono();
   const page = (c: Context, title: string, body: any) => {
     const auth = c.get("auth") as { role_id: string; sub: string };
+    const locale = getLocale(c);
     const allowed = db
       .query<{ title: string }, [string]>(
         "SELECT e.title FROM endpoints e JOIN role_endpoints re ON re.endpoint_id=e.id WHERE re.role_id=? AND e.deleted_at IS NULL AND re.deleted_at IS NULL"
@@ -45,10 +50,10 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
           "SELECT COALESCE(NULLIF(TRIM(first_name||' '||last_name),''),COALESCE(username,email)) name,email,r.title role FROM users u JOIN roles r ON r.id=u.role_id WHERE u.id=?"
         )
         .get(auth.sub) ?? undefined;
-    return c.html(<AdminLayout allowed={allowed} title={title} user={user}>{body}</AdminLayout>);
+    return c.html(<AdminLayout allowed={allowed} title={title} user={user} locale={locale}>{body}</AdminLayout>);
   };
 
-  app.use("*", async (c, next) => guard(db, jwtSecret, c.req.path)(c, next));
+  app.use("*", async (c, next) => guard(db, jwtSecret)(c, next));
   app.get("/", (c) => c.redirect("/dashboard/admin/users"));
 
   // File Management Subroutes
@@ -64,9 +69,9 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
     },
     meets: {
       table: "meets",
-      columns: ["id", "title", "description", "topics", "scheduled_date", "scheduled_time", "duration_minutes", "meet_url", "image_url", "presenter_id", "created_at", "updated_at"],
-      searchFields: ["id", "title", "description", "topics", "scheduled_date", "presenter_id"],
-      fields: ["title", "description", "topics", "scheduled_date", "scheduled_time", "duration_minutes", "meet_url", "image_url", "presenter_id"],
+      columns: ["id", "title", "status", "access_status", "description", "topics", "scheduled_date", "scheduled_time", "duration_minutes", "meet_url", "file_url", "image_url", "presenter_id", "created_at", "updated_at"],
+      searchFields: ["id", "title", "status", "access_status", "description", "topics", "scheduled_date", "presenter_id"],
+      fields: ["title", "description", "topics", "scheduled_date", "scheduled_time", "duration_minutes", "meet_url", "file_url", "image_url", "status", "access_status", "presenter_id"],
     },
     tags: {
       table: "tags",
@@ -141,7 +146,32 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
         : "text";
 
     const fieldInput = (field: string) =>
-      field === "role_id" ? (
+      field === "description" && resource === "meets" ? (
+        <div class="sm:col-span-2">
+          <MarkdownEditor name="description" value={String(values[field] ?? "")} />
+        </div>
+      ) : field === "status" && resource === "meets" ? (
+        <select class="select select-bordered w-full" name={field} value={String(values[field] ?? "upcoming")}>
+          <option value="upcoming" selected={String(values[field] ?? "upcoming") === "upcoming"}>
+            Upcoming
+          </option>
+          <option value="live" selected={String(values[field]) === "live"}>
+            Live / Presenting
+          </option>
+          <option value="completed" selected={String(values[field]) === "completed"}>
+            Presented / Completed
+          </option>
+        </select>
+      ) : field === "access_status" && resource === "meets" ? (
+        <select class="select select-bordered w-full" name={field} value={String(values[field] ?? "public")}>
+          <option value="public" selected={String(values[field] ?? "public") === "public"}>
+            Public (Open URL)
+          </option>
+          <option value="private" selected={String(values[field]) === "private"}>
+            Private (Attendees Only)
+          </option>
+        </select>
+      ) : field === "role_id" ? (
         <select class="select select-bordered w-full" name={field} required value={String(values[field] ?? "")}>
           <option value="">Choose role</option>
           {roles.map((role) => (
@@ -186,17 +216,29 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
               </div>
             )}
             {config[resource].fields.map((field) => (
-              <label class="form-control" key={field}>
-                <span class="label-text">{field.replaceAll("_", " ")}</span>
+              <label class={`form-control ${field === "description" && resource === "meets" ? "sm:col-span-2" : ""}`} key={field}>
+                <span class="label-text capitalize font-medium">{field.replaceAll("_", " ")}</span>
                 {fieldInput(field)}
               </label>
             ))}
 
             {resource === "meets" && (
-              <label class="form-control sm:col-span-2">
-                <span class="label-text">Or Upload Image File (PNG, JPG, WebP - max 5MB)</span>
-                <input class="file-input file-input-bordered w-full" name="image_file" type="file" accept="image/png,image/jpeg,image/webp" />
-              </label>
+              <>
+                <label class="form-control sm:col-span-2">
+                  <span class="label-text font-medium">Or Upload Presentation / Reading Material (PDF, PPT, DOC, ZIP - max 25MB)</span>
+                  <input class="file-input file-input-bordered w-full" name="presentation_file" type="file" />
+                  {values.file_url && (
+                    <span class="mt-1 text-xs text-primary">
+                      Current file attached: <a href={String(values.file_url)} target="_blank" class="underline">{String(values.file_url)}</a>
+                    </span>
+                  )}
+                </label>
+
+                <label class="form-control sm:col-span-2">
+                  <span class="label-text font-medium">Or Upload Image / Cover (PNG, JPG, WebP - max 5MB)</span>
+                  <input class="file-input file-input-bordered w-full" name="image_file" type="file" accept="image/png,image/jpeg,image/webp" />
+                </label>
+              </>
             )}
 
             {resource === "meets" && values.image_url && (
@@ -249,6 +291,7 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
   };
 
   const toast = (title: string, fallback: string, type: "info" | "error" | "success" | "warning" = "success") => {
+    refreshErrorCache(db);
     const message = getErrorMessage(title) ?? { type, title, description: fallback };
     return <Toast type={message.type} title={message.title} description={message.description} />;
   };
@@ -333,10 +376,17 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
       const error = validate(resource, submitted);
       if (error) return failForm(c, resource, error, submitted);
 
-      if (resource === "meets" && body.image_file instanceof File && body.image_file.size > 0) {
-        const uploadResult = await handleImageUpload(body.image_file);
-        if (uploadResult.error) return failForm(c, resource, uploadResult.error, submitted);
-        if (uploadResult.url) submitted.image_url = uploadResult.url;
+      if (resource === "meets") {
+        if (body.image_file instanceof File && body.image_file.size > 0) {
+          const uploadResult = await handleImageUpload(body.image_file);
+          if (uploadResult.error) return failForm(c, resource, uploadResult.error, submitted);
+          if (uploadResult.url) submitted.image_url = uploadResult.url;
+        }
+        if (body.presentation_file instanceof File && body.presentation_file.size > 0) {
+          const uploadDoc = await handlePresentationUpload(body.presentation_file);
+          if (uploadDoc.error) return failForm(c, resource, uploadDoc.error, submitted);
+          if (uploadDoc.url) submitted.file_url = uploadDoc.url;
+        }
       }
 
       try {
@@ -346,8 +396,24 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
           const editable = config.users.fields.filter((field) => field !== "password");
           const values = editable.map((field) => String(submitted[field] ?? "").trim() || null);
           db.run(`INSERT INTO users (id,${editable.join(",")},password_hash) VALUES (?,${editable.map(() => "?").join(",")},?)`, [id, ...values, await Bun.password.hash(password)]);
+        } else if (resource === "meets") {
+          const scheduledAtUtc = submitted.scheduled_date && submitted.scheduled_time ? toUtcIso(String(submitted.scheduled_date), String(submitted.scheduled_time)) : null;
+          const meetFields = [...fields, "scheduled_at_utc"];
+          const values = fields.map((field) => {
+            const val = submitted[field];
+            if (field === "status") return String(val ?? "upcoming") || "upcoming";
+            if (field === "access_status") return String(val ?? "public") || "public";
+            if (field === "duration_minutes") return Number(val ?? 60) || 60;
+            if (field === "description") return String(val ?? "");
+            return String(val ?? "").trim() || null;
+          });
+          db.run(`INSERT INTO meets (id,${meetFields.join(",")}) VALUES (?,${meetFields.map(() => "?").join(",")})`, [id, ...values, scheduledAtUtc]);
         } else {
-          const values = fields.map((field) => String(submitted[field] ?? "").trim() || null);
+          const values = fields.map((field) => {
+            const val = submitted[field];
+            if (field === "description") return String(val ?? "");
+            return String(val ?? "").trim() || null;
+          });
           db.run(`INSERT INTO ${table} (id,${fields.join(",")}) VALUES (?,${fields.map(() => "?").join(",")})`, [id, ...values]);
         }
         return c.html(tableResponse(resource, "admin.created", "Created"));
@@ -376,10 +442,17 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
       const error = validate(resource, submitted, true);
       if (error) return failForm(c, resource, error, submitted, id);
 
-      if (resource === "meets" && body.image_file instanceof File && body.image_file.size > 0) {
-        const uploadResult = await handleImageUpload(body.image_file);
-        if (uploadResult.error) return failForm(c, resource, uploadResult.error, submitted, id);
-        if (uploadResult.url) submitted.image_url = uploadResult.url;
+      if (resource === "meets") {
+        if (body.image_file instanceof File && body.image_file.size > 0) {
+          const uploadResult = await handleImageUpload(body.image_file);
+          if (uploadResult.error) return failForm(c, resource, uploadResult.error, submitted, id);
+          if (uploadResult.url) submitted.image_url = uploadResult.url;
+        }
+        if (body.presentation_file instanceof File && body.presentation_file.size > 0) {
+          const uploadDoc = await handlePresentationUpload(body.presentation_file);
+          if (uploadDoc.error) return failForm(c, resource, uploadDoc.error, submitted, id);
+          if (uploadDoc.url) submitted.file_url = uploadDoc.url;
+        }
       }
 
       try {
@@ -388,8 +461,24 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
           const values = editable.map((field) => String(submitted[field] ?? "").trim() || null);
           const password = String(body.password ?? "");
           db.run(`UPDATE users SET ${editable.map((field) => `${field}=?`).join(",")}${password ? ",password_hash=?" : ""},updated_at=CURRENT_TIMESTAMP WHERE id=?`, [...values, ...(password ? [await Bun.password.hash(password)] : []), id]);
+        } else if (resource === "meets") {
+          const scheduledAtUtc = submitted.scheduled_date && submitted.scheduled_time ? toUtcIso(String(submitted.scheduled_date), String(submitted.scheduled_time)) : null;
+          const meetFields = [...fields, "scheduled_at_utc"];
+          const values = fields.map((field) => {
+            const val = submitted[field];
+            if (field === "status") return String(val ?? "upcoming") || "upcoming";
+            if (field === "access_status") return String(val ?? "public") || "public";
+            if (field === "duration_minutes") return Number(val ?? 60) || 60;
+            if (field === "description") return String(val ?? "");
+            return String(val ?? "").trim() || null;
+          });
+          db.run(`UPDATE meets SET ${meetFields.map((field) => `${field}=?`).join(",")}, updated_at=CURRENT_TIMESTAMP WHERE id=?`, [...values, scheduledAtUtc, id]);
         } else {
-          const values = fields.map((field) => String(submitted[field] ?? "").trim() || null);
+          const values = fields.map((field) => {
+            const val = submitted[field];
+            if (field === "description") return String(val ?? "");
+            return String(val ?? "").trim() || null;
+          });
           db.run(`UPDATE ${table} SET ${fields.map((field) => `${field}=?`).join(",")}, updated_at=CURRENT_TIMESTAMP WHERE id=?`, [...values, id]);
         }
         return c.html(tableResponse(resource, "admin.created", "Updated"));
