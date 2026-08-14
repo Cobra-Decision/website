@@ -2,7 +2,7 @@ import type { Child } from "hono/jsx";
 import { html } from "hono/html";
 
 export const Layout = ({ children }: { children: Child; title?: string }) => (
-  <html lang="en" data-theme="corporate">
+  <html lang="en" data-theme="dark" class="scroll-smooth">
     <head>
       <meta charset="UTF-8" />
       <meta name="viewport" content="width=device-width, initial-scale=1" />
