@@ -9,13 +9,23 @@ export const DynamicCtaButton = ({
   meetId,
   isAuthenticated,
   isAttending,
+  meetStatus = "upcoming",
   locale = "en",
 }: {
   meetId: string;
   isAuthenticated: boolean;
   isAttending: boolean;
+  meetStatus?: string;
   locale?: Locale;
 }) => {
+  if (meetStatus === "completed" || meetStatus === "cancelled") {
+    return (
+      <div class="rounded-xl bg-base-200 p-3 text-center text-xs font-medium text-base-content/60">
+        {t("meet.completed_notice", locale)}
+      </div>
+    );
+  }
+
   if (!isAuthenticated) {
     return (
       <a href={`/auth?redirect=/meets/${meetId}`} class="btn btn-primary w-full shadow-sm">
@@ -225,7 +235,7 @@ export const MeetingDetailPage = ({
                     </p>
                   </div>
                   <div class="mt-4 sm:mt-0">
-                    <DynamicCtaButton meetId={meet.id} isAuthenticated={isAuthenticated} isAttending={isAttending} locale={locale} />
+                    <DynamicCtaButton meetId={meet.id} isAuthenticated={isAuthenticated} isAttending={isAttending} meetStatus={meet.status} locale={locale} />
                   </div>
                 </div>
               )
@@ -283,7 +293,7 @@ export const MeetingDetailPage = ({
 
               {/* Dynamic Auth / Attend CTA */}
               <div id="attend-action" class="mt-6 border-t border-base-200 pt-4">
-                <DynamicCtaButton meetId={meet.id} isAuthenticated={isAuthenticated} isAttending={isAttending} locale={locale} />
+                <DynamicCtaButton meetId={meet.id} isAuthenticated={isAuthenticated} isAttending={isAttending} meetStatus={meet.status} locale={locale} />
               </div>
             </div>
           </aside>

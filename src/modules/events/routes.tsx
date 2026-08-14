@@ -47,6 +47,22 @@ export function createEventsRoutes(database: Database, jwtSecret = process.env.J
     const user = await getSessionUser(getCookie(c, "session"));
     if (!user) return c.html(<a href={`/auth?redirect=/meets/${id}`} class="btn btn-primary w-full">Sign In to Attend</a>, 401);
 
+    const meetBefore = getMeetById(database, id);
+    if (!meetBefore) return c.notFound();
+
+    // Prevent attending completed or cancelled meetings
+    if (meetBefore.status === "completed" || meetBefore.status === "cancelled") {
+      if (c.req.header("HX-Target")?.startsWith("rsvp-btn-")) {
+        return c.html(<RsvpButton meet={meetBefore} isAttending={false} locale={locale} />);
+      }
+      return c.html(
+        <div id="attend-action">
+          <DynamicCtaButton meetId={id} isAuthenticated={true} isAttending={false} meetStatus={meetBefore.status} locale={locale} />
+        </div>,
+        400
+      );
+    }
+
     attendMeet(database, id, user.sub);
     const meet = getMeetById(database, id);
     if (!meet) return c.notFound();
@@ -58,7 +74,7 @@ export function createEventsRoutes(database: Database, jwtSecret = process.env.J
 
     return c.html(
       <div id="attend-action">
-        <DynamicCtaButton meetId={id} isAuthenticated={true} isAttending={true} locale={locale} />
+        <DynamicCtaButton meetId={id} isAuthenticated={true} isAttending={true} meetStatus={meet.status} locale={locale} />
       </div>
     );
   });
@@ -80,7 +96,7 @@ export function createEventsRoutes(database: Database, jwtSecret = process.env.J
 
     return c.html(
       <div id="attend-action">
-        <DynamicCtaButton meetId={id} isAuthenticated={true} isAttending={false} locale={locale} />
+        <DynamicCtaButton meetId={id} isAuthenticated={true} isAttending={false} meetStatus={meet.status} locale={locale} />
       </div>
     );
   });
