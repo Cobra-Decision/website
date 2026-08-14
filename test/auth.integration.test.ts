@@ -116,7 +116,16 @@ test("sql report renders readable schema and returns error toasts", async () => 
   const login = new FormData(); login.set("identifier", "admin@example.com"); login.set("password", "secret123");
   const cookie = (await app.request("/auth/login", { method: "POST", body: login })).headers.get("set-cookie")!.split(";")[0];
   const report = await app.request("/dashboard/admin/report", { headers: { cookie } });
-  expect(await report.text()).toContain("Column");
+  const reportHtml = await report.text();
+  expect(reportHtml).toContain("Column");
+  expect(reportHtml).toContain('name="schema_field"');
+  expect(reportHtml).toContain('hx-get="/dashboard/admin/report?schema_q=&amp;schema_field=table_name&amp;schema_sort=table_name&amp;schema_direction=desc"');
+  const schemaSearch = await app.request("/dashboard/admin/report?schema_q=users&schema_field=table_name&schema_sort=name&schema_direction=asc", { headers: { cookie, "HX-Request": "true" } });
+  expect(schemaSearch.status).toBe(200);
+  const schemaHtml = await schemaSearch.text();
+  expect(schemaHtml).not.toContain("<html");
+  expect(schemaHtml).toContain("users");
+  expect(schemaHtml).not.toContain("error_messages");
   const query = new FormData(); query.set("sql", "DELETE FROM users");
   const error = await (await app.request("/dashboard/admin/report", { method: "POST", headers: { cookie }, body: query })).text();
   expect(error).toContain('id="toast-container" hx-swap-oob="beforeend"');
