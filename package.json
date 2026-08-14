@@ -6,6 +6,7 @@
     "build:css": "tailwindcss -i src/ui/tailwind.css -o public/app.css --minify",
     "dev": "bun run build:css && bun --watch src/index.tsx",
     "start": "bun run build:css && bun src/index.tsx",
+    "seed": "bun src/seed.ts",
     "test": "bun test",
     "check": "bunx tsc --noEmit"
   },
