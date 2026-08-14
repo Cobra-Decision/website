@@ -96,6 +96,16 @@ test("admin mutations return an out-of-band toast", async () => {
   expect(await (await app.request("/dashboard/admin/roles", { method: "POST", headers: { cookie }, body: role })).text()).toContain('hx-swap-oob="beforeend:#toast-container"');
 });
 
+test("sql report renders readable schema and returns error toasts", async () => {
+  await initializeDatabase(database, { email: "admin@example.com", password: "secret123" });
+  const login = new FormData(); login.set("identifier", "admin@example.com"); login.set("password", "secret123");
+  const cookie = (await app.request("/auth/login", { method: "POST", body: login })).headers.get("set-cookie")!.split(";")[0];
+  const report = await app.request("/dashboard/admin/report", { headers: { cookie } });
+  expect(await report.text()).toContain("Column");
+  const query = new FormData(); query.set("sql", "DELETE FROM users");
+  expect(await (await app.request("/dashboard/admin/report", { method: "POST", headers: { cookie }, body: query })).text()).toContain('hx-swap-oob="beforeend:#toast-container"');
+});
+
 test("member dashboard does not show admin navigation", async () => {
   const register = new FormData();
   register.set("email", "member@example.com");
