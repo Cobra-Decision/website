@@ -5,6 +5,7 @@
 - Standardize modal action rows so Cancel and Save/Delete align at the bottom right.
 - Remove the broken admin "Back to app" link.
 - Rename the product to Cobra Decision across dashboard navigation and user-facing labels.
+- Use a mature product-console UI: restrained daisyUI surfaces, clear hierarchy, compact controls, responsive tables, and consistent empty/loading/error states.
 - Show role titles in user tables; continue storing `role_id` internally.
 - Store meet scheduling instants as UTC and render/input them in Asia/Tehran using the Persian (Shamsi) calendar.
 - Keep admin password edits as plaintext form input, hash only on the server, and never return password hashes.
@@ -31,18 +32,26 @@
 - Meet image URLs show a small preview in the edit form when present.
 - Tag badges expose their description in a small hover-only daisyUI tooltip.
 - Every successful or rejected mutation returns a cached error-dictionary message as an HTMX out-of-band toast. The layout retains one `#toast-container` and the route returns an OOB toast without replacing the requested table/modal target.
+- Every management table supports a keyword search, sortable columns, and resource-appropriate filters; server routes accept only a fixed allowlist of sort/filter fields.
 
 ## Meet relation management
 
 - Each meet edit page lists its current tags and attendees.
 - An administrator can add a tag or attendee to that meet from the styled dropdowns.
 - Each existing tag and attendee mapping has its own delete action; saving the edit form also persists the complete current selection.
+- A dedicated relationship panel on the meet edit page controls tags and attendees separately from basic meet fields, with searchable add controls, current-mapping lists, and individual removal actions.
 
 ## Role endpoint management
 
 - Each role edit page lists its current endpoint mappings.
 - An administrator can add a mapping from the valid endpoint dropdown, edit its mapping description, or delete it.
 - The Super Admin role and its seeded mappings are immutable.
+
+## Refactor and error delivery
+
+- Split the current admin route file into focused resource/query, view, relation, reporting, and route modules without changing public route paths.
+- Make every HTMX mutation response consistent: primary target replacement first, then one OOB toast. Error responses use the same toast mechanism and preserve the form/table currently displayed.
+- Auto-dismiss successful and informational toasts with a small built-in `htmx:afterSwap` listener; error/warning toasts remain until dismissed.
 
 ## Verification
 
