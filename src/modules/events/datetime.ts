@@ -13,8 +13,7 @@ export function toUtcIso(date: string, time: string) {
 
 export function formatTehran(utc: string) {
   const value = new Date(utc);
-  // Standard Gregorian calendar with Tehran time zone
-  const date = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Tehran", year: "numeric", month: "2-digit", day: "2-digit" }).format(value);
+  const date = new Intl.DateTimeFormat("fa-IR-u-ca-persian", { timeZone: "Asia/Tehran", dateStyle: "short" }).format(value);
   const time = new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Tehran", timeStyle: "short", hour12: false }).format(value);
   return { date, time };
 }

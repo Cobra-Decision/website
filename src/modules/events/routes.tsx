@@ -50,8 +50,8 @@ export function createEventsRoutes(database: Database, jwtSecret = process.env.J
     const meetBefore = getMeetById(database, id);
     if (!meetBefore) return c.notFound();
 
-    // Prevent attending completed or cancelled meetings
-    if (meetBefore.status === "completed" || meetBefore.status === "cancelled") {
+    // Prevent attending completed meetings
+    if (meetBefore.status === "completed") {
       if (c.req.header("HX-Target")?.startsWith("rsvp-btn-")) {
         return c.html(<RsvpButton meet={meetBefore} isAttending={false} locale={locale} />);
       }
