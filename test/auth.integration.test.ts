@@ -3,7 +3,7 @@ import { Database } from "bun:sqlite";
 import type { MiddlewareHandler } from "hono";
 import { createApp } from "../src/app";
 import { initializeDatabase } from "../src/modules/auth/database";
-import { initCache } from "../src/lib/cache";
+import { getLandingCache, initCache } from "../src/lib/cache";
 import { initializeEventsDatabase } from "../src/modules/events/database";
 
 let database: Database;
@@ -43,6 +43,18 @@ test("registration needs only email and password and redirects to login", async 
   expect(database.query("SELECT email, username, phone FROM users WHERE deleted_at IS NULL").get()).toEqual({
     email: "new@example.com", username: null, phone: null,
   });
+});
+
+test("registration refreshes the cached landing user count", async () => {
+  initCache(database);
+  const before = getLandingCache().totalUsers;
+  const form = new FormData();
+  form.set("email", "cached@example.com");
+  form.set("password", "secret123");
+  form.set("password_confirmation", "secret123");
+  const response = await app.request("/auth/register", { method: "POST", body: form });
+  expect(response.status).toBe(200);
+  expect(getLandingCache().totalUsers).toBe(before + 1);
 });
 
 test("registration rejects mismatched password confirmation", async () => {
@@ -109,7 +121,7 @@ test("admin mutations return an out-of-band toast", async () => {
   const role = new FormData(); role.set("title", "Editor"); role.set("description", "A description");
   const html = await (await app.request("/dashboard/admin/roles", { method: "POST", headers: { cookie }, body: role })).text();
   expect(html).toContain('id="toast-container" hx-swap-oob="beforeend"');
-  expect(html).toContain("Created");
+  expect(html).toContain("Record created.");
 });
 
 test("sql report renders readable schema and returns error toasts", async () => {

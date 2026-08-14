@@ -10,14 +10,24 @@ export type ErrorMessage = { type: "info" | "error" | "success" | "warning"; tit
 
 export function initCache(database: Database) {
   refreshLandingCache(database);
-  setCache("errors", new Map(database.query<ErrorMessage, []>("SELECT type,title,description FROM error_messages WHERE deleted_at IS NULL").all().map((message) => [message.title, message])));
+  refreshErrorCache(database);
 }
 
 export function refreshLandingCache(database: Database) {
-  if (!database.query("SELECT 1 FROM sqlite_master WHERE type='table' AND name='meets'").get()) return;
-  const totalUsers = database.query<{ total: number }, []>("SELECT COUNT(*) total FROM users WHERE deleted_at IS NULL").get()!.total;
+  const hasTable = (name: string) => Boolean(database.query("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?").get(name));
+  const totalUsers = hasTable("users") ? database.query<{ total: number }, []>("SELECT COUNT(*) total FROM users WHERE deleted_at IS NULL").get()!.total : 0;
+  if (!hasTable("meets")) {
+    setCache("landing", { totalUsers, totalMeetHours: 0, meets: [] } satisfies LandingCache);
+    return;
+  }
   const totalMinutes = database.query<{ total: number }, []>("SELECT COALESCE(SUM(duration_minutes), 0) total FROM meets WHERE deleted_at IS NULL").get()!.total;
   setCache("landing", { totalUsers, totalMeetHours: totalMinutes / 60, meets: getUpcomingMeets(database) } satisfies LandingCache);
+}
+
+export function refreshErrorCache(database: Database) {
+  const exists = database.query("SELECT 1 FROM sqlite_master WHERE type='table' AND name='error_messages'").get();
+  const messages = exists ? database.query<ErrorMessage, []>("SELECT type,title,description FROM error_messages WHERE deleted_at IS NULL").all() : [];
+  setCache("errors", new Map(messages.map((message) => [message.title, message])));
 }
 
 export function getErrorMessage(title: string): ErrorMessage | undefined {

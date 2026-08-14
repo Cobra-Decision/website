@@ -49,7 +49,7 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
     const sql = `SELECT ${config[resource].columns.join(", ")} FROM ${config[resource].table} WHERE deleted_at IS NULL${q ? ` AND CAST(${searchField} AS TEXT) LIKE ?` : ""} ORDER BY ${sort} ${direction}`;
     return (q ? db.query(sql).all(`%${q}%`) : db.query(sql).all()) as Row[];
   };
-  const tableResponse = (resource: keyof typeof config, toastTitle?: string, fallback = "") => { refreshLandingCache(db); return <><CrudTable resource={resource} columns={[...config[resource].columns]} searchFields={[...config[resource].searchFields]} rows={rowsFor(resource)} />{toastTitle && toast(toastTitle, fallback)}</>; };
+  const tableResponse = (resource: keyof typeof config, toastTitle?: string, fallback = "") => { refreshLandingCache(db); clearPermissionCache(); return <><CrudTable resource={resource} columns={[...config[resource].columns]} searchFields={[...config[resource].searchFields]} rows={rowsFor(resource)} />{toastTitle && toast(toastTitle, fallback)}</>; };
   const form = (resource: keyof typeof config, id?: number, values: Row = {}, error?: string) => {
     const roles = db.query<{ id: number; title: string }, []>("SELECT id,title FROM roles WHERE deleted_at IS NULL ORDER BY title").all();
     const users = db.query<{ id: number; email: string }, []>("SELECT id,email FROM users WHERE deleted_at IS NULL ORDER BY email").all();

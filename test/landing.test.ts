@@ -2,7 +2,7 @@ import { afterEach, beforeEach, expect, test } from "bun:test";
 import { Database } from "bun:sqlite";
 import type { MiddlewareHandler } from "hono";
 import { createApp } from "../src/app";
-import { getLandingCache, initCache } from "../src/lib/cache";
+import { getErrorMessage, getLandingCache, initCache, refreshErrorCache } from "../src/lib/cache";
 import { initializeDatabase } from "../src/modules/auth/database";
 import { initializeEventsDatabase } from "../src/modules/events/database";
 import { initializeLandingDatabase } from "../src/modules/landing/database";
@@ -56,4 +56,13 @@ test("contact endpoint rejects invalid email", async () => {
   const html = await response.text();
   expect(html).toContain('role="alert"');
   expect(html).toContain('id="contact-result"');
+});
+
+test("error cache can be refreshed after dictionary changes", () => {
+  database.run("INSERT INTO error_messages (type,title,description) VALUES (?,?,?)", ["error", "admin.error", "Original"]);
+  initCache(database);
+  database.run("UPDATE error_messages SET description=? WHERE title=?", ["Changed", "admin.error"]);
+  expect(getErrorMessage("admin.error")?.description).not.toBe("Changed");
+  refreshErrorCache(database);
+  expect(getErrorMessage("admin.error")?.description).toBe("Changed");
 });
