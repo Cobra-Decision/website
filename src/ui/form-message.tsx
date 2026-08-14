@@ -1,0 +1,1 @@
+export const FormMessage = ({ message, type = "error", id }: { message: string; type?: "error" | "success" | "warning" | "info"; id?: string }) => <div id={id} class={`alert alert-${type}`} role={type === "error" ? "alert" : "status"}>{message}</div>;

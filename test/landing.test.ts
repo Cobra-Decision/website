@@ -53,4 +53,7 @@ test("contact endpoint rejects invalid email", async () => {
   form.set("email", "not-an-email");
   const response = await app.request("/api/contact", { method: "POST", body: form });
   expect(response.status).toBe(400);
+  const html = await response.text();
+  expect(html).toContain('role="alert"');
+  expect(html).toContain('id="contact-result"');
 });

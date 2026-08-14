@@ -47,7 +47,18 @@ test("registration needs only email and password and redirects to login", async 
 test("registration rejects mismatched password confirmation", async () => {
   const form = new FormData();
   form.set("email", "new@example.com"); form.set("password", "secret123"); form.set("password_confirmation", "different");
-  expect((await app.request("/auth/register", { method: "POST", body: form })).status).toBe(400);
+  const response = await app.request("/auth/register", { method: "POST", body: form });
+  expect(response.status).toBe(400);
+  expect(await response.text()).toContain('role="alert"');
+});
+
+test("invalid login returns accessible form feedback", async () => {
+  const form = new FormData(); form.set("identifier", "missing@example.com"); form.set("password", "wrong-password");
+  const response = await app.request("/auth/login", { method: "POST", body: form });
+  expect(response.status).toBe(401);
+  const html = await response.text();
+  expect(html).toContain("Invalid credentials.");
+  expect(html).toContain('role="alert"');
 });
 
 test("login redirects to dashboard and dashboard shows the profile", async () => {
@@ -255,6 +266,21 @@ test("authenticated users update only their own profile", async () => {
   expect((await app.request("/dashboard/profile", { method: "POST", headers: { cookie }, body: profile })).status).toBe(200);
   const user = database.query<{ first_name: string; password_hash: string }, []>("SELECT first_name,password_hash FROM users WHERE email='member@example.com'").get()!;
   expect(user.first_name).toBe("Member"); expect(await Bun.password.verify("new-secret", user.password_hash)).toBe(true);
+});
+
+test("profile uniqueness errors return visible feedback", async () => {
+  const member = database.query<{ id: number }, []>("SELECT id FROM roles WHERE title='member'").get()!;
+  database.run("INSERT INTO users (email,username,password_hash,role_id) VALUES (?,?,?,?)", ["taken@example.com", "taken", "hash", member.id]);
+  const register = new FormData(); register.set("email", "member@example.com"); register.set("password", "secret123"); register.set("password_confirmation", "secret123");
+  await app.request("/auth/register", { method: "POST", body: register });
+  const login = new FormData(); login.set("identifier", "member@example.com"); login.set("password", "secret123");
+  const cookie = (await app.request("/auth/login", { method: "POST", body: login })).headers.get("set-cookie")!.split(";")[0];
+  const profile = new FormData(); profile.set("username", "taken");
+  const response = await app.request("/dashboard/profile", { method: "POST", headers: { cookie }, body: profile });
+  expect(response.status).toBe(409);
+  const html = await response.text();
+  expect(html).toContain('role="alert"');
+  expect(html).toContain("already in use");
 });
 
 test("authenticated users are redirected away from auth pages", async () => {
