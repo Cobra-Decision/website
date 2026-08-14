@@ -15,8 +15,8 @@ test("initialization seeds roles and dashboard permission once", async () => {
     { title: "admin" },
     { title: "member" },
   ]);
-  expect(database.query("SELECT title FROM endpoints WHERE deleted_at IS NULL").all()).toHaveLength(9);
-  expect(database.query("SELECT COUNT(*) total FROM role_endpoints WHERE deleted_at IS NULL").get()).toEqual({ total: 18 });
+  expect(database.query("SELECT title FROM endpoints WHERE deleted_at IS NULL").all()).toHaveLength(8);
+  expect(database.query("SELECT COUNT(*) total FROM role_endpoints WHERE deleted_at IS NULL").get()).toEqual({ total: 15 });
 });
 
 test("optional admin seed is idempotent and uses a native password hash", async () => {

@@ -91,21 +91,24 @@ export function createAuthRoutes(database: Database, captcha: Captcha, jwtSecret
 }
 
 export function createDashboardRoute(database: Database, jwtSecret: string, expectedRole: "admin" | "member" = "member") {
-  return new Hono().get("/", async (c) => {
+  const app = new Hono();
+  const loadUser = async (c: Parameters<Handler>[0]) => {
     const token = getCookie(c, "session");
-    if (!token) return c.redirect("/auth");
+    if (!token) return null;
     try {
       const claims = (await verify(token, jwtSecret, "HS256")) as unknown as Claims;
       const user = database.query<Profile, [number]>(`SELECT u.email, u.username, u.phone, u.first_name, u.last_name, r.title role_title
         FROM users u JOIN roles r ON r.id = u.role_id
         WHERE u.id = ? AND u.deleted_at IS NULL AND r.deleted_at IS NULL`).get(Number(claims.sub));
-      if (!user) return c.redirect("/auth");
-      if ((expectedRole === "admin") !== (user.role_title === "Super Admin")) return c.redirect(`/dashboard/${user.role_title === "Super Admin" ? "admin" : "member"}`);
-      return c.html(<Document title="Dashboard"><Dashboard user={user} /></Document>);
+      return user ? { claims, user } : null;
     } catch {
-      return c.redirect("/auth");
+      return null;
     }
-  });
+  };
+  app.get("/", async (c) => { const loaded = await loadUser(c); if (!loaded) return c.redirect("/auth"); if ((expectedRole === "admin") !== (loaded.user.role_title === "Super Admin")) return c.redirect(`/dashboard/${loaded.user.role_title === "Super Admin" ? "admin" : "member"}`); return c.html(<Document title="Dashboard"><Dashboard user={loaded.user} /></Document>); });
+  app.get("/profile", async (c) => { const loaded = await loadUser(c); if (!loaded) return c.redirect("/auth"); return c.html(<Document title="Profile"><div class="container mx-auto max-w-2xl p-6"><h1 class="text-3xl font-bold">Your profile</h1><form class="mt-6 grid gap-4" hx-post="/dashboard/member/profile" hx-target="#profile-result"><input class="input input-bordered" name="first_name" value={loaded.user.first_name ?? ""} placeholder="First name"/><input class="input input-bordered" name="last_name" value={loaded.user.last_name ?? ""} placeholder="Last name"/><input class="input input-bordered" name="phone" value={loaded.user.phone ?? ""} placeholder="Phone"/><input class="input input-bordered" name="password" type="password" placeholder="New password"/><input class="input input-bordered" name="password_confirmation" type="password" placeholder="Confirm new password"/><button class="btn btn-primary">Save profile</button><div id="profile-result"></div></form></div></Document>); });
+  app.post("/profile", async (c) => { const loaded = await loadUser(c); if (!loaded) return c.redirect("/auth"); const body = await c.req.parseBody(); const password = String(body.password ?? ""); if (password && password !== String(body.password_confirmation ?? "")) return c.html(<p class="alert alert-error">Passwords do not match.</p>, 400); database.run("UPDATE users SET first_name=?,last_name=?,phone=?,updated_at=CURRENT_TIMESTAMP WHERE id=?", [String(body.first_name ?? "").trim() || null, String(body.last_name ?? "").trim() || null, String(body.phone ?? "").trim() || null, Number(loaded.claims.sub)]); if (password) database.run("UPDATE users SET password_hash=?,updated_at=CURRENT_TIMESTAMP WHERE id=?", [await Bun.password.hash(password), Number(loaded.claims.sub)]); return c.html(<p class="alert alert-success">Profile updated.</p>); });
+  return app;
 }
 
 export function createProfileRoute(database: Database, jwtSecret: string) {

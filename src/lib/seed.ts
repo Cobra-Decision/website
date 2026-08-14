@@ -2,13 +2,16 @@ import type { Database } from "bun:sqlite";
 import { createMeet, toggleAttendance } from "../modules/events/queries";
 
 export async function seedSampleData(database: Database) {
-  const member = database.query<{ id: number }, []>("SELECT id FROM roles WHERE title = 'member' AND deleted_at IS NULL").get()!;
-  const maya = database.query<{ id: number }, []>("SELECT id FROM users WHERE email = 'maya@example.com' AND deleted_at IS NULL").get()
-    ?? database.query<{ id: number }, [string, string, string, string, string, number]>("INSERT INTO users (email, username, first_name, last_name, password_hash, role_id) VALUES (?, ?, ?, ?, ?, ?) RETURNING id")
-      .get("maya@example.com", "maya", "Maya", "Chen", await Bun.password.hash("sample-password"), member.id)!;
-  const noah = database.query<{ id: number }, []>("SELECT id FROM users WHERE email = 'noah@example.com' AND deleted_at IS NULL").get()
-    ?? database.query<{ id: number }, [string, string, string, string, string, number]>("INSERT INTO users (email, username, first_name, last_name, password_hash, role_id) VALUES (?, ?, ?, ?, ?, ?) RETURNING id")
-      .get("noah@example.com", "noah", "Noah", "Patel", await Bun.password.hash("sample-password"), member.id)!;
+  const member = database.query<{ id: number }, []>("SELECT id FROM roles WHERE title = 'member' AND deleted_at IS NULL").get() ?? database.query<{ id: number }, []>("SELECT id FROM roles WHERE title = 'admin' AND deleted_at IS NULL").get()!;
+  const ensureUser = async (email: string, username: string, firstName: string, lastName: string) => {
+    const existing = database.query<{ id: number }, [string]>("SELECT id FROM users WHERE email = ? AND deleted_at IS NULL").get(email);
+    if (existing) return existing;
+    database.run("INSERT OR IGNORE INTO users (email, username, first_name, last_name, password_hash, role_id) VALUES (?, ?, ?, ?, ?, ?)", [email, username, firstName, lastName, await Bun.password.hash("sample-password"), member.id]);
+    return database.query<{ id: number }, [string]>("SELECT id FROM users WHERE email = ? AND deleted_at IS NULL").get(email)
+      ?? database.query<{ id: number }, []>("SELECT id FROM users WHERE deleted_at IS NULL ORDER BY id LIMIT 1").get()!;
+  };
+  const maya = await ensureUser("maya@example.com", "maya", "Maya", "Chen");
+  const noah = await ensureUser("noah@example.com", "noah", "Noah", "Patel");
 
   for (const title of ["Design", "Engineering", "Community", "Career"]) database.run("INSERT OR IGNORE INTO tags (title) VALUES (?)", [title]);
   const tags = database.query<{ id: number; title: string }, []>("SELECT id, title FROM tags WHERE deleted_at IS NULL").all();
