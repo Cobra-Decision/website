@@ -3,6 +3,7 @@ import { Database } from "bun:sqlite";
 import { normalizeRegistration } from "../src/modules/auth/service";
 import { createPermissionChecker } from "../src/modules/auth/middleware";
 import { initializeDatabase } from "../src/modules/auth/database";
+import { validateReportSql } from "../src/modules/admin/report";
 
 test("registration requires only a valid email and password", () => {
   expect(normalizeRegistration({ email: " user@example.com ", password: "secret123", password_confirmation: "secret123" })).toEqual({
@@ -23,4 +24,10 @@ test("permission checker ignores soft-deleted permissions and can clear its cach
   canAccess.clear(admin.id);
   expect(canAccess(admin.id, "/dashboard")).toBe(false);
   database.close();
+});
+
+test("report validation only accepts one read query", () => {
+  expect(validateReportSql("SELECT id FROM users")).toBe("SELECT id FROM users");
+  expect(validateReportSql("SELECT 1; DELETE FROM users")).toContain("one query");
+  expect(validateReportSql("UPDATE users SET email='x'")).toContain("read-only");
 });

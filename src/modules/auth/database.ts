@@ -10,7 +10,7 @@ export async function initializeDatabase(database: Database, admin: AdminSeed = 
   database.run("INSERT OR IGNORE INTO roles (title, description) VALUES (?, ?), (?, ?), (?, ?)", [
     "member", "Default user role", "admin", "Administrator", "Super Admin", "Full administrative access",
   ]);
-  for (const endpoint of ["/dashboard", "/dashboard/admin", "/dashboard/admin/users", "/dashboard/admin/meets", "/dashboard/admin/tags", "/dashboard/admin/roles", "/dashboard/admin/endpoints", "/dashboard/admin/reports/users", "/dashboard/admin/reports/meets"])
+  for (const endpoint of ["/dashboard", "/dashboard/admin", "/dashboard/admin/users", "/dashboard/admin/meets", "/dashboard/admin/tags", "/dashboard/admin/roles", "/dashboard/admin/endpoints", "/dashboard/admin/report"])
     database.run("INSERT OR IGNORE INTO endpoints (title, description) VALUES (?, ?)", [endpoint, "Administrative endpoint"]);
   database.exec(`INSERT OR IGNORE INTO role_endpoints (role_id, endpoint_id, description)
     SELECT r.id, e.id, 'Dashboard access' FROM roles r, endpoints e
@@ -25,6 +25,7 @@ export async function initializeDatabase(database: Database, admin: AdminSeed = 
   database.exec(`INSERT OR IGNORE INTO role_endpoints (role_id, endpoint_id, description)
     SELECT r.id, e.id, 'Super Admin access' FROM roles r, endpoints e
       WHERE r.title = 'Super Admin' AND e.deleted_at IS NULL`);
+  database.exec(`DELETE FROM role_endpoints WHERE role_id=(SELECT id FROM roles WHERE title='admin') AND endpoint_id=(SELECT id FROM endpoints WHERE title='/dashboard/admin/report')`);
   database.run("INSERT OR IGNORE INTO error_messages (type,title,description) VALUES (?, ?, ?), (?, ?, ?), (?, ?, ?)", [
     "success", "admin.created", "Record created.", "success", "admin.deleted", "Record deleted.", "error", "admin.super_admin_protected", "The Super Admin role is protected.",
   ]);
