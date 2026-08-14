@@ -12,6 +12,7 @@ export type Meet = {
   title: string;
   description: string;
   topics: string | null;
+  scheduled_at_utc: string | null;
   scheduled_date: string;
   scheduled_time: string;
   duration_minutes: number;

@@ -3,6 +3,7 @@ import { Database } from "bun:sqlite";
 import { initializeDatabase } from "../src/modules/auth/database";
 import { initializeEventsDatabase } from "../src/modules/events/database";
 import { createMeet, getUpcomingMeets, toggleAttendance } from "../src/modules/events/queries";
+import { formatTehran, toUtcIso } from "../src/modules/events/datetime";
 
 let database: Database;
 let userId: number;
@@ -16,6 +17,12 @@ beforeEach(async () => {
   userId = database.query<{ id: number }, []>("SELECT id FROM users WHERE email = 'user@example.com'").get()!.id;
 });
 afterEach(() => database.close());
+
+test("stores Tehran schedule input as UTC and renders Persian date", () => {
+  expect(toUtcIso("2026-08-14", "12:00")).toBe("2026-08-14T08:30:00.000Z");
+  expect(formatTehran("2026-08-14T08:30:00.000Z").time).toBe("12:00");
+  expect(formatTehran("2026-08-14T08:30:00.000Z").date).toContain("۱۴۰۵");
+});
 
 test("createMeet stores JSON topics and creates active tag mappings", () => {
   database.run("INSERT INTO tags (title) VALUES ('TypeScript'), ('Bun')");
@@ -49,7 +56,7 @@ test("getUpcomingMeets excludes soft-deleted meets and tags", () => {
 
   expect(getUpcomingMeets(database)).toEqual([{
     id: active.id, title: "Upcoming", description: "", topics: ["Bun"], scheduled_date: "2099-01-01", scheduled_time: "19:00",
-    duration_minutes: 60, meet_url: null, image_url: null, presenter_id: null, created_at: expect.any(String),
+    scheduled_at_utc: "2099-01-01T15:30:00.000Z", duration_minutes: 60, meet_url: null, image_url: null, presenter_id: null, created_at: expect.any(String),
     updated_at: expect.any(String), deleted_at: null, attendee_count: 1, presenter: null, attendee_ids: [userId], tags: [{ id: tags[0]!.id, title: "Active", description: null, created_at: expect.any(String), updated_at: expect.any(String), deleted_at: null }],
   }]);
 });

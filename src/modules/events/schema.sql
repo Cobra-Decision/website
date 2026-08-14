@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS meets (
   title TEXT NOT NULL,
   description TEXT NOT NULL DEFAULT '',
   topics TEXT,
+  scheduled_at_utc TEXT,
   scheduled_date DATE NOT NULL,
   scheduled_time TIME NOT NULL,
   duration_minutes INTEGER NOT NULL DEFAULT 60,
