@@ -1,4 +1,5 @@
 import type { Database } from "bun:sqlite";
+import { generateId } from "../../lib/id";
 
 const schema = await Bun.file(new URL("./schema.sql", import.meta.url)).text();
 
@@ -6,52 +7,71 @@ export type AdminSeed = { email?: string; password?: string };
 
 export async function initializeDatabase(database: Database, admin: AdminSeed = {}) {
   database.exec(schema);
-  migrateOptionalProfileFields(database);
-  database.run("INSERT OR IGNORE INTO roles (title, description) VALUES (?, ?), (?, ?), (?, ?)", [
-    "member", "Default user role", "admin", "Administrator", "Super Admin", "Full administrative access",
-  ]);
-  for (const endpoint of ["/dashboard", "/dashboard/admin", "/dashboard/admin/users", "/dashboard/admin/meets", "/dashboard/admin/tags", "/dashboard/admin/roles", "/dashboard/admin/endpoints", "/dashboard/admin/report"])
-    database.run("INSERT OR IGNORE INTO endpoints (title, description) VALUES (?, ?)", [endpoint, "Administrative endpoint"]);
-  database.exec(`INSERT OR IGNORE INTO role_endpoints (role_id, endpoint_id, description)
-    SELECT r.id, e.id, 'Dashboard access' FROM roles r, endpoints e
-    WHERE r.title IN ('admin', 'Super Admin') AND r.deleted_at IS NULL
-      AND e.title = '/dashboard' AND e.deleted_at IS NULL`);
 
-  database.exec(`INSERT OR IGNORE INTO role_endpoints (role_id, endpoint_id, description)
-    SELECT r.id, e.id, 'Admin access' FROM roles r, endpoints e
-    WHERE r.title IN ('admin', 'Super Admin') AND r.deleted_at IS NULL
-      AND e.title LIKE '/dashboard/admin%' AND e.deleted_at IS NULL`);
+  const roles = [
+    { title: "member", description: "Default user role" },
+    { title: "admin", description: "Administrator" },
+    { title: "Super Admin", description: "Full administrative access" },
+  ];
+  for (const role of roles) {
+    const existing = database.query<{ id: string }, [string]>("SELECT id FROM roles WHERE title = ?").get(role.title);
+    if (!existing) {
+      database.run("INSERT INTO roles (id, title, description) VALUES (?, ?, ?)", [generateId(), role.title, role.description]);
+    }
+  }
 
-  database.exec(`INSERT OR IGNORE INTO role_endpoints (role_id, endpoint_id, description)
-    SELECT r.id, e.id, 'Super Admin access' FROM roles r, endpoints e
-      WHERE r.title = 'Super Admin' AND e.deleted_at IS NULL`);
-  database.exec(`DELETE FROM role_endpoints WHERE role_id=(SELECT id FROM roles WHERE title='admin') AND endpoint_id=(SELECT id FROM endpoints WHERE title='/dashboard/admin/report')`);
-  database.run("INSERT OR IGNORE INTO error_messages (type,title,description) VALUES (?, ?, ?), (?, ?, ?), (?, ?, ?)", [
-    "success", "admin.created", "Record created.", "success", "admin.deleted", "Record deleted.", "error", "admin.super_admin_protected", "The Super Admin role is protected.",
-  ]);
+  const endpoints = [
+    "/dashboard",
+    "/dashboard/admin",
+    "/dashboard/admin/users",
+    "/dashboard/admin/meets",
+    "/dashboard/admin/tags",
+    "/dashboard/admin/roles",
+    "/dashboard/admin/endpoints",
+    "/dashboard/admin/report",
+  ];
+  for (const endpoint of endpoints) {
+    const existing = database.query<{ id: string }, [string]>("SELECT id FROM endpoints WHERE title = ?").get(endpoint);
+    if (!existing) {
+      database.run("INSERT INTO endpoints (id, title, description) VALUES (?, ?, ?)", [generateId(), endpoint, "Administrative endpoint"]);
+    }
+  }
+
+  const adminRoles = database.query<{ id: string; title: string }, []>("SELECT id, title FROM roles WHERE title IN ('admin', 'Super Admin')").all();
+  const allEndpoints = database.query<{ id: string; title: string }, []>("SELECT id, title FROM endpoints").all();
+
+  for (const r of adminRoles) {
+    for (const e of allEndpoints) {
+      if (r.title === "admin" && e.title === "/dashboard/admin/report") continue;
+      database.run(
+        "INSERT OR IGNORE INTO role_endpoints (id, role_id, endpoint_id, description) VALUES (?, ?, ?, ?)",
+        [generateId(), r.id, e.id, "Dashboard access"]
+      );
+    }
+  }
+
+  const errorMessages = [
+    { type: "success", title: "admin.created", description: "Record created." },
+    { type: "success", title: "admin.deleted", description: "Record deleted." },
+    { type: "error", title: "admin.super_admin_protected", description: "The Super Admin role is protected." },
+  ];
+  for (const msg of errorMessages) {
+    const existing = database.query<{ id: string }, [string]>("SELECT id FROM error_messages WHERE title = ?").get(msg.title);
+    if (!existing) {
+      database.run("INSERT INTO error_messages (id, type, title, description) VALUES (?, ?, ?, ?)", [generateId(), msg.type, msg.title, msg.description]);
+    }
+  }
 
   if (admin.email && admin.password) {
-    const role = database.query<{ id: number }, []>("SELECT id FROM roles WHERE title = 'Super Admin' AND deleted_at IS NULL").get()!;
-    const existing = database.query<{ id: number }, [string]>("SELECT id FROM users WHERE email = ? AND deleted_at IS NULL").get(admin.email.trim().toLowerCase());
-    if (!existing) database.run("INSERT INTO users (email, password_hash, role_id) VALUES (?, ?, ?)", [admin.email.trim().toLowerCase(), await Bun.password.hash(admin.password), role.id]);
-    else database.run("UPDATE users SET role_id=?, updated_at=CURRENT_TIMESTAMP WHERE id=?", [role.id, existing.id]);
-  }
-}
-
-function migrateOptionalProfileFields(database: Database) {
-  const username = database.query<{ notnull: number }, []>("SELECT `notnull` FROM pragma_table_info('users') WHERE name = 'username'").get();
-  if (!username?.notnull) return;
-  database.transaction(() => {
-    database.exec(`ALTER TABLE users RENAME TO users_required_profile;
-      CREATE TABLE users (
-        id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT UNIQUE, email TEXT NOT NULL UNIQUE,
-        phone TEXT UNIQUE, password_hash TEXT NOT NULL, first_name TEXT, last_name TEXT,
-        role_id INTEGER NOT NULL REFERENCES roles(id), created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, deleted_at TEXT
+    const role = database.query<{ id: string }, []>("SELECT id FROM roles WHERE title = 'Super Admin' AND deleted_at IS NULL").get()!;
+    const existing = database.query<{ id: string }, [string]>("SELECT id FROM users WHERE email = ? AND deleted_at IS NULL").get(admin.email.trim().toLowerCase());
+    if (!existing) {
+      database.run(
+        "INSERT INTO users (id, email, password_hash, role_id) VALUES (?, ?, ?, ?)",
+        [generateId(), admin.email.trim().toLowerCase(), await Bun.password.hash(admin.password), role.id]
       );
-      INSERT INTO users SELECT id, NULLIF(username, ''), email, NULLIF(phone, ''), password_hash,
-        NULLIF(first_name, ''), NULLIF(last_name, ''), role_id, created_at, updated_at, deleted_at
-        FROM users_required_profile;
-      DROP TABLE users_required_profile;`);
-  })();
+    } else {
+      database.run("UPDATE users SET role_id=?, updated_at=CURRENT_TIMESTAMP WHERE id=?", [role.id, existing.id]);
+    }
+  }
 }

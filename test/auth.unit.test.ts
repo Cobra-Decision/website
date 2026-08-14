@@ -16,7 +16,7 @@ test("registration requires only a valid email and password", () => {
 test("permission checker ignores soft-deleted permissions and can clear its cache", async () => {
   const database = new Database(":memory:");
   await initializeDatabase(database);
-  const admin = database.query<{ id: number }, []>("SELECT id FROM roles WHERE title = 'admin' AND deleted_at IS NULL").get()!;
+  const admin = database.query<{ id: string }, []>("SELECT id FROM roles WHERE title = 'admin' AND deleted_at IS NULL").get()!;
   const canAccess = createPermissionChecker(database);
   expect(canAccess(admin.id, "/dashboard")).toBe(true);
   database.run("UPDATE role_endpoints SET deleted_at = CURRENT_TIMESTAMP");

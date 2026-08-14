@@ -4,15 +4,15 @@ import { getCookie } from "hono/cookie";
 import { verify } from "hono/jwt";
 import { database } from "../../lib/database";
 
-type Claims = { sub: string; username: string; role_title: string; role_id: number };
-const permissionCache = new Map<number, Set<string>>();
+export type Claims = { sub: string; username: string; role_title: string; role_id: string };
+const permissionCache = new Map<string, Set<string>>();
 
 export function createPermissionChecker(db: Database) {
-  const cache = db === database ? permissionCache : new Map<number, Set<string>>();
-  const check = (roleId: number, path: string) => {
+  const cache = db === database ? permissionCache : new Map<string, Set<string>>();
+  const check = (roleId: string, path: string) => {
     let permissions = cache.get(roleId);
     if (!permissions) {
-      const rows = db.query<{ title: string }, [number]>(
+      const rows = db.query<{ title: string }, [string]>(
         `SELECT e.title FROM endpoints e JOIN role_endpoints re ON re.endpoint_id = e.id
          WHERE re.role_id = ? AND e.deleted_at IS NULL AND re.deleted_at IS NULL`,
       ).all(roleId);
@@ -21,7 +21,7 @@ export function createPermissionChecker(db: Database) {
     }
     return permissions.has(path);
   };
-  check.clear = (roleId?: number) => roleId === undefined ? cache.clear() : cache.delete(roleId);
+  check.clear = (roleId?: string) => roleId === undefined ? cache.clear() : cache.delete(roleId);
   return check;
 }
 
@@ -43,6 +43,6 @@ export const requirePermission = (jwtSecret = process.env.JWT_SECRET ?? "develop
     }
   };
 
-export function clearPermissionCache(roleId?: number) {
+export function clearPermissionCache(roleId?: string) {
   canAccess.clear(roleId);
 }

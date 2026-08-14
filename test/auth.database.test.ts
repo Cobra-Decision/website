@@ -1,6 +1,7 @@
 import { afterEach, expect, test } from "bun:test";
 import { Database } from "bun:sqlite";
 import { initializeDatabase } from "../src/modules/auth/database";
+import { generateId } from "../src/lib/id";
 
 let database: Database;
 afterEach(() => database?.close());
@@ -38,19 +39,19 @@ test("optional admin seed is idempotent and uses a native password hash", async 
 test("profile fields are optional and foreign keys are enforced", async () => {
   database = new Database(":memory:");
   await initializeDatabase(database);
-  const role = database.query<{ id: number }, []>("SELECT id FROM roles WHERE title = 'member' AND deleted_at IS NULL").get()!;
-  database.run("INSERT INTO users (email, password_hash, role_id) VALUES (?, ?, ?)", ["user@example.com", "hash", role.id]);
+  const role = database.query<{ id: string }, []>("SELECT id FROM roles WHERE title = 'member' AND deleted_at IS NULL").get()!;
+  database.run("INSERT INTO users (id, email, password_hash, role_id) VALUES (?, ?, ?, ?)", [generateId(), "user@example.com", "hash", role.id]);
   expect(database.query("SELECT username, phone, first_name, last_name FROM users").get()).toEqual({
     username: null, phone: null, first_name: null, last_name: null,
   });
-  expect(() => database.run("INSERT INTO users (email, password_hash, role_id) VALUES (?, ?, ?)", ["bad@example.com", "hash", 999])).toThrow();
+  expect(() => database.run("INSERT INTO users (id, email, password_hash, role_id) VALUES (?, ?, ?, ?)", [generateId(), "bad@example.com", "hash", "non-existent-role-id"])).toThrow();
 });
 
 test("existing configured seed user is promoted to Super Admin", async () => {
   database = new Database(":memory:");
   await initializeDatabase(database);
-  const member = database.query<{ id: number }, []>("SELECT id FROM roles WHERE title='member'").get()!;
-  database.run("INSERT INTO users (email,password_hash,role_id) VALUES (?,?,?)", ["admin@example.com", "hash", member.id]);
+  const member = database.query<{ id: string }, []>("SELECT id FROM roles WHERE title='member'").get()!;
+  database.run("INSERT INTO users (id, email, password_hash, role_id) VALUES (?, ?, ?, ?)", [generateId(), "admin@example.com", "hash", member.id]);
   await initializeDatabase(database, { email: "admin@example.com", password: "secret" });
   expect(database.query<{ title: string }, []>("SELECT r.title FROM users u JOIN roles r ON r.id=u.role_id WHERE u.email='admin@example.com'").get()).toEqual({ title: "Super Admin" });
 });

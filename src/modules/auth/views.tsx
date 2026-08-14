@@ -17,7 +17,7 @@ const AuthCard = ({ title, subtitle, children }: { title: string; subtitle: stri
   <main class="grid min-h-screen place-items-center px-4 py-10">
     <div class="card w-full max-w-lg border border-base-300 bg-base-100 shadow-2xl">
       <div class="card-body gap-6 p-6 sm:p-10">
-        <div><a class="text-sm font-semibold text-primary" href="/">Website</a><h1 class="mt-2 text-3xl font-bold">{title}</h1><p class="mt-2 text-base-content/60">{subtitle}</p></div>
+        <div><a class="text-sm font-semibold text-primary" href="/">CobraDecision</a><h1 class="mt-2 text-3xl font-bold">{title}</h1><p class="mt-2 text-base-content/60">{subtitle}</p></div>
         {children}
       </div>
     </div>
@@ -51,13 +51,13 @@ export const Register = () => (
   </AuthCard>
 );
 
-export type Profile = { email: string; username: string | null; phone: string | null; first_name: string | null; last_name: string | null; role_title: string };
+export type Profile = { id?: string; email: string; username: string | null; phone: string | null; first_name: string | null; last_name: string | null; role_title: string };
 
 export const Dashboard = ({ user }: { user: Profile }) => {
   const name = [user.first_name, user.last_name].filter(Boolean).join(" ") || user.username || user.email;
   return <div class="min-h-screen">
     <header class="navbar border-b border-base-300 bg-base-100 px-4 shadow-sm sm:px-8">
-      <div class="flex-1"><a class="text-xl font-bold" href="/dashboard/member">Dashboard</a></div>
+      <div class="flex-1"><a class="text-xl font-bold" href="/dashboard/user">Dashboard</a></div>
       <div class="dropdown dropdown-end" x-data>
         <button class="btn btn-ghost gap-3" tabindex={0}><div class="avatar placeholder"><div class="w-9 rounded-full bg-primary text-primary-content"><span>{name[0]?.toUpperCase()}</span></div></div><span class="hidden text-left sm:block"><span class="block text-sm font-semibold">{name}</span><span class="block text-xs opacity-60">{user.role_title}</span></span></button>
         <div class="card dropdown-content z-10 mt-3 w-72 border border-base-300 bg-base-100 shadow-xl" tabindex={0}><div class="card-body gap-2 p-5"><p class="font-semibold">{name}</p><p class="text-sm text-base-content/60">{user.email}</p>{user.phone && <p class="text-sm text-base-content/60">{user.phone}</p>}<a class="btn btn-outline btn-sm mt-2" href="/dashboard/member/profile">Edit profile</a><div class="divider my-1"></div><form hx-post="/auth/logout"><button class="btn btn-error btn-outline btn-sm w-full" type="submit">Log out</button></form></div></div>
@@ -67,4 +67,4 @@ export const Dashboard = ({ user }: { user: Profile }) => {
   </div>;
 };
 
-export const ProfileForm = ({ user }: { user: Profile }) => <main class="mx-auto max-w-2xl p-6 sm:p-10"><div class="card bg-base-100 shadow"><div class="card-body"><h1 class="card-title">Your profile</h1><form class="grid gap-4 mt-4 sm:grid-cols-2" hx-post="/dashboard/profile" hx-target="#profile-result">{[["Username", "username"], ["Phone", "phone"], ["First name", "first_name"], ["Last name", "last_name"]].map(([label, name]) => <label class="form-control"><span class="label-text">{label}</span><input class="input input-bordered w-full" name={name} value={String(user[name as keyof Profile] ?? "")} /></label>)}<label class="form-control sm:col-span-2"><span class="label-text">New password</span><input class="input input-bordered w-full" name="password" type="password" /></label><label class="form-control sm:col-span-2"><span class="label-text">Confirm new password</span><input class="input input-bordered w-full" name="password_confirmation" type="password" /></label><div id="profile-result" class="sm:col-span-2"></div><div class="modal-action sm:col-span-2"><a class="btn" href="/dashboard/member">Cancel</a><button class="btn btn-primary">Save changes</button></div></form></div></div></main>;
+export const ProfileForm = ({ user }: { user: Profile }) => <main class="mx-auto max-w-2xl p-6 sm:p-10"><div class="card bg-base-100 shadow"><div class="card-body"><h1 class="card-title">Your profile</h1><form class="grid gap-4 mt-4 sm:grid-cols-2" hx-post="/dashboard/profile" hx-target="#profile-result">{[["Username", "username"], ["Phone", "phone"], ["First name", "first_name"], ["Last name", "last_name"]].map(([label, name]) => <label class="form-control"><span class="label-text">{label}</span><input class="input input-bordered w-full" name={name} value={String(user[name as keyof Profile] ?? "")} /></label>)}<label class="form-control sm:col-span-2"><span class="label-text">New password</span><input class="input input-bordered w-full" name="password" type="password" /></label><label class="form-control sm:col-span-2"><span class="label-text">Confirm new password</span><input class="input input-bordered w-full" name="password_confirmation" type="password" /></label><div id="profile-result" class="sm:col-span-2"></div><div class="modal-action sm:col-span-2"><a class="btn" href="/dashboard/user">Cancel</a><button class="btn btn-primary">Save changes</button></div></form></div></div></main>;

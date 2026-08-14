@@ -21,7 +21,7 @@ export function refreshLandingCache(database: Database) {
     return;
   }
   const totalMinutes = database.query<{ total: number }, []>("SELECT COALESCE(SUM(duration_minutes), 0) total FROM meets WHERE deleted_at IS NULL").get()!.total;
-  setCache("landing", { totalUsers, totalMeetHours: totalMinutes / 60, meets: getUpcomingMeets(database) } satisfies LandingCache);
+  setCache("landing", { totalUsers, totalMeetHours: totalMinutes / 60, meets: getUpcomingMeets(database, 5) } satisfies LandingCache);
 }
 
 export function refreshErrorCache(database: Database) {

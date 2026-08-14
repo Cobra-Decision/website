@@ -5,6 +5,7 @@ import { createApp } from "../src/app";
 import { initializeDatabase } from "../src/modules/auth/database";
 import { getLandingCache, initCache } from "../src/lib/cache";
 import { initializeEventsDatabase } from "../src/modules/events/database";
+import { generateId } from "../src/lib/id";
 
 let database: Database;
 let app: ReturnType<typeof createApp>;
@@ -86,7 +87,6 @@ test("login redirects to dashboard and dashboard shows the profile", async () =>
   const cookie = login.headers.get("set-cookie")!.split(";")[0];
 
   const dashboard = await app.request("/dashboard/admin", { headers: { cookie } });
-  const html = await dashboard.text();
   expect(dashboard.status).toBe(302);
   expect(dashboard.headers.get("location")).toBe("/dashboard/admin/users");
 });
@@ -108,7 +108,8 @@ test("admin user form exposes profile fields and hashes its password", async () 
   const cookie = (await app.request("/auth/login", { method: "POST", body: login })).headers.get("set-cookie")!.split(";")[0];
   const form = await app.request("/dashboard/admin/users/new", { headers: { cookie } });
   expect(await form.text()).toContain('name="first_name"');
-  const user = new FormData(); user.set("email", "editor@example.com"); user.set("password", "secret123"); user.set("role_id", "1");
+  const role = database.query<{ id: string }, []>("SELECT id FROM roles WHERE title = 'member'").get()!;
+  const user = new FormData(); user.set("email", "editor@example.com"); user.set("password", "secret123"); user.set("role_id", role.id);
   await app.request("/dashboard/admin/users", { method: "POST", headers: { cookie }, body: user });
   const row = database.query<{ password_hash: string }, []>("SELECT password_hash FROM users WHERE email='editor@example.com'").get()!;
   expect(await Bun.password.verify("secret123", row.password_hash)).toBe(true);
@@ -147,9 +148,9 @@ test("sql report renders readable schema and returns error toasts", async () => 
 
 test("admin tables support safe search and sorting", async () => {
   await initializeDatabase(database, { email: "admin@example.com", password: "secret123" });
-  const role = database.query<{ id: number }, []>("SELECT id FROM roles WHERE title='member'").get()!;
-  database.run("INSERT INTO users (email,password_hash,role_id) VALUES (?,?,?)", ["maya@example.com", "hash", role.id]);
-  database.run("INSERT INTO users (email,password_hash,role_id) VALUES (?,?,?)", ["noah@example.com", "hash", role.id]);
+  const role = database.query<{ id: string }, []>("SELECT id FROM roles WHERE title='member'").get()!;
+  database.run("INSERT INTO users (id,email,password_hash,role_id) VALUES (?,?,?,?)", [generateId(), "maya@example.com", "hash", role.id]);
+  database.run("INSERT INTO users (id,email,password_hash,role_id) VALUES (?,?,?,?)", [generateId(), "noah@example.com", "hash", role.id]);
   const login = new FormData(); login.set("identifier", "admin@example.com"); login.set("password", "secret123");
   const cookie = (await app.request("/auth/login", { method: "POST", body: login })).headers.get("set-cookie")!.split(";")[0];
   const html = await (await app.request("/dashboard/admin/users?q=maya&search_field=email&sort=email&direction=asc", { headers: { cookie, "HX-Request": "true" } })).text();
@@ -194,15 +195,15 @@ test("invalid admin forms preserve actionable UI", async () => {
   expect(bulkResponse.status).toBe(400);
   expect(await bulkResponse.text()).toContain("Select at least one record.");
 
-  database.run("INSERT INTO meets (title,scheduled_date,scheduled_time) VALUES (?,?,?)", ["Relations", "2099-01-01", "18:00"]);
-  const meetId = database.query<{ id: number }, []>("SELECT id FROM meets WHERE title='Relations'").get()!.id;
-  const invalidTag = new FormData(); invalidTag.set("tag_id", "9999");
+  const meetId = generateId();
+  database.run("INSERT INTO meets (id,title,scheduled_date,scheduled_time) VALUES (?,?,?,?)", [meetId, "Relations", "2099-01-01", "18:00"]);
+  const invalidTag = new FormData(); invalidTag.set("tag_id", "invalid-tag-id");
   const relationResponse = await app.request(`/dashboard/admin/meets/${meetId}/tags`, { method: "POST", headers: { cookie }, body: invalidTag });
   expect(relationResponse.status).toBe(400);
   expect(await relationResponse.text()).toContain(`id="meet-relations-${meetId}"`);
 
-  const adminRole = database.query<{ id: number }, []>("SELECT id FROM roles WHERE title='admin'").get()!;
-  const invalidEndpoint = new FormData(); invalidEndpoint.set("endpoint_id", "9999");
+  const adminRole = database.query<{ id: string }, []>("SELECT id FROM roles WHERE title='admin'").get()!;
+  const invalidEndpoint = new FormData(); invalidEndpoint.set("endpoint_id", "invalid-endpoint-id");
   const mappingResponse = await app.request(`/dashboard/admin/roles/${adminRole.id}/endpoints`, { method: "POST", headers: { cookie }, body: invalidEndpoint });
   expect(mappingResponse.status).toBe(400);
   const mappingHtml = await mappingResponse.text();
@@ -215,7 +216,7 @@ test("admin create forms persist every resource", async () => {
   await initializeDatabase(database, { email: "admin@example.com", password: "secret123" });
   const login = new FormData(); login.set("identifier", "admin@example.com"); login.set("password", "secret123");
   const cookie = (await app.request("/auth/login", { method: "POST", body: login })).headers.get("set-cookie")!.split(";")[0];
-  const role = database.query<{ id: number }, []>("SELECT id FROM roles WHERE title='member'").get()!;
+  const role = database.query<{ id: string }, []>("SELECT id FROM roles WHERE title='member'").get()!;
 
   const submissions: [string, FormData, string, string][] = [];
   const tag = new FormData(); tag.set("title", "Testing"); tag.set("description", "Test tag"); submissions.push(["tags", tag, "tags", "Testing"]);
@@ -226,7 +227,7 @@ test("admin create forms persist every resource", async () => {
     expect((await app.request(`/dashboard/admin/${resource}`, { method: "POST", headers: { cookie }, body })).status).toBe(200);
     expect(database.query(`SELECT 1 FROM ${table} WHERE title=? AND deleted_at IS NULL`).get(title)).toBeTruthy();
   }
-  const user = new FormData(); user.set("email", "forms@example.com"); user.set("password", "sample-password"); user.set("role_id", String(role.id));
+  const user = new FormData(); user.set("email", "forms@example.com"); user.set("password", "sample-password"); user.set("role_id", role.id);
   expect((await app.request("/dashboard/admin/users", { method: "POST", headers: { cookie }, body: user })).status).toBe(200);
   expect(database.query("SELECT 1 FROM users WHERE email='forms@example.com'").get()).toBeTruthy();
 });
@@ -236,14 +237,17 @@ test("admin edit delete bulk and endpoint mapping forms persist changes", async 
   await initializeDatabase(database, { email: "admin@example.com", password: "secret123" });
   const login = new FormData(); login.set("identifier", "admin@example.com"); login.set("password", "secret123");
   const cookie = (await app.request("/auth/login", { method: "POST", body: login })).headers.get("set-cookie")!.split(";")[0];
-  const member = database.query<{ id: number }, []>("SELECT id FROM roles WHERE title='member'").get()!;
-  database.run("INSERT INTO tags (title) VALUES ('Before tag'),('Bulk tag')");
-  database.run("INSERT INTO endpoints (title) VALUES ('/before')");
-  database.run("INSERT INTO roles (title) VALUES ('Before role')");
-  database.run("INSERT INTO meets (title,scheduled_date,scheduled_time) VALUES ('Before meet','2099-01-01','18:00')");
-  database.run("INSERT INTO users (email,password_hash,role_id) VALUES ('before@example.com','hash',?)", [member.id]);
-  const id = (table: string, titleColumn: string, value: string) => database.query<{ id: number }, [string]>(`SELECT id FROM ${table} WHERE ${titleColumn}=?`).get(value)!.id;
-  const edits: [string, number, FormData, string, string][] = [];
+  const member = database.query<{ id: string }, []>("SELECT id FROM roles WHERE title='member'").get()!;
+
+  const tag1 = generateId(), tag2 = generateId(), ep1 = generateId(), r1 = generateId(), m1 = generateId(), u1 = generateId();
+  database.run("INSERT INTO tags (id, title) VALUES (?, ?), (?, ?)", [tag1, "Before tag", tag2, "Bulk tag"]);
+  database.run("INSERT INTO endpoints (id, title) VALUES (?, ?)", [ep1, "/before"]);
+  database.run("INSERT INTO roles (id, title) VALUES (?, ?)", [r1, "Before role"]);
+  database.run("INSERT INTO meets (id, title, scheduled_date, scheduled_time) VALUES (?, 'Before meet', '2099-01-01', '18:00')", [m1]);
+  database.run("INSERT INTO users (id, email, password_hash, role_id) VALUES (?, 'before@example.com', 'hash', ?)", [u1, member.id]);
+
+  const id = (table: string, titleColumn: string, value: string) => database.query<{ id: string }, [string]>(`SELECT id FROM ${table} WHERE ${titleColumn}=?`).get(value)!.id;
+  const edits: [string, string, FormData, string, string][] = [];
   const tag = new FormData(); tag.set("title", "After tag"); tag.set("description", "Updated"); edits.push(["tags", id("tags", "title", "Before tag"), tag, "tags", "After tag"]);
   const endpoint = new FormData(); endpoint.set("title", "/after"); endpoint.set("description", "Updated"); edits.push(["endpoints", id("endpoints", "title", "/before"), endpoint, "endpoints", "/after"]);
   const role = new FormData(); role.set("title", "After role"); role.set("description", "Updated"); edits.push(["roles", id("roles", "title", "Before role"), role, "roles", "After role"]);
@@ -253,36 +257,35 @@ test("admin edit delete bulk and endpoint mapping forms persist changes", async 
     expect(database.query(`SELECT 1 FROM ${table} WHERE title=? AND deleted_at IS NULL`).get(title)).toBeTruthy();
   }
   const userId = id("users", "email", "before@example.com");
-  const user = new FormData(); user.set("email", "after@example.com"); user.set("role_id", String(member.id)); user.set("password", "new-password");
+  const user = new FormData(); user.set("email", "after@example.com"); user.set("role_id", member.id); user.set("password", "new-password");
   expect((await app.request(`/dashboard/admin/users/${userId}`, { method: "POST", headers: { cookie }, body: user })).status).toBe(200);
-  expect(await Bun.password.verify("new-password", database.query<{ password_hash: string }, [number]>("SELECT password_hash FROM users WHERE id=?").get(userId)!.password_hash)).toBe(true);
+  expect(await Bun.password.verify("new-password", database.query<{ password_hash: string }, [string]>("SELECT password_hash FROM users WHERE id=?").get(userId)!.password_hash)).toBe(true);
 
   const endpointId = id("endpoints", "title", "/after");
   const roleId = id("roles", "title", "After role");
-  const mapping = new FormData(); mapping.set("endpoint_id", String(endpointId));
+  const mapping = new FormData(); mapping.set("endpoint_id", endpointId);
   expect((await app.request(`/dashboard/admin/roles/${roleId}/endpoints`, { method: "POST", headers: { cookie }, body: mapping })).status).toBe(200);
   expect(database.query("SELECT 1 FROM role_endpoints WHERE role_id=? AND endpoint_id=?").get(roleId, endpointId)).toBeTruthy();
 
   const bulkTagId = id("tags", "title", "Bulk tag");
-  const bulk = new FormData(); bulk.append("ids", String(bulkTagId));
+  const bulk = new FormData(); bulk.append("ids", bulkTagId);
   expect((await app.request("/dashboard/admin/tags/bulk-delete", { method: "POST", headers: { cookie }, body: bulk })).status).toBe(200);
-  expect(database.query<{ deleted_at: string }, [number]>("SELECT deleted_at FROM tags WHERE id=?").get(bulkTagId)).not.toEqual({ deleted_at: null });
+  expect(database.query<{ deleted_at: string }, [string]>("SELECT deleted_at FROM tags WHERE id=?").get(bulkTagId)).not.toEqual({ deleted_at: null });
 
   const tagId = id("tags", "title", "After tag");
   expect((await app.request(`/dashboard/admin/tags/${tagId}`, { method: "DELETE", headers: { cookie } })).status).toBe(200);
-  expect(database.query<{ deleted_at: string }, [number]>("SELECT deleted_at FROM tags WHERE id=?").get(tagId)).not.toEqual({ deleted_at: null });
+  expect(database.query<{ deleted_at: string }, [string]>("SELECT deleted_at FROM tags WHERE id=?").get(tagId)).not.toEqual({ deleted_at: null });
 });
 
 test("meet tags and attendees can be managed independently", async () => {
   initializeEventsDatabase(database);
   await initializeDatabase(database, { email: "admin@example.com", password: "secret123" });
-  const role = database.query<{ id: number }, []>("SELECT id FROM roles WHERE title='member'").get()!;
-  database.run("INSERT INTO users (email,password_hash,role_id) VALUES (?,?,?)", ["guest@example.com", "hash", role.id]);
-  database.run("INSERT INTO tags (title,description) VALUES (?,?)", ["Bun", "Bun runtime"]);
-  database.run("INSERT INTO meets (title,scheduled_date,scheduled_time) VALUES (?,?,?)", ["Runtime meetup", "2099-01-01", "18:00"]);
-  const meetId = database.query<{ id: number }, []>("SELECT id FROM meets").get()!.id;
-  const tagId = database.query<{ id: number }, []>("SELECT id FROM tags").get()!.id;
-  const userId = database.query<{ id: number }, []>("SELECT id FROM users WHERE email='guest@example.com'").get()!.id;
+  const role = database.query<{ id: string }, []>("SELECT id FROM roles WHERE title='member'").get()!;
+  const userId = generateId(), tagId = generateId(), meetId = generateId();
+  database.run("INSERT INTO users (id,email,password_hash,role_id) VALUES (?,?,'hash',?)", [userId, "guest@example.com", role.id]);
+  database.run("INSERT INTO tags (id,title,description) VALUES (?,?,?)", [tagId, "Bun", "Bun runtime"]);
+  database.run("INSERT INTO meets (id,title,scheduled_date,scheduled_time) VALUES (?,?,'2099-01-01','18:00')", [meetId, "Runtime meetup"]);
+
   const login = new FormData(); login.set("identifier", "admin@example.com"); login.set("password", "secret123");
   const cookie = (await app.request("/auth/login", { method: "POST", body: login })).headers.get("set-cookie")!.split(";")[0];
   initCache(database);
@@ -290,13 +293,13 @@ test("meet tags and attendees can be managed independently", async () => {
   expect(edit).toContain(`/dashboard/admin/meets/${meetId}/tags`);
   expect(edit).toContain(`/dashboard/admin/meets/${meetId}/attendees`);
 
-  const tag = new FormData(); tag.set("tag_id", String(tagId));
+  const tag = new FormData(); tag.set("tag_id", tagId);
   const tagResponse = await app.request(`/dashboard/admin/meets/${meetId}/tags`, { method: "POST", headers: { cookie }, body: tag });
   expect(tagResponse.status).toBe(200);
   expect(await tagResponse.text()).toContain("Bun runtime");
   expect(database.query("SELECT 1 FROM meet_tags WHERE meet_id=? AND tag_id=?").get(meetId, tagId)).toBeTruthy();
 
-  const attendee = new FormData(); attendee.set("user_id", String(userId));
+  const attendee = new FormData(); attendee.set("user_id", userId);
   const attendeeResponse = await app.request(`/dashboard/admin/meets/${meetId}/attendees`, { method: "POST", headers: { cookie }, body: attendee });
   expect(attendeeResponse.status).toBe(200);
   expect(await attendeeResponse.text()).toContain("guest@example.com");
@@ -325,7 +328,7 @@ test("member dashboard does not show admin navigation", async () => {
   login.set("identifier", "member@example.com");
   login.set("password", "secret123");
   const response = await app.request("/auth/login", { method: "POST", body: login });
-  const dashboard = await app.request("/dashboard", { headers: { cookie: response.headers.get("set-cookie")!.split(";")[0] } });
+  const dashboard = await app.request("/dashboard/user", { headers: { cookie: response.headers.get("set-cookie")!.split(";")[0] } });
   expect(await dashboard.text()).not.toContain('href="/dashboard/admin"');
 });
 
@@ -341,8 +344,8 @@ test("authenticated users update only their own profile", async () => {
 });
 
 test("profile uniqueness errors return visible feedback", async () => {
-  const member = database.query<{ id: number }, []>("SELECT id FROM roles WHERE title='member'").get()!;
-  database.run("INSERT INTO users (email,username,password_hash,role_id) VALUES (?,?,?,?)", ["taken@example.com", "taken", "hash", member.id]);
+  const member = database.query<{ id: string }, []>("SELECT id FROM roles WHERE title='member'").get()!;
+  database.run("INSERT INTO users (id,email,username,password_hash,role_id) VALUES (?,?,?,?,?)", [generateId(), "taken@example.com", "taken", "hash", member.id]);
   const register = new FormData(); register.set("email", "member@example.com"); register.set("password", "secret123"); register.set("password_confirmation", "secret123");
   await app.request("/auth/register", { method: "POST", body: register });
   const login = new FormData(); login.set("identifier", "member@example.com"); login.set("password", "secret123");

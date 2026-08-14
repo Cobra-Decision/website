@@ -5,35 +5,84 @@ import type { Database } from "bun:sqlite";
 import { clearPermissionCache, createPermissionChecker } from "../auth/middleware";
 import { AdminLayout, CrudTable, MeetRelations, type Row } from "./views";
 import { FormMessage } from "../../ui/form-message";
-import { getErrorMessage } from "../../lib/cache";
-import { refreshLandingCache } from "../../lib/cache";
+import { getErrorMessage, refreshLandingCache } from "../../lib/cache";
 import { Toast } from "./views";
 import { validateReportSql } from "./report";
 import { SchemaTable } from "./report-views";
+import { generateId } from "../../lib/id";
+import { handleImageUpload } from "./upload";
 
 const guard = (db: Database, jwtSecret: string, path: string) => async (c: Context, next: Next) => {
   const token = getCookie(c, "session");
   if (!token) return c.redirect("/auth");
   try {
-    const claims = await verify(token, jwtSecret, "HS256") as { sub: string; role_id: number };
+    const claims = (await verify(token, jwtSecret, "HS256")) as { sub: string; role_id: string };
     const basePath = path.match(/^\/dashboard\/admin\/[^/]+/)?.[0] ?? path;
-    if (!createPermissionChecker(db)(claims.role_id, path) && !createPermissionChecker(db)(claims.role_id, basePath)) return c.html(<p class="alert alert-error">Forbidden</p>, 403);
-    c.set("auth", claims); return next();
-  } catch { return c.redirect("/auth"); }
+    if (!createPermissionChecker(db)(claims.role_id, path) && !createPermissionChecker(db)(claims.role_id, basePath)) {
+      return c.html(<p class="alert alert-error">Forbidden</p>, 403);
+    }
+    c.set("auth", claims);
+    return next();
+  } catch {
+    return c.redirect("/auth");
+  }
 };
 
 export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECRET ?? "development-secret") {
   const app = new Hono();
-  const page = (c: Context, title: string, body: any) => { const auth = c.get("auth") as { role_id: number; sub: string }; const allowed = db.query<{ title: string }, [number]>("SELECT e.title FROM endpoints e JOIN role_endpoints re ON re.endpoint_id=e.id WHERE re.role_id=? AND e.deleted_at IS NULL AND re.deleted_at IS NULL").all(auth.role_id).map((r) => r.title); const user = db.query<{ name: string; email: string; role: string }, [number]>("SELECT COALESCE(NULLIF(TRIM(first_name||' '||last_name),''),COALESCE(username,email)) name,email,r.title role FROM users u JOIN roles r ON r.id=u.role_id WHERE u.id=?").get(Number(auth.sub)) ?? undefined; return c.html(<AdminLayout allowed={allowed} title={title} user={user}>{body}</AdminLayout>); };
+  const page = (c: Context, title: string, body: any) => {
+    const auth = c.get("auth") as { role_id: string; sub: string };
+    const allowed = db
+      .query<{ title: string }, [string]>(
+        "SELECT e.title FROM endpoints e JOIN role_endpoints re ON re.endpoint_id=e.id WHERE re.role_id=? AND e.deleted_at IS NULL AND re.deleted_at IS NULL"
+      )
+      .all(auth.role_id)
+      .map((r) => r.title);
+    const user =
+      db
+        .query<{ name: string; email: string; role: string }, [string]>(
+          "SELECT COALESCE(NULLIF(TRIM(first_name||' '||last_name),''),COALESCE(username,email)) name,email,r.title role FROM users u JOIN roles r ON r.id=u.role_id WHERE u.id=?"
+        )
+        .get(auth.sub) ?? undefined;
+    return c.html(<AdminLayout allowed={allowed} title={title} user={user}>{body}</AdminLayout>);
+  };
+
   app.use("*", async (c, next) => guard(db, jwtSecret, c.req.path)(c, next));
   app.get("/", (c) => c.redirect("/dashboard/admin/users"));
+
   const config = {
-    users: { table: "users", columns: ["id", "email", "username", "phone", "first_name", "last_name", "role_title", "created_at", "updated_at"], searchFields: ["id", "email", "username", "phone", "first_name", "last_name", "role_title"], fields: ["email", "username", "phone", "first_name", "last_name", "password", "role_id"] },
-    meets: { table: "meets", columns: ["id", "title", "description", "topics", "scheduled_date", "scheduled_time", "duration_minutes", "meet_url", "image_url", "presenter_id", "created_at", "updated_at"], searchFields: ["id", "title", "description", "topics", "scheduled_date", "presenter_id"], fields: ["title", "description", "topics", "scheduled_date", "scheduled_time", "duration_minutes", "meet_url", "image_url", "presenter_id"] },
-    tags: { table: "tags", columns: ["id", "title", "description", "created_at", "updated_at"], searchFields: ["id", "title", "description"], fields: ["title", "description"] },
-    roles: { table: "roles", columns: ["id", "title", "description", "created_at", "updated_at"], searchFields: ["id", "title", "description"], fields: ["title", "description"] },
-    endpoints: { table: "endpoints", columns: ["id", "title", "description", "created_at", "updated_at"], searchFields: ["id", "title", "description"], fields: ["title", "description"] },
+    users: {
+      table: "users",
+      columns: ["id", "email", "username", "phone", "first_name", "last_name", "role_title", "created_at", "updated_at"],
+      searchFields: ["id", "email", "username", "phone", "first_name", "last_name", "role_title"],
+      fields: ["email", "username", "phone", "first_name", "last_name", "password", "role_id"],
+    },
+    meets: {
+      table: "meets",
+      columns: ["id", "title", "description", "topics", "scheduled_date", "scheduled_time", "duration_minutes", "meet_url", "image_url", "presenter_id", "created_at", "updated_at"],
+      searchFields: ["id", "title", "description", "topics", "scheduled_date", "presenter_id"],
+      fields: ["title", "description", "topics", "scheduled_date", "scheduled_time", "duration_minutes", "meet_url", "image_url", "presenter_id"],
+    },
+    tags: {
+      table: "tags",
+      columns: ["id", "title", "description", "created_at", "updated_at"],
+      searchFields: ["id", "title", "description"],
+      fields: ["title", "description"],
+    },
+    roles: {
+      table: "roles",
+      columns: ["id", "title", "description", "created_at", "updated_at"],
+      searchFields: ["id", "title", "description"],
+      fields: ["title", "description"],
+    },
+    endpoints: {
+      table: "endpoints",
+      columns: ["id", "title", "description", "created_at", "updated_at"],
+      searchFields: ["id", "title", "description"],
+      fields: ["title", "description"],
+    },
   } as const;
+
   const rowsFor = (resource: keyof typeof config, query: Record<string, string> = {}) => {
     const direction = query.direction === "asc" ? "ASC" : "DESC";
     const sort = query.sort && config[resource].columns.includes(query.sort as never) ? query.sort : "id";
@@ -49,58 +98,442 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
     const sql = `SELECT ${config[resource].columns.join(", ")} FROM ${config[resource].table} WHERE deleted_at IS NULL${q ? ` AND CAST(${searchField} AS TEXT) LIKE ?` : ""} ORDER BY ${sort} ${direction}`;
     return (q ? db.query(sql).all(`%${q}%`) : db.query(sql).all()) as Row[];
   };
-  const tableResponse = (resource: keyof typeof config, toastTitle?: string, fallback = "") => { refreshLandingCache(db); clearPermissionCache(); return <><CrudTable resource={resource} columns={[...config[resource].columns]} searchFields={[...config[resource].searchFields]} rows={rowsFor(resource)} />{toastTitle && toast(toastTitle, fallback)}</>; };
-  const form = (resource: keyof typeof config, id?: number, values: Row = {}, error?: string) => {
-    const roles = db.query<{ id: number; title: string }, []>("SELECT id,title FROM roles WHERE deleted_at IS NULL ORDER BY title").all();
-    const users = db.query<{ id: number; email: string }, []>("SELECT id,email FROM users WHERE deleted_at IS NULL ORDER BY email").all();
-    const endpoints = resource === "roles" ? db.query<{ id: number; title: string }, []>("SELECT id,title FROM endpoints WHERE deleted_at IS NULL ORDER BY title").all() : [];
-    const mappings = resource === "roles" && id ? db.query<{ endpoint_id: number; title: string }, [number]>("SELECT re.endpoint_id,e.title FROM role_endpoints re JOIN endpoints e ON e.id=re.endpoint_id WHERE re.role_id=? AND re.deleted_at IS NULL AND e.deleted_at IS NULL").all(id) : [];
-    const inputType = (field: string) => field === "password" ? "password" : field.includes("date") ? "date" : field.includes("time") ? "time" : field === "duration_minutes" ? "number" : field.endsWith("_url") ? "url" : "text";
-    const fieldInput = (field: string) => field === "role_id" ? <select class="select select-bordered w-full" name={field} required value={String(values[field] ?? "")}><option value="">Choose role</option>{roles.map((role) => <option value={String(role.id)}>{role.title}</option>)}</select> : field === "presenter_id" ? <select class="select select-bordered w-full" name={field} value={String(values[field] ?? "")}><option value="">Free discussion</option>{users.map((user) => <option value={String(user.id)}>{user.email}</option>)}</select> : <input class="input input-bordered w-full" name={field} type={inputType(field)} value={field === "password" ? "" : String(values[field] ?? "")} required={field === "title" || field === "email" || field === "scheduled_date" || field === "scheduled_time" || (!id && field === "password")} />;
-    return <dialog id="record-modal" class="modal modal-open"><div class="modal-box max-w-2xl"><h3 class="font-bold text-lg">{id ? "Edit" : "Add"} {resource}</h3><form hx-post={`/dashboard/admin/${resource}${id ? `/${id}` : ""}`} hx-target={`#${resource}-table`} hx-swap="outerHTML" class="grid gap-3 mt-4 sm:grid-cols-2">{error && <div class="sm:col-span-2"><FormMessage message={error} /></div>}{config[resource].fields.map((field) => <label class="form-control"><span class="label-text">{field.replaceAll("_", " ")}</span>{fieldInput(field)}</label>)}{resource === "meets" && values.image_url && <img class="max-h-40 rounded-box border object-cover sm:col-span-2" src={String(values.image_url)} alt="Meet image preview" />}<div class="modal-action sm:col-span-2"><button type="button" class="btn" onclick="this.closest('dialog').remove()">Cancel</button><button class="btn btn-primary">Save</button></div></form>{resource === "meets" && id && relationPanel(id)}{resource === "roles" && id && <div class="border-t pt-4"><p class="font-semibold">Endpoint access</p><div class="mt-2 flex gap-2"><select id={`role-endpoint-${id}`} class="select select-bordered w-full" name="endpoint_id">{endpoints.map((endpoint) => <option value={String(endpoint.id)}>{endpoint.title}</option>)}</select><button type="button" class="btn btn-primary" hx-post={`/dashboard/admin/roles/${id}/endpoints`} hx-include={`#role-endpoint-${id}`} hx-target="#modal">Add</button></div>{mappings.map((mapping) => <div class="mt-2 flex items-center justify-between gap-2"><span class="text-sm">{mapping.title}</span><button type="button" class="btn btn-error btn-xs" hx-delete={`/dashboard/admin/roles/${id}/endpoints/${mapping.endpoint_id}`} hx-target="#modal">Remove</button></div>)}</div>}</div></dialog>;
+
+  const tableResponse = (resource: keyof typeof config, toastTitle?: string, fallback = "") => {
+    refreshLandingCache(db);
+    clearPermissionCache();
+    return (
+      <>
+        <CrudTable resource={resource} columns={[...config[resource].columns]} searchFields={[...config[resource].searchFields]} rows={rowsFor(resource)} />
+        {toastTitle && toast(toastTitle, fallback)}
+      </>
+    );
   };
-  const toast = (title: string, fallback: string, type: "info" | "error" | "success" | "warning" = "success") => { const message = getErrorMessage(title) ?? { type, title, description: fallback }; return <Toast type={message.type} title={message.title} description={message.description} />; };
-  const relationPanel = (meetId: number) => <MeetRelations meetId={meetId}
-    tags={db.query("SELECT id,title,description FROM tags WHERE deleted_at IS NULL ORDER BY title").all() as { id: number; title: string; description: string | null }[]}
-    users={db.query("SELECT id,email FROM users WHERE deleted_at IS NULL ORDER BY email").all() as { id: number; email: string }[]}
-    selectedTags={db.query("SELECT t.id,t.title,t.description FROM tags t JOIN meet_tags mt ON mt.tag_id=t.id WHERE mt.meet_id=? AND t.deleted_at IS NULL ORDER BY t.title").all(meetId) as { id: number; title: string; description: string | null }[]}
-    attendees={db.query("SELECT u.id,u.email FROM users u JOIN meet_attendees ma ON ma.user_id=u.id WHERE ma.meet_id=? AND u.deleted_at IS NULL ORDER BY u.email").all(meetId) as { id: number; email: string }[]} />;
-  const valuesFrom = (body: Record<string, string | File>) => Object.fromEntries(Object.entries(body).map(([key, value]) => [key, typeof value === "string" ? value : value.name])) as Row;
-  const formFailure = (resource: keyof typeof config, message: string, values: Row, id?: number) => <>{form(resource, id, values, message)}{toast("admin.error", message, "error")}</>;
-  const failForm = (c: Context, resource: keyof typeof config, message: string, values: Row, id?: number, status: 400 | 403 = 400) => { c.header("HX-Retarget", "#modal"); c.header("HX-Reswap", "innerHTML"); return c.html(formFailure(resource, message, values, id), status); };
+
+  const form = (resource: keyof typeof config, id?: string, values: Row = {}, error?: string) => {
+    const roles = db.query<{ id: string; title: string }, []>("SELECT id,title FROM roles WHERE deleted_at IS NULL ORDER BY title").all();
+    const users = db.query<{ id: string; email: string }, []>("SELECT id,email FROM users WHERE deleted_at IS NULL ORDER BY email").all();
+    const endpoints = resource === "roles" ? db.query<{ id: string; title: string }, []>("SELECT id,title FROM endpoints WHERE deleted_at IS NULL ORDER BY title").all() : [];
+    const mappings =
+      resource === "roles" && id
+        ? db
+            .query<{ endpoint_id: string; title: string }, [string]>(
+              "SELECT re.endpoint_id,e.title FROM role_endpoints re JOIN endpoints e ON e.id=re.endpoint_id WHERE re.role_id=? AND re.deleted_at IS NULL AND e.deleted_at IS NULL"
+            )
+            .all(id)
+        : [];
+    const inputType = (field: string) =>
+      field === "password"
+        ? "password"
+        : field.includes("date")
+        ? "date"
+        : field.includes("time")
+        ? "time"
+        : field === "duration_minutes"
+        ? "number"
+        : field.endsWith("_url")
+        ? "url"
+        : "text";
+
+    const fieldInput = (field: string) =>
+      field === "role_id" ? (
+        <select class="select select-bordered w-full" name={field} required value={String(values[field] ?? "")}>
+          <option value="">Choose role</option>
+          {roles.map((role) => (
+            <option value={role.id} selected={String(values[field]) === role.id}>
+              {role.title}
+            </option>
+          ))}
+        </select>
+      ) : field === "presenter_id" ? (
+        <select class="select select-bordered w-full" name={field} value={String(values[field] ?? "")}>
+          <option value="">Free discussion</option>
+          {users.map((user) => (
+            <option value={user.id} selected={String(values[field]) === user.id}>
+              {user.email}
+            </option>
+          ))}
+        </select>
+      ) : (
+        <input
+          class="input input-bordered w-full"
+          name={field}
+          type={inputType(field)}
+          value={field === "password" ? "" : String(values[field] ?? "")}
+          required={field === "title" || field === "email" || field === "scheduled_date" || field === "scheduled_time" || (!id && field === "password")}
+        />
+      );
+
+    return (
+      <dialog id="record-modal" class="modal modal-open">
+        <div class="modal-box max-w-2xl">
+          <h3 class="font-bold text-lg">{id ? "Edit" : "Add"} {resource}</h3>
+          <form
+            hx-post={`/dashboard/admin/${resource}${id ? `/${id}` : ""}`}
+            hx-target={`#${resource}-table`}
+            hx-swap="outerHTML"
+            hx-encoding="multipart/form-data"
+            class="grid gap-3 mt-4 sm:grid-cols-2"
+          >
+            {error && (
+              <div class="sm:col-span-2">
+                <FormMessage message={error} />
+              </div>
+            )}
+            {config[resource].fields.map((field) => (
+              <label class="form-control">
+                <span class="label-text">{field.replaceAll("_", " ")}</span>
+                {fieldInput(field)}
+              </label>
+            ))}
+
+            {resource === "meets" && (
+              <label class="form-control sm:col-span-2">
+                <span class="label-text">Or Upload Image File (PNG, JPG, WebP - max 5MB)</span>
+                <input class="file-input file-input-bordered w-full" name="image_file" type="file" accept="image/png,image/jpeg,image/webp" />
+              </label>
+            )}
+
+            {resource === "meets" && values.image_url && (
+              <img class="max-h-40 rounded-box border object-cover sm:col-span-2" src={String(values.image_url)} alt="Meet image preview" />
+            )}
+
+            <div class="modal-action sm:col-span-2">
+              <button type="button" class="btn" onclick="this.closest('dialog').remove()">
+                Cancel
+              </button>
+              <button class="btn btn-primary">Save</button>
+            </div>
+          </form>
+
+          {resource === "meets" && id && relationPanel(id)}
+
+          {resource === "roles" && id && (
+            <div class="border-t pt-4">
+              <p class="font-semibold">Endpoint access</p>
+              <div class="mt-2 flex gap-2">
+                <select id={`role-endpoint-${id}`} class="select select-bordered w-full" name="endpoint_id">
+                  {endpoints.map((endpoint) => (
+                    <option value={endpoint.id}>{endpoint.title}</option>
+                  ))}
+                </select>
+                <button type="button" class="btn btn-primary" hx-post={`/dashboard/admin/roles/${id}/endpoints`} hx-include={`#role-endpoint-${id}`} hx-target="#modal">
+                  Add
+                </button>
+              </div>
+              {mappings.map((mapping) => (
+                <div class="mt-2 flex items-center justify-between gap-2">
+                  <span class="text-sm">{mapping.title}</span>
+                  <button type="button" class="btn btn-error btn-xs" hx-delete={`/dashboard/admin/roles/${id}/endpoints/${mapping.endpoint_id}`} hx-target="#modal">
+                    Remove
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </dialog>
+    );
+  };
+
+  const toast = (title: string, fallback: string, type: "info" | "error" | "success" | "warning" = "success") => {
+    const message = getErrorMessage(title) ?? { type, title, description: fallback };
+    return <Toast type={message.type} title={message.title} description={message.description} />;
+  };
+
+  const relationPanel = (meetId: string) => (
+    <MeetRelations
+      meetId={meetId}
+      tags={db.query("SELECT id,title,description FROM tags WHERE deleted_at IS NULL ORDER BY title").all() as { id: string; title: string; description: string | null }[]}
+      users={db.query("SELECT id,email FROM users WHERE deleted_at IS NULL ORDER BY email").all() as { id: string; email: string }[]}
+      selectedTags={db.query("SELECT t.id,t.title,t.description FROM tags t JOIN meet_tags mt ON mt.tag_id=t.id WHERE mt.meet_id=? AND t.deleted_at IS NULL ORDER BY t.title").all(meetId) as { id: string; title: string; description: string | null }[]}
+      attendees={db.query("SELECT u.id,u.email FROM users u JOIN meet_attendees ma ON ma.user_id=u.id WHERE ma.meet_id=? AND u.deleted_at IS NULL ORDER BY u.email").all(meetId) as { id: string; email: string }[]}
+    />
+  );
+
+  const valuesFrom = (body: Record<string, string | File>) =>
+    Object.fromEntries(
+      Object.entries(body).map(([key, value]) => [key, typeof value === "string" ? value : value instanceof File ? value.name : null])
+    ) as Row;
+
+  const formFailure = (resource: keyof typeof config, message: string, values: Row, id?: string) => (
+    <>
+      {form(resource, id, values, message)}
+      {toast("admin.error", message, "error")}
+    </>
+  );
+
+  const failForm = (c: Context, resource: keyof typeof config, message: string, values: Row, id?: string, status: 400 | 403 = 400) => {
+    c.header("HX-Retarget", "#modal");
+    c.header("HX-Reswap", "innerHTML");
+    return c.html(formFailure(resource, message, values, id), status);
+  };
+
   const validate = (resource: keyof typeof config, values: Row, editing = false) => {
     if (resource === "users") {
       if (!String(values.email ?? "").includes("@")) return "A valid email is required.";
       if (!editing && !String(values.password ?? "")) return "Password is required.";
-      if (!db.query("SELECT 1 FROM roles WHERE id=? AND deleted_at IS NULL").get(Number(values.role_id))) return "Choose a valid role.";
+      if (!db.query("SELECT 1 FROM roles WHERE id=? AND deleted_at IS NULL").get(String(values.role_id))) return "Choose a valid role.";
     }
     if (resource === "meets" && (!String(values.title ?? "").trim() || !values.scheduled_date || !values.scheduled_time)) return "Scheduled date and time are required.";
     if (["tags", "roles", "endpoints"].includes(resource) && !String(values.title ?? "").trim()) return "Title is required.";
     return null;
   };
-  const isSuperAdmin = (c: Context) => (c.get("auth") as { role_id: number }).role_id === db.query<{ id: number }, []>("SELECT id FROM roles WHERE title='Super Admin' AND deleted_at IS NULL").get()?.id;
+
+  const isSuperAdmin = (c: Context) =>
+    (c.get("auth") as { role_id: string }).role_id === db.query<{ id: string }, []>("SELECT id FROM roles WHERE title='Super Admin' AND deleted_at IS NULL").get()?.id;
+
   for (const resource of Object.keys(config) as (keyof typeof config)[]) {
     const { table, columns, fields } = config[resource];
-    app.get(`/${resource}`, (c) => { const table = <CrudTable resource={resource} columns={[...columns]} searchFields={[...config[resource].searchFields]} rows={rowsFor(resource, c.req.query())} query={c.req.query()} />; return c.req.header("HX-Request") ? c.html(table) : page(c, resource, table); });
+    app.get(`/${resource}`, (c) => {
+      const tableComponent = <CrudTable resource={resource} columns={[...columns]} searchFields={[...config[resource].searchFields]} rows={rowsFor(resource, c.req.query())} query={c.req.query()} />;
+      return c.req.header("HX-Request") ? c.html(tableComponent) : page(c, resource, tableComponent);
+    });
+
     app.get(`/${resource}/new`, (c) => c.html(form(resource)));
-    app.get(`/${resource}/:id/edit`, (c) => { const editable = resource === "users" ? fields.filter((field) => field !== "password") : fields; const row = db.query(`SELECT ${editable.join(", ")} FROM ${table} WHERE id=? AND deleted_at IS NULL`).get(Number(c.req.param("id"))) as Row | null; return row ? c.html(form(resource, Number(c.req.param("id")), row)) : c.notFound(); });
-    app.get(`/${resource}/:id/confirm`, (c) => c.html(<dialog class="modal modal-open"><div class="modal-box"><h3 class="font-bold">Delete {resource}?</h3><p class="py-4">This item will be removed from active results.</p><form hx-delete={`/dashboard/admin/${resource}/${c.req.param("id")}`} hx-target={`#${resource}-table`} hx-swap="outerHTML"><button class="btn btn-error">Delete</button><button type="button" class="btn" onclick="this.closest('dialog').remove()">Cancel</button></form></div></dialog>));
-    app.post(`/${resource}`, async (c) => { const body = await c.req.parseBody(); const submitted = valuesFrom(body); const error = validate(resource, submitted); if (error) return failForm(c, resource, error, submitted); try { if (resource === "users") { const password = String(body.password); const editable = config.users.fields.filter((field) => field !== "password"); const values = editable.map((field) => String(body[field] ?? "").trim() || null); db.run(`INSERT INTO users (${editable.join(",")},password_hash) VALUES (${editable.map(() => "?").join(",")},?)`, [...values, await Bun.password.hash(password)]); } else { const values = fields.map((field) => String(body[field] ?? "").trim() || null); db.run(`INSERT INTO ${table} (${fields.join(",")}) VALUES (${fields.map(() => "?").join(",")})`, values); } return c.html(tableResponse(resource, "admin.created", "Created")); } catch { return failForm(c, resource, resource === "users" ? "That email, username, or phone is already used." : "A record with that title already exists.", submitted); } });
-    app.post(`/${resource}/bulk-delete`, async (c) => { const body = await c.req.parseBody(); const ids = (Array.isArray(body.ids) ? body.ids : [body.ids]).filter(Boolean).map(Number); if (!ids.length) return c.html(<><CrudTable resource={resource} columns={[...columns]} searchFields={[...config[resource].searchFields]} rows={rowsFor(resource)} />{toast("admin.nothing_selected", "Select at least one record.", "warning")}</>, 400); for (const id of ids) if (!(resource === "roles" && db.query("SELECT 1 FROM roles WHERE id=? AND title='Super Admin'").get(id))) db.run(`UPDATE ${table} SET deleted_at=CURRENT_TIMESTAMP, updated_at=CURRENT_TIMESTAMP WHERE id=?`, [id]); return c.html(tableResponse(resource, "admin.deleted", "Deleted")); });
-    app.post(`/${resource}/:id`, async (c) => { const body = await c.req.parseBody(); const submitted = valuesFrom(body); const id = Number(c.req.param("id")); if (resource === "roles" && db.query("SELECT 1 FROM roles WHERE id=? AND title='Super Admin'").get(id)) return failForm(c, resource, "The Super Admin role is protected.", submitted, id, 403); const error = validate(resource, submitted, true); if (error) return failForm(c, resource, error, submitted, id); try { if (resource === "users") { const editable = config.users.fields.filter((field) => field !== "password"); const values = editable.map((field) => String(body[field] ?? "").trim() || null); const password = String(body.password ?? ""); db.run(`UPDATE users SET ${editable.map((field) => `${field}=?`).join(",")}${password ? ",password_hash=?" : ""},updated_at=CURRENT_TIMESTAMP WHERE id=?`, [...values, ...(password ? [await Bun.password.hash(password)] : []), id]); } else { const values = fields.map((field) => String(body[field] ?? "").trim() || null); db.run(`UPDATE ${table} SET ${fields.map((field) => `${field}=?`).join(",")}, updated_at=CURRENT_TIMESTAMP WHERE id=?`, [...values, id]); } return c.html(tableResponse(resource, "admin.created", "Updated")); } catch { return failForm(c, resource, resource === "users" ? "That email, username, or phone is already used." : "A record with that title already exists.", submitted, id); } });
-    app.delete(`/${resource}/:id`, (c) => { const id = Number(c.req.param("id")); if (resource === "roles" && db.query("SELECT 1 FROM roles WHERE id=? AND title='Super Admin'").get(id)) return c.html(toast("admin.super_admin_protected", "Protected"), 403); db.run(`UPDATE ${table} SET deleted_at=CURRENT_TIMESTAMP, updated_at=CURRENT_TIMESTAMP WHERE id=?`, [id]); return c.html(tableResponse(resource, "admin.deleted", "Deleted")); });
+
+    app.get(`/${resource}/:id/edit`, (c) => {
+      const editable = resource === "users" ? fields.filter((field) => field !== "password") : fields;
+      const row = db.query(`SELECT ${editable.join(", ")} FROM ${table} WHERE id=? AND deleted_at IS NULL`).get(c.req.param("id")) as Row | null;
+      return row ? c.html(form(resource, c.req.param("id"), row)) : c.notFound();
+    });
+
+    app.get(`/${resource}/:id/confirm`, (c) =>
+      c.html(
+        <dialog class="modal modal-open">
+          <div class="modal-box">
+            <h3 class="font-bold">Delete {resource}?</h3>
+            <p class="py-4">This item will be removed from active results.</p>
+            <form hx-delete={`/dashboard/admin/${resource}/${c.req.param("id")}`} hx-target={`#${resource}-table`} hx-swap="outerHTML">
+              <button class="btn btn-error">Delete</button>
+              <button type="button" class="btn" onclick="this.closest('dialog').remove()">
+                Cancel
+              </button>
+            </form>
+          </div>
+        </dialog>
+      )
+    );
+
+    app.post(`/${resource}`, async (c) => {
+      const body = await c.req.parseBody();
+      const submitted = valuesFrom(body);
+      const error = validate(resource, submitted);
+      if (error) return failForm(c, resource, error, submitted);
+
+      if (resource === "meets" && body.image_file instanceof File && body.image_file.size > 0) {
+        const uploadResult = await handleImageUpload(body.image_file);
+        if (uploadResult.error) return failForm(c, resource, uploadResult.error, submitted);
+        if (uploadResult.url) submitted.image_url = uploadResult.url;
+      }
+
+      try {
+        const id = generateId();
+        if (resource === "users") {
+          const password = String(body.password);
+          const editable = config.users.fields.filter((field) => field !== "password");
+          const values = editable.map((field) => String(submitted[field] ?? "").trim() || null);
+          db.run(`INSERT INTO users (id,${editable.join(",")},password_hash) VALUES (?,${editable.map(() => "?").join(",")},?)`, [id, ...values, await Bun.password.hash(password)]);
+        } else {
+          const values = fields.map((field) => String(submitted[field] ?? "").trim() || null);
+          db.run(`INSERT INTO ${table} (id,${fields.join(",")}) VALUES (?,${fields.map(() => "?").join(",")})`, [id, ...values]);
+        }
+        return c.html(tableResponse(resource, "admin.created", "Created"));
+      } catch {
+        return failForm(c, resource, resource === "users" ? "That email, username, or phone is already used." : "A record with that title already exists.", submitted);
+      }
+    });
+
+    app.post(`/${resource}/bulk-delete`, async (c) => {
+      const body = await c.req.parseBody();
+      const ids = (Array.isArray(body.ids) ? body.ids : [body.ids]).filter(Boolean).map(String);
+      if (!ids.length) return c.html(<><CrudTable resource={resource} columns={[...columns]} searchFields={[...config[resource].searchFields]} rows={rowsFor(resource)} />{toast("admin.nothing_selected", "Select at least one record.", "warning")}</>, 400);
+      for (const id of ids) {
+        if (!(resource === "roles" && db.query("SELECT 1 FROM roles WHERE id=? AND title='Super Admin'").get(id))) {
+          db.run(`UPDATE ${table} SET deleted_at=CURRENT_TIMESTAMP, updated_at=CURRENT_TIMESTAMP WHERE id=?`, [id]);
+        }
+      }
+      return c.html(tableResponse(resource, "admin.deleted", "Deleted"));
+    });
+
+    app.post(`/${resource}/:id`, async (c) => {
+      const body = await c.req.parseBody();
+      const submitted = valuesFrom(body);
+      const id = c.req.param("id");
+      if (resource === "roles" && db.query("SELECT 1 FROM roles WHERE id=? AND title='Super Admin'").get(id)) return failForm(c, resource, "The Super Admin role is protected.", submitted, id, 403);
+      const error = validate(resource, submitted, true);
+      if (error) return failForm(c, resource, error, submitted, id);
+
+      if (resource === "meets" && body.image_file instanceof File && body.image_file.size > 0) {
+        const uploadResult = await handleImageUpload(body.image_file);
+        if (uploadResult.error) return failForm(c, resource, uploadResult.error, submitted, id);
+        if (uploadResult.url) submitted.image_url = uploadResult.url;
+      }
+
+      try {
+        if (resource === "users") {
+          const editable = config.users.fields.filter((field) => field !== "password");
+          const values = editable.map((field) => String(submitted[field] ?? "").trim() || null);
+          const password = String(body.password ?? "");
+          db.run(`UPDATE users SET ${editable.map((field) => `${field}=?`).join(",")}${password ? ",password_hash=?" : ""},updated_at=CURRENT_TIMESTAMP WHERE id=?`, [...values, ...(password ? [await Bun.password.hash(password)] : []), id]);
+        } else {
+          const values = fields.map((field) => String(submitted[field] ?? "").trim() || null);
+          db.run(`UPDATE ${table} SET ${fields.map((field) => `${field}=?`).join(",")}, updated_at=CURRENT_TIMESTAMP WHERE id=?`, [...values, id]);
+        }
+        return c.html(tableResponse(resource, "admin.created", "Updated"));
+      } catch {
+        return failForm(c, resource, resource === "users" ? "That email, username, or phone is already used." : "A record with that title already exists.", submitted, id);
+      }
+    });
+
+    app.delete(`/${resource}/:id`, (c) => {
+      const id = c.req.param("id");
+      if (resource === "roles" && db.query("SELECT 1 FROM roles WHERE id=? AND title='Super Admin'").get(id)) return c.html(toast("admin.super_admin_protected", "Protected"), 403);
+      db.run(`UPDATE ${table} SET deleted_at=CURRENT_TIMESTAMP, updated_at=CURRENT_TIMESTAMP WHERE id=?`, [id]);
+      return c.html(tableResponse(resource, "admin.deleted", "Deleted"));
+    });
   }
-  const validRelation = (table: "tags" | "users", id: number) => Number.isInteger(id) && !!db.query(`SELECT 1 FROM ${table} WHERE id=? AND deleted_at IS NULL`).get(id);
-  app.post("/meets/:id/tags", async (c) => { const meetId = Number(c.req.param("id")); const tagId = Number((await c.req.parseBody()).tag_id); if (!validRelation("tags", tagId)) return c.html(<>{relationPanel(meetId)}{toast("admin.invalid_relation", "Choose a valid tag.", "error")}</>, 400); db.run("INSERT OR IGNORE INTO meet_tags (meet_id,tag_id) VALUES (?,?)", [meetId, tagId]); refreshLandingCache(db); return c.html(<>{relationPanel(meetId)}{toast("admin.created", "Tag added.")}</>); });
-  app.delete("/meets/:id/tags/:tagId", (c) => { const meetId = Number(c.req.param("id")); db.run("DELETE FROM meet_tags WHERE meet_id=? AND tag_id=?", [meetId, Number(c.req.param("tagId"))]); refreshLandingCache(db); return c.html(<>{relationPanel(meetId)}{toast("admin.deleted", "Tag removed.")}</>); });
-  app.post("/meets/:id/attendees", async (c) => { const meetId = Number(c.req.param("id")); const userId = Number((await c.req.parseBody()).user_id); if (!validRelation("users", userId)) return c.html(<>{relationPanel(meetId)}{toast("admin.invalid_relation", "Choose a valid attendee.", "error")}</>, 400); db.run("INSERT OR IGNORE INTO meet_attendees (meet_id,user_id) VALUES (?,?)", [meetId, userId]); refreshLandingCache(db); return c.html(<>{relationPanel(meetId)}{toast("admin.created", "Attendee added.")}</>); });
-  app.delete("/meets/:id/attendees/:userId", (c) => { const meetId = Number(c.req.param("id")); db.run("DELETE FROM meet_attendees WHERE meet_id=? AND user_id=?", [meetId, Number(c.req.param("userId"))]); refreshLandingCache(db); return c.html(<>{relationPanel(meetId)}{toast("admin.deleted", "Attendee removed.")}</>); });
-  app.post("/roles/:id/endpoints", async (c) => { const roleId = Number(c.req.param("id")); const endpointId = Number((await c.req.parseBody()).endpoint_id); const role = db.query("SELECT title,description FROM roles WHERE id=? AND deleted_at IS NULL").get(roleId) as Row | null; if (!role) return c.notFound(); if (!db.query("SELECT 1 FROM endpoints WHERE id=? AND deleted_at IS NULL").get(endpointId)) return c.html(<>{form("roles", roleId, role, "Choose a valid endpoint.")}{toast("admin.invalid_relation", "Choose a valid endpoint.", "error")}</>, 400); if (db.query("SELECT 1 FROM roles WHERE id=? AND title='Super Admin'").get(roleId)) return c.html(<>{form("roles", roleId, role, "The Super Admin role is managed by the system.")}{toast("admin.error", "The Super Admin role is managed by the system.", "error")}</>, 403); db.run("INSERT OR IGNORE INTO role_endpoints (role_id,endpoint_id,description) VALUES (?,?,?)", [roleId, endpointId, "Assigned by admin"]); clearPermissionCache(roleId); return c.html(<>{form("roles", roleId, role)}{toast("admin.created", "Endpoint assigned.")}</>); });
-  app.delete("/roles/:id/endpoints/:endpointId", (c) => { const roleId = Number(c.req.param("id")); const role = db.query("SELECT title,description FROM roles WHERE id=? AND deleted_at IS NULL").get(roleId) as Row | null; if (!role) return c.notFound(); if (db.query("SELECT 1 FROM roles WHERE id=? AND title='Super Admin'").get(roleId)) return c.html(<>{form("roles", roleId, role, "The Super Admin role is managed by the system.")}{toast("admin.error", "The Super Admin role is managed by the system.", "error")}</>, 403); db.run("DELETE FROM role_endpoints WHERE role_id=? AND endpoint_id=?", [roleId, Number(c.req.param("endpointId"))]); clearPermissionCache(roleId); return c.html(<>{form("roles", roleId, role)}{toast("admin.deleted", "Endpoint removed.")}</>); });
-  app.get("/roles/:id/endpoints/new", (c) => c.html(<form class="flex gap-2" hx-post={`/dashboard/admin/roles/${c.req.param("id")}/endpoints`} hx-target="this"><select name="endpoint_id" class="select select-bordered">{db.query<{ id: number; title: string }, []>("SELECT id,title FROM endpoints WHERE deleted_at IS NULL ORDER BY title").all().map((endpoint) => <option value={String(endpoint.id)}>{endpoint.title}</option>)}</select><button class="btn btn-primary">Assign endpoint</button></form>));
-  app.get("/endpoints", (c) => page(c, "Endpoints", <CrudTable resource="endpoints" columns={["title", "description"]} rows={db.query("SELECT id,title,description FROM endpoints WHERE deleted_at IS NULL ORDER BY title").all() as Row[]} />));
-  app.get("/report", (c) => { if (!isSuperAdmin(c)) return c.html(<p class="alert alert-error">Forbidden</p>, 403); const schema = <SchemaTable database={db} query={c.req.query()} />; if (c.req.header("HX-Request")) return c.html(schema); return page(c, "SQL report", <div class="space-y-6"><form hx-post="/dashboard/admin/report" hx-target="#report-result" class="card bg-base-100 shadow"><div class="card-body"><h1 class="card-title">Read-only SQL report</h1><textarea class="textarea textarea-bordered h-32 font-mono" name="sql" placeholder="SELECT * FROM users" required></textarea><div class="modal-action"><button class="btn btn-primary">Run query</button></div></div></form><div id="report-result"></div><div class="card bg-base-100 shadow"><div class="card-body"><h2 class="card-title">Schema</h2>{schema}</div></div></div>); });
-  app.post("/report", async (c) => { if (!isSuperAdmin(c)) return c.html(toast("admin.forbidden", "Forbidden", "error"), 403); const valid = validateReportSql(String((await c.req.parseBody()).sql ?? "")); if (!/^(select|with)\b/i.test(valid)) return c.html(<>{<div id="report-result"></div>}{toast("admin.report_error", valid, "error")}</>, 400); try { const rows = db.query(`SELECT * FROM (${valid}) LIMIT 200`).all() as Row[]; const columns = Object.keys(rows[0] ?? {}); return c.html(<div id="report-result" class="overflow-x-auto"><table class="table bg-base-100"><thead><tr>{columns.map((column) => <th>{column}</th>)}</tr></thead><tbody>{rows.map((row) => <tr>{columns.map((column) => <td>{String(row[column] ?? "—")}</td>)}</tr>)}</tbody></table><p class="mt-2 text-sm opacity-60">{rows.length} row(s), maximum 200.</p></div>); } catch { return c.html(<>{<div id="report-result"></div>}{toast("admin.report_error", "Query could not be run.", "error")}</>, 400); } });
+
+  const validRelation = (table: "tags" | "users", id: string) => !!db.query(`SELECT 1 FROM ${table} WHERE id=? AND deleted_at IS NULL`).get(id);
+
+  app.post("/meets/:id/tags", async (c) => {
+    const meetId = c.req.param("id");
+    const tagId = String((await c.req.parseBody()).tag_id);
+    if (!validRelation("tags", tagId)) return c.html(<>{relationPanel(meetId)}{toast("admin.invalid_relation", "Choose a valid tag.", "error")}</>, 400);
+    db.run("INSERT OR IGNORE INTO meet_tags (meet_id,tag_id) VALUES (?,?)", [meetId, tagId]);
+    refreshLandingCache(db);
+    return c.html(<>{relationPanel(meetId)}{toast("admin.created", "Tag added.")}</>);
+  });
+
+  app.delete("/meets/:id/tags/:tagId", (c) => {
+    const meetId = c.req.param("id");
+    db.run("DELETE FROM meet_tags WHERE meet_id=? AND tag_id=?", [meetId, c.req.param("tagId")]);
+    refreshLandingCache(db);
+    return c.html(<>{relationPanel(meetId)}{toast("admin.deleted", "Tag removed.")}</>);
+  });
+
+  app.post("/meets/:id/attendees", async (c) => {
+    const meetId = c.req.param("id");
+    const userId = String((await c.req.parseBody()).user_id);
+    if (!validRelation("users", userId)) return c.html(<>{relationPanel(meetId)}{toast("admin.invalid_relation", "Choose a valid attendee.", "error")}</>, 400);
+    db.run("INSERT OR IGNORE INTO meet_attendees (meet_id,user_id) VALUES (?,?)", [meetId, userId]);
+    refreshLandingCache(db);
+    return c.html(<>{relationPanel(meetId)}{toast("admin.created", "Attendee added.")}</>);
+  });
+
+  app.delete("/meets/:id/attendees/:userId", (c) => {
+    const meetId = c.req.param("id");
+    db.run("DELETE FROM meet_attendees WHERE meet_id=? AND user_id=?", [meetId, c.req.param("userId")]);
+    refreshLandingCache(db);
+    return c.html(<>{relationPanel(meetId)}{toast("admin.deleted", "Attendee removed.")}</>);
+  });
+
+  app.post("/roles/:id/endpoints", async (c) => {
+    const roleId = c.req.param("id");
+    const endpointId = String((await c.req.parseBody()).endpoint_id);
+    const role = db.query("SELECT title,description FROM roles WHERE id=? AND deleted_at IS NULL").get(roleId) as Row | null;
+    if (!role) return c.notFound();
+    if (!db.query("SELECT 1 FROM endpoints WHERE id=? AND deleted_at IS NULL").get(endpointId)) return c.html(<>{form("roles", roleId, role, "Choose a valid endpoint.")}{toast("admin.invalid_relation", "Choose a valid endpoint.", "error")}</>, 400);
+    if (db.query("SELECT 1 FROM roles WHERE id=? AND title='Super Admin'").get(roleId)) return c.html(<>{form("roles", roleId, role, "The Super Admin role is managed by the system.")}{toast("admin.error", "The Super Admin role is managed by the system.", "error")}</>, 403);
+    db.run("INSERT OR IGNORE INTO role_endpoints (id,role_id,endpoint_id,description) VALUES (?,?,?,?)", [generateId(), roleId, endpointId, "Assigned by admin"]);
+    clearPermissionCache(roleId);
+    return c.html(<>{form("roles", roleId, role)}{toast("admin.created", "Endpoint assigned.")}</>);
+  });
+
+  app.delete("/roles/:id/endpoints/:endpointId", (c) => {
+    const roleId = c.req.param("id");
+    const role = db.query("SELECT title,description FROM roles WHERE id=? AND deleted_at IS NULL").get(roleId) as Row | null;
+    if (!role) return c.notFound();
+    if (db.query("SELECT 1 FROM roles WHERE id=? AND title='Super Admin'").get(roleId)) return c.html(<>{form("roles", roleId, role, "The Super Admin role is managed by the system.")}{toast("admin.error", "The Super Admin role is managed by the system.", "error")}</>, 403);
+    db.run("DELETE FROM role_endpoints WHERE role_id=? AND endpoint_id=?", [roleId, c.req.param("endpointId")]);
+    clearPermissionCache(roleId);
+    return c.html(<>{form("roles", roleId, role)}{toast("admin.deleted", "Endpoint removed.")}</>);
+  });
+
+  app.get("/roles/:id/endpoints/new", (c) =>
+    c.html(
+      <form class="flex gap-2" hx-post={`/dashboard/admin/roles/${c.req.param("id")}/endpoints`} hx-target="this">
+        <select name="endpoint_id" class="select select-bordered">
+          {db.query<{ id: string; title: string }, []>("SELECT id,title FROM endpoints WHERE deleted_at IS NULL ORDER BY title").all().map((endpoint) => (
+            <option value={endpoint.id}>{endpoint.title}</option>
+          ))}
+        </select>
+        <button class="btn btn-primary">Assign endpoint</button>
+      </form>
+    )
+  );
+
+  app.get("/endpoints", (c) =>
+    page(
+      c,
+      "Endpoints",
+      <CrudTable resource="endpoints" columns={["title", "description"]} rows={db.query("SELECT id,title,description FROM endpoints WHERE deleted_at IS NULL ORDER BY title").all() as Row[]} />
+    )
+  );
+
+  app.get("/report", (c) => {
+    if (!isSuperAdmin(c)) return c.html(<p class="alert alert-error">Forbidden</p>, 403);
+    const schema = <SchemaTable database={db} query={c.req.query()} />;
+    if (c.req.header("HX-Request")) return c.html(schema);
+    return page(
+      c,
+      "SQL report",
+      <div class="space-y-6">
+        <form hx-post="/dashboard/admin/report" hx-target="#report-result" class="card bg-base-100 shadow">
+          <div class="card-body">
+            <h1 class="card-title">Read-only SQL report</h1>
+            <textarea class="textarea textarea-bordered h-32 font-mono" name="sql" placeholder="SELECT * FROM users" required></textarea>
+            <div class="modal-action">
+              <button class="btn btn-primary">Run query</button>
+            </div>
+          </div>
+        </form>
+        <div id="report-result"></div>
+        <div class="card bg-base-100 shadow">
+          <div class="card-body">
+            <h2 class="card-title">Schema</h2>
+            {schema}
+          </div>
+        </div>
+      </div>
+    );
+  });
+
+  app.post("/report", async (c) => {
+    if (!isSuperAdmin(c)) return c.html(toast("admin.forbidden", "Forbidden", "error"), 403);
+    const valid = validateReportSql(String((await c.req.parseBody()).sql ?? ""));
+    if (!/^(select|with)\b/i.test(valid)) return c.html(<>{<div id="report-result"></div>}{toast("admin.report_error", valid, "error")}</>, 400);
+    try {
+      const rows = db.query(`SELECT * FROM (${valid}) LIMIT 200`).all() as Row[];
+      const columns = Object.keys(rows[0] ?? {});
+      return c.html(
+        <div id="report-result" class="overflow-x-auto">
+          <table class="table bg-base-100">
+            <thead>
+              <tr>
+                {columns.map((column) => (
+                  <th>{column}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row) => (
+                <tr>
+                  {columns.map((column) => (
+                    <td>{String(row[column] ?? "—")}</td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <p class="mt-2 text-sm opacity-60">{rows.length} row(s), maximum 200.</p>
+        </div>
+      );
+    } catch {
+      return c.html(<>{<div id="report-result"></div>}{toast("admin.report_error", "Query could not be run.", "error")}</>, 400);
+    }
+  });
+
   app.onError((_, c) => c.html(<Toast type="error" title="admin.error" description="The action could not be completed." />, 400));
   return app;
 }
