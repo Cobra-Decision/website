@@ -87,7 +87,7 @@ test("contact endpoint rejects invalid email", async () => {
 });
 
 test("error cache can be refreshed after dictionary changes", () => {
-  database.run("INSERT INTO error_messages (id, type, title, description) VALUES (?, ?, ?, ?)", [generateId(), "error", "admin.error", "Original"]);
+  database.run("UPDATE error_messages SET description=? WHERE title=?", ["Original", "admin.error"]);
   initCache(database);
   database.run("UPDATE error_messages SET description=? WHERE title=?", ["Changed", "admin.error"]);
   expect(getErrorMessage("admin.error")?.description).not.toBe("Changed");

@@ -6,7 +6,7 @@ import { initializeDatabase } from "../src/modules/auth/database";
 import { initializeEventsDatabase } from "../src/modules/events/database";
 import { createMeet } from "../src/modules/events/queries";
 import { generateId } from "../src/lib/id";
-import { handleImageUpload } from "../src/modules/admin/upload";
+import { handleImageUpload, handlePresentationUpload } from "../src/modules/admin/upload";
 
 let database: Database;
 let app: ReturnType<typeof createApp>;
@@ -117,7 +117,96 @@ test("POST and DELETE /meets/:id/attend toggles RSVP and updates UI", async () =
   expect(database.query("SELECT 1 FROM meet_attendees WHERE meet_id = ? AND user_id = ?").get(meet.id, memberId)).toBeNull();
 });
 
-test("handleImageUpload validates file size and MIME type", async () => {
+test("GET /meets/:id renders public meeting with direct room URL and markdown", async () => {
+  const meet = createMeet(database, {
+    title: "Public Rust Talk",
+    description: "## Deep dive\n\n- **Safety**\n- *Concurrency*",
+    topics: ["Rust"],
+    scheduledDate: "2099-01-01",
+    scheduledTime: "18:00",
+    meetUrl: "https://meet.jit.si/rust-room",
+    fileUrl: "/uploads/rust_slides.pdf",
+    accessStatus: "public",
+    status: "live",
+    tagIds: [],
+  });
+
+  const res = await app.request(`/meets/${meet.id}`);
+  expect(res.status).toBe(200);
+  const html = await res.text();
+  expect(html).toContain("Public Rust Talk");
+  expect(html).toContain("<h2>Deep dive</h2>");
+  expect(html).toContain("<strong>Safety</strong>");
+  expect(html).toContain("Download Presentation");
+  expect(html).toContain("https://meet.jit.si/rust-room");
+});
+
+test("GET /meets/:id hides private meeting room URL for non-attendees and shows when attending", async () => {
+  const meet = createMeet(database, {
+    title: "Private Exec Sync",
+    description: "Confidential roadmap discussion",
+    topics: ["Strategy"],
+    scheduledDate: "2099-01-01",
+    scheduledTime: "18:00",
+    meetUrl: "https://meet.jit.si/secret-room",
+    accessStatus: "private",
+    status: "upcoming",
+    tagIds: [],
+  });
+
+  // Non-attending guest / member
+  const guestRes = await app.request(`/meets/${meet.id}`);
+  const guestHtml = await guestRes.text();
+  expect(guestHtml).not.toContain("https://meet.jit.si/secret-room");
+  expect(guestHtml).toContain("Private Meeting Access");
+
+  // Member attends
+  await app.request(`/meets/${meet.id}/attend`, {
+    method: "POST",
+    headers: { cookie: memberCookie },
+  });
+
+  const attendeeRes = await app.request(`/meets/${meet.id}`, {
+    headers: { cookie: memberCookie },
+  });
+  const attendeeHtml = await attendeeRes.text();
+  expect(attendeeHtml).toContain("https://meet.jit.si/secret-room");
+  expect(attendeeHtml).toContain("Join Meeting URL");
+});
+
+test("GET /locale/:lang switches language cookie and redirects", async () => {
+  const res = await app.request("/locale/fa");
+  expect(res.status).toBe(302);
+  expect(res.headers.get("set-cookie")).toContain("locale=fa");
+
+  const faLandingRes = await app.request("/", {
+    headers: { cookie: "locale=fa" },
+  });
+  const faHtml = await faLandingRes.text();
+  expect(faHtml).toContain('lang="fa"');
+  expect(faHtml).toContain('dir="rtl"');
+  expect(faHtml).toContain("کبرا دسیژن");
+
+  const faLoginRes = await app.request("/auth", {
+    headers: { cookie: "locale=fa" },
+  });
+  const faLoginHtml = await faLoginRes.text();
+  expect(faLoginHtml).toContain('lang="fa"');
+  expect(faLoginHtml).toContain('dir="rtl"');
+  expect(faLoginHtml).toContain("خوش آمدید");
+  expect(faLoginHtml).toContain("ورود به حساب");
+
+  const faRegisterRes = await app.request("/auth/register", {
+    headers: { cookie: "locale=fa" },
+  });
+  const faRegisterHtml = await faRegisterRes.text();
+  expect(faRegisterHtml).toContain('lang="fa"');
+  expect(faRegisterHtml).toContain('dir="rtl"');
+  expect(faRegisterHtml).toContain("ایجاد حساب کاربری");
+  expect(faRegisterHtml).toContain("مشخصات تکمیلی");
+});
+
+test("handleImageUpload and handlePresentationUpload validate file size and upload correctly", async () => {
   const emptyRes = await handleImageUpload(null);
   expect(emptyRes).toEqual({});
 
@@ -125,8 +214,13 @@ test("handleImageUpload validates file size and MIME type", async () => {
   const invalidTypeRes = await handleImageUpload(invalidTypeFile);
   expect(invalidTypeRes.error).toContain("Invalid image format");
 
-  const validFile = new File([new Uint8Array(100)], "test.png", { type: "image/png" });
-  const validRes = await handleImageUpload(validFile);
-  expect(validRes.error).toBeUndefined();
-  expect(validRes.url).toContain("/uploads/meet_");
+  const validImgFile = new File([new Uint8Array(100)], "test.png", { type: "image/png" });
+  const validImgRes = await handleImageUpload(validImgFile);
+  expect(validImgRes.error).toBeUndefined();
+  expect(validImgRes.url).toContain("/uploads/meet_img_");
+
+  const validDocFile = new File([new Uint8Array(200)], "presentation.pdf", { type: "application/pdf" });
+  const validDocRes = await handlePresentationUpload(validDocFile);
+  expect(validDocRes.error).toBeUndefined();
+  expect(validDocRes.url).toContain("/uploads/presentation_");
 });

@@ -1,5 +1,6 @@
 import type { Database } from "bun:sqlite";
 import { Hono, type Handler, type MiddlewareHandler } from "hono";
+import { setCookie } from "hono/cookie";
 import { serveStatic } from "hono/bun";
 import { createAuthRoutes, createDashboardRoute, createProfileRoute } from "./modules/auth/routes";
 import { createEventsRoutes, events } from "./modules/events/routes";
@@ -25,6 +26,14 @@ export function createApp({
   app.use("/favicon.svg", serveStatic({ path: "./public/favicon.svg" }));
   app.use("/altcha.js", serveStatic({ path: "node_modules/altcha/dist/main/altcha.min.js" }));
   app.use("/uploads/*", serveStatic({ root: "./public" }));
+
+  // Locale Switcher Route
+  app.get("/locale/:lang", (c) => {
+    const lang = c.req.param("lang") === "fa" ? "fa" : "en";
+    setCookie(c, "locale", lang, { path: "/", maxAge: 60 * 60 * 24 * 365, sameSite: "Lax" });
+    const referer = c.req.header("Referer") || "/";
+    return c.redirect(referer);
+  });
 
   // Landing & Favicon
   app.route("/", createLandingRoutes(database));

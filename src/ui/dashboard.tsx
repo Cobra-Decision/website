@@ -1,3 +1,6 @@
+import type { Locale } from "../lib/i18n/translations";
+import { t } from "../lib/i18n/context";
+
 export type DashboardUser = {
   name: string;
   email: string;
@@ -24,9 +27,11 @@ export const DEFAULT_PLATFORMS: PlatformOption[] = [
 export const UserProfileDropdown = ({
   user,
   currentView,
+  locale = "en",
 }: {
   user: DashboardUser;
   currentView: "admin" | "user";
+  locale?: Locale;
 }) => {
   const isAdmin = user.isSuperAdmin || user.role === "Super Admin" || user.role === "admin";
   const initial = user.name?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase() || "U";
@@ -55,7 +60,7 @@ export const UserProfileDropdown = ({
           )}
 
           <a class="btn btn-outline btn-sm mt-2" href={`/dashboard/account?from=${currentView}`}>
-            Account Settings
+            {t("nav.account", locale)}
           </a>
 
           {isAdmin && (
@@ -73,7 +78,7 @@ export const UserProfileDropdown = ({
           <div class="divider my-1"></div>
           <form hx-post="/auth/logout">
             <button class="btn btn-error btn-outline btn-sm w-full" type="submit">
-              Log out
+              {t("nav.logout", locale)}
             </button>
           </form>
         </div>
@@ -87,11 +92,13 @@ export const DashboardNavbar = ({
   brandHref,
   user,
   currentView,
+  locale = "en",
 }: {
   drawerId: string;
   brandHref: string;
   user?: DashboardUser;
   currentView: "admin" | "user";
+  locale?: Locale;
 }) => (
   <header class="navbar min-h-16 border-b border-base-300 bg-base-100 px-4 shadow-sm sm:px-8">
     <label for={drawerId} class="btn btn-square btn-ghost lg:hidden" aria-label="Toggle navigation drawer">
@@ -99,10 +106,26 @@ export const DashboardNavbar = ({
     </label>
     <div class="flex-1">
       <a class="text-xl font-bold tracking-tight" href={brandHref}>
-        CobraDecision<span class="text-primary">.</span>
+        {t("brand.name", locale)}<span class="text-primary">.</span>
       </a>
     </div>
-    {user && <UserProfileDropdown user={user} currentView={currentView} />}
+    <div class="flex items-center gap-3">
+      <div class="join">
+        <a
+          href="/locale/en"
+          class={`btn btn-xs join-item ${locale === "en" ? "btn-primary font-bold" : "btn-ghost"}`}
+        >
+          EN
+        </a>
+        <a
+          href="/locale/fa"
+          class={`btn btn-xs join-item ${locale === "fa" ? "btn-primary font-bold" : "btn-ghost"}`}
+        >
+          فا
+        </a>
+      </div>
+      {user && <UserProfileDropdown user={user} currentView={currentView} locale={locale} />}
+    </div>
   </header>
 );
 
