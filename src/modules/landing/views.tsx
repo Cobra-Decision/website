@@ -1,5 +1,6 @@
 import type { LandingCache } from "../../lib/cache";
 import type { MeetWithDetails } from "../events/types";
+import { TagBadge } from "../../ui/tag-badge";
 
 const MeetCard = ({ meet }: { meet: MeetWithDetails }) => (
   <article class="carousel-item w-full sm:w-80 md:w-96 flex-shrink-0 flex-col overflow-hidden rounded-2xl border border-base-300 bg-base-100 shadow-sm transition hover:-translate-y-1 hover:shadow-xl">
@@ -28,9 +29,7 @@ const MeetCard = ({ meet }: { meet: MeetWithDetails }) => (
         ) : null}
         <div class="flex flex-wrap gap-2 pt-1">
           {meet.tags.slice(0, 3).map((tag) => (
-            <span class="badge badge-outline badge-sm" key={tag.id}>
-              {tag.title}
-            </span>
+            <TagBadge key={tag.id} title={tag.title} description={tag.description} size="sm" />
           ))}
         </div>
       </div>

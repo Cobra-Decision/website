@@ -319,6 +319,7 @@ test("meet tags and attendees can be managed independently", async () => {
 });
 
 test("member dashboard does not show admin navigation", async () => {
+  await initializeEventsDatabase(database);
   const register = new FormData();
   register.set("email", "member@example.com");
   register.set("password", "secret123");

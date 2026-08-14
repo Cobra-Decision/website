@@ -80,7 +80,7 @@ test("recordMeetVisit logs visit with or without platform slug", () => {
   recordMeetVisit(database, meet.id);
   recordMeetVisit(database, meet.id, "unknown_platform");
 
-  const visits = database.query<{ meet_id: string; platform_id: string | null }, []>("SELECT meet_id, platform_id FROM meet_visits ORDER BY id").all();
+  const visits = database.query<{ meet_id: string; platform_id: string | null }, []>("SELECT meet_id, platform_id FROM meet_visits ORDER BY created_at ASC, id ASC").all();
   expect(visits).toHaveLength(3);
   expect(visits[0]).toEqual({ meet_id: meet.id, platform_id: platformId });
   expect(visits[1]).toEqual({ meet_id: meet.id, platform_id: null });

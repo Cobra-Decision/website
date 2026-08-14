@@ -1,4 +1,5 @@
 import type { MeetWithDetails } from "./types";
+import { TagBadge } from "../../ui/tag-badge";
 
 export const DynamicCtaButton = ({
   meetId,
@@ -64,7 +65,7 @@ export const MeetingDetailPage = ({
             CobraDecision<span class="text-primary">.</span>
           </a>
           <div class="flex-none gap-2">
-            <a class="btn btn-ghost btn-sm" href="/dashboard/user">
+            <a class="btn btn-ghost btn-sm" href="/dashboard/user/meets">
               Dashboard
             </a>
             <a class="btn btn-ghost btn-sm" href="/#meets">
@@ -170,9 +171,7 @@ export const MeetingDetailPage = ({
                     <p class="text-xs font-semibold text-base-content/50 uppercase tracking-wider mb-2">Tags</p>
                     <div class="flex flex-wrap gap-1.5">
                       {meet.tags.map((tag) => (
-                        <span class="badge badge-secondary badge-outline badge-sm" key={tag.id}>
-                          {tag.title}
-                        </span>
+                        <TagBadge key={tag.id} title={tag.title} description={tag.description} size="sm" />
                       ))}
                     </div>
                   </div>
