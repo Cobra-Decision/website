@@ -88,6 +88,14 @@ test("admin user form exposes profile fields and hashes its password", async () 
   expect(await Bun.password.verify("secret123", row.password_hash)).toBe(true);
 });
 
+test("admin mutations return an out-of-band toast", async () => {
+  await initializeDatabase(database, { email: "admin@example.com", password: "secret123" });
+  const login = new FormData(); login.set("identifier", "admin@example.com"); login.set("password", "secret123");
+  const cookie = (await app.request("/auth/login", { method: "POST", body: login })).headers.get("set-cookie")!.split(";")[0];
+  const role = new FormData(); role.set("title", "Editor"); role.set("description", "A description");
+  expect(await (await app.request("/dashboard/admin/roles", { method: "POST", headers: { cookie }, body: role })).text()).toContain('hx-swap-oob="beforeend:#toast-container"');
+});
+
 test("member dashboard does not show admin navigation", async () => {
   const register = new FormData();
   register.set("email", "member@example.com");
