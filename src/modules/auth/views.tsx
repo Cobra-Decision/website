@@ -1,53 +1,126 @@
+import type { Locale } from "../../lib/i18n/translations";
+import { t } from "../../lib/i18n/context";
+
 const Captcha = () => (
   <div class="rounded-box border border-base-300 bg-base-200 p-3">
     <altcha-widget challenge="/auth/altcha/challenge"></altcha-widget>
   </div>
 );
 
-const Field = ({ label, name, type = "text", required = false }: {
-  label: string; name: string; type?: string; required?: boolean;
+const Field = ({
+  label,
+  name,
+  type = "text",
+  required = false,
+  optionalLabel,
+}: {
+  label: string;
+  name: string;
+  type?: string;
+  required?: boolean;
+  optionalLabel?: string;
 }) => (
   <label class="form-control w-full">
-    <span class="label"><span class="label-text font-medium">{label}</span>{!required && <span class="label-text-alt">Optional</span>}</span>
+    <span class="label">
+      <span class="label-text font-medium">{label}</span>
+      {!required && <span class="label-text-alt">{optionalLabel ?? "Optional"}</span>}
+    </span>
     <input class="input input-bordered w-full focus:input-primary" name={name} type={type} required={required} autocomplete={name} />
   </label>
 );
 
-const AuthCard = ({ title, subtitle, children }: { title: string; subtitle: string; children: any }) => (
+const AuthCard = ({
+  title,
+  subtitle,
+  children,
+  locale = "en",
+}: {
+  title: string;
+  subtitle: string;
+  children: any;
+  locale?: Locale;
+}) => (
   <main class="grid min-h-screen place-items-center px-4 py-10">
     <div class="card w-full max-w-lg border border-base-300 bg-base-100 shadow-2xl">
       <div class="card-body gap-6 p-6 sm:p-10">
-        <div><a class="text-sm font-semibold text-primary" href="/">CobraDecision</a><h1 class="mt-2 text-3xl font-bold">{title}</h1><p class="mt-2 text-base-content/60">{subtitle}</p></div>
+        <div class="flex items-start justify-between gap-4">
+          <div>
+            <a class="text-sm font-semibold text-primary hover:underline" href="/">
+              {t("brand.name", locale)}
+            </a>
+            <h1 class="mt-2 text-3xl font-bold">{title}</h1>
+            <p class="mt-2 text-base-content/60">{subtitle}</p>
+          </div>
+          <div class="flex items-center gap-1 bg-base-200 rounded-lg p-1 text-xs">
+            <a
+              href="/locale/en"
+              class={`px-2 py-1 rounded transition-colors ${locale === "en" ? "bg-primary text-primary-content font-bold shadow-xs" : "hover:bg-base-300"}`}
+            >
+              EN
+            </a>
+            <a
+              href="/locale/fa"
+              class={`px-2 py-1 rounded transition-colors ${locale === "fa" ? "bg-primary text-primary-content font-bold shadow-xs" : "hover:bg-base-300"}`}
+            >
+              فا
+            </a>
+          </div>
+        </div>
         {children}
       </div>
     </div>
   </main>
 );
 
-export const Login = () => (
-  <AuthCard title="Welcome back" subtitle="Sign in with your email, username, or phone.">
+export const Login = ({ locale = "en" }: { locale?: Locale }) => (
+  <AuthCard title={t("auth.welcome_back", locale)} subtitle={t("auth.login_subtitle", locale)} locale={locale}>
     <form class="space-y-4" hx-post="/auth/login" hx-target="#auth-result" hx-swap="innerHTML">
-      <Field label="Email, username, or phone" name="identifier" required />
-      <Field label="Password" name="password" type="password" required />
+      <Field label={t("auth.identifier", locale)} name="identifier" required />
+      <Field label={t("auth.password", locale)} name="password" type="password" required />
       <Captcha />
       <div id="auth-result"></div>
-      <button class="btn btn-primary w-full" type="submit"><span class="htmx-indicator loading loading-spinner loading-sm"></span>Sign in</button>
+      <button class="btn btn-primary w-full" type="submit">
+        <span class="htmx-indicator loading loading-spinner loading-sm"></span>
+        {t("auth.sign_in_btn", locale)}
+      </button>
     </form>
-    <p class="text-center text-sm">New here? <a class="link link-primary font-medium" href="/auth/register">Create an account</a></p>
+    <p class="text-center text-sm">
+      {t("auth.new_here", locale)}{" "}
+      <a class="link link-primary font-medium" href="/auth/register">
+        {t("auth.create_account_link", locale)}
+      </a>
+    </p>
   </AuthCard>
 );
 
-export const Register = () => (
-  <AuthCard title="Create your account" subtitle="Start with email and password. Complete your profile now or later.">
+export const Register = ({ locale = "en" }: { locale?: Locale }) => (
+  <AuthCard title={t("auth.create_account", locale)} subtitle={t("auth.register_subtitle", locale)} locale={locale}>
     <form class="space-y-4" hx-post="/auth/register" hx-target="#auth-result" hx-swap="innerHTML">
-      <div class="grid gap-4 sm:grid-cols-2"><Field label="Email" name="email" type="email" required /><Field label="Password" name="password" type="password" required /><Field label="Confirm password" name="password_confirmation" type="password" required /></div>
-      <div class="divider text-xs uppercase text-base-content/50">Profile details</div>
-      <div class="grid gap-4 sm:grid-cols-2"><Field label="Username" name="username" /><Field label="Phone" name="phone" /><Field label="First name" name="first_name" /><Field label="Last name" name="last_name" /></div>
+      <div class="grid gap-4 sm:grid-cols-2">
+        <Field label={t("auth.email", locale)} name="email" type="email" required />
+        <Field label={t("auth.password", locale)} name="password" type="password" required />
+        <Field label={t("auth.confirm_password", locale)} name="password_confirmation" type="password" required />
+      </div>
+      <div class="divider text-xs uppercase text-base-content/50">{t("auth.profile_details", locale)}</div>
+      <div class="grid gap-4 sm:grid-cols-2">
+        <Field label={t("auth.username", locale)} name="username" optionalLabel={t("auth.optional", locale)} />
+        <Field label={t("auth.phone", locale)} name="phone" optionalLabel={t("auth.optional", locale)} />
+        <Field label={t("auth.first_name", locale)} name="first_name" optionalLabel={t("auth.optional", locale)} />
+        <Field label={t("auth.last_name", locale)} name="last_name" optionalLabel={t("auth.optional", locale)} />
+      </div>
       <Captcha />
       <div id="auth-result"></div>
-      <button class="btn btn-primary w-full" type="submit"><span class="htmx-indicator loading loading-spinner loading-sm"></span>Create account</button>
+      <button class="btn btn-primary w-full" type="submit">
+        <span class="htmx-indicator loading loading-spinner loading-sm"></span>
+        {t("auth.create_account_btn", locale)}
+      </button>
     </form>
-    <p class="text-center text-sm">Already registered? <a class="link link-primary font-medium" href="/auth">Sign in</a></p>
+    <p class="text-center text-sm">
+      {t("auth.already_registered", locale)}{" "}
+      <a class="link link-primary font-medium" href="/auth">
+        {t("auth.sign_in_link", locale)}
+      </a>
+    </p>
   </AuthCard>
 );
 

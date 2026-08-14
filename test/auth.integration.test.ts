@@ -315,7 +315,7 @@ test("meet tags and attendees can be managed independently", async () => {
   expect(database.query("SELECT 1 FROM meet_attendees WHERE meet_id=? AND user_id=?").get(meetId, userId)).toBeNull();
   const landingAfter = await (await app.request("/")).text();
   expect(landingAfter).not.toContain("Bun");
-  expect(landingAfter).toContain("0 people attending");
+  expect(landingAfter).toContain("0 attending");
 });
 
 test("member dashboard does not show admin navigation", async () => {

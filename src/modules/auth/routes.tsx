@@ -8,6 +8,7 @@ import { Document } from "../../ui/layout";
 import { FormMessage } from "../../ui/form-message";
 import { refreshLandingCache } from "../../lib/cache";
 import { generateId } from "../../lib/id";
+import { getLocale } from "../../lib/i18n/context";
 import { normalizeRegistration } from "./service";
 import { Dashboard, Login, ProfileForm, Register, type Profile } from "./views";
 
@@ -51,8 +52,26 @@ export function createAuthRoutes(database: Database, captcha: Captcha, jwtSecret
     return null;
   };
   return new Hono()
-    .get("/", async (c) => (await redirectAuthenticated(c)) ?? c.html(<Document title="Sign in"><Login /></Document>))
-    .get("/register", async (c) => (await redirectAuthenticated(c)) ?? c.html(<Document title="Register"><Register /></Document>))
+    .get("/", async (c) => {
+      const authRedirect = await redirectAuthenticated(c);
+      if (authRedirect) return authRedirect;
+      const locale = getLocale(c);
+      return c.html(
+        <Document title="CobraDecision" locale={locale}>
+          <Login locale={locale} />
+        </Document>
+      );
+    })
+    .get("/register", async (c) => {
+      const authRedirect = await redirectAuthenticated(c);
+      if (authRedirect) return authRedirect;
+      const locale = getLocale(c);
+      return c.html(
+        <Document title="CobraDecision" locale={locale}>
+          <Register locale={locale} />
+        </Document>
+      );
+    })
     .get("/altcha/challenge", captcha.challengeHandler)
     .post("/login", captcha.middleware, async (c) => {
       const form = await c.req.parseBody();

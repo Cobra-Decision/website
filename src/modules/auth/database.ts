@@ -62,14 +62,17 @@ export async function initializeDatabase(database: Database, admin: AdminSeed = 
   }
 
   const errorMessages = [
-    { type: "success", title: "admin.created", description: "Record created." },
-    { type: "success", title: "admin.deleted", description: "Record deleted." },
-    { type: "error", title: "admin.super_admin_protected", description: "The Super Admin role is protected." },
+    ["success", "admin.created", "Record created."],
+    ["success", "admin.deleted", "Record deleted."],
+    ["error", "admin.error", "The action could not be completed."],
+    ["error", "admin.invalid_relation", "Choose a valid related record."],
+    ["warning", "admin.nothing_selected", "Select at least one record."],
+    ["info", "admin.no_changes", "No changes were needed."],
   ];
-  for (const msg of errorMessages) {
-    const existing = database.query<{ id: string }, [string]>("SELECT id FROM error_messages WHERE title = ?").get(msg.title);
+  for (const [type, title, description] of errorMessages) {
+    const existing = database.query<{ id: string }, [string]>("SELECT id FROM error_messages WHERE title = ?").get(title);
     if (!existing) {
-      database.run("INSERT INTO error_messages (id, type, title, description) VALUES (?, ?, ?, ?)", [generateId(), msg.type, msg.title, msg.description]);
+      database.run("INSERT OR IGNORE INTO error_messages (id, type, title, description) VALUES (?, ?, ?, ?)", [generateId(), type, title, description]);
     }
   }
 
