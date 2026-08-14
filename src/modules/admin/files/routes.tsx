@@ -2,10 +2,19 @@ import { Hono, type Context } from "hono";
 import type { Database } from "bun:sqlite";
 import { readdir, stat, rename, unlink, copyFile, mkdir } from "node:fs/promises";
 import { join, basename, extname } from "node:path";
-import { FileGrid, FilePreviewModal, RenameModal, UploadModal, type FileItem } from "./views";
+import {
+  FileGrid,
+  FilePreviewModal,
+  RenameModal,
+  UploadModal,
+  FileConfirmDeleteModal,
+  FileBulkConfirmDeleteModal,
+  type FileItem,
+} from "./views";
 import { Toast } from "../views";
 import { getErrorMessage } from "../../../lib/cache";
-import { handleImageUpload } from "../upload";
+import { handleImageUpload, handlePresentationUpload } from "../upload";
+import { getLocale } from "../../../lib/i18n/context";
 
 const STORAGE_DIR = process.env.STORAGE_DIR ?? "./public/uploads";
 const ASSET_BASE_URL = (process.env.ASSET_BASE_URL ?? "/uploads").replace(/\/$/, "");
@@ -67,14 +76,21 @@ export function createFileAdminRoutes(
 ) {
   const app = new Hono();
 
-  const toast = (title: string, fallback: string, type: "info" | "error" | "success" | "warning" = "success") => {
+  const toast = (
+    c: Context,
+    title: string,
+    fallback: string,
+    type: "info" | "error" | "success" | "warning" = "success"
+  ) => {
+    const locale = getLocale(c);
     const message = getErrorMessage(title) ?? { type, title, description: fallback };
-    return <Toast type={message.type} title={message.title} description={message.description} />;
+    return <Toast type={message.type} title={message.title} description={message.description} locale={locale} />;
   };
 
   app.get("/", async (c) => {
+    const locale = getLocale(c);
     const files = await listFiles();
-    const table = <FileGrid files={files} query={c.req.query()} />;
+    const table = <FileGrid files={files} query={c.req.query()} locale={locale} />;
     if (c.req.header("HX-Request")) {
       return c.html(table);
     }
@@ -85,42 +101,76 @@ export function createFileAdminRoutes(
   });
 
   app.get("/preview-modal", async (c) => {
+    const locale = getLocale(c);
     const rawName = c.req.query("name") ?? "";
     const filename = sanitizeFilename(rawName);
-    if (!filename) return c.html(toast("admin.error", "Invalid filename.", "error"), 400);
+    if (!filename) return c.html(toast(c, "admin.error", "Invalid filename.", "error"), 400);
 
     const files = await listFiles();
     const file = files.find((f) => f.name === filename);
-    if (!file) return c.html(toast("admin.error", "File not found.", "error"), 404);
+    if (!file) return c.html(toast(c, "admin.error", "File not found.", "error"), 404);
 
-    return c.html(<FilePreviewModal file={file} />);
+    return c.html(<FilePreviewModal file={file} locale={locale} />);
   });
 
   app.get("/upload-modal", (c) => {
-    return c.html(<UploadModal />);
+    const locale = getLocale(c);
+    return c.html(<UploadModal locale={locale} />);
+  });
+
+  app.get("/confirm-delete", (c) => {
+    const locale = getLocale(c);
+    const rawName = c.req.query("name") ?? "";
+    const filename = sanitizeFilename(rawName);
+    if (!filename) return c.html(toast(c, "admin.error", "Invalid filename.", "error"), 400);
+    return c.html(<FileConfirmDeleteModal filename={filename} locale={locale} />);
+  });
+
+  app.get("/bulk-confirm", async (c) => {
+    const locale = getLocale(c);
+    const rawFilenames = c.req.queries("filenames") ?? (c.req.query("filenames") ? [c.req.query("filenames")!] : []);
+    const filenames = rawFilenames.map((f) => sanitizeFilename(f)).filter((f): f is string => Boolean(f));
+
+    if (!filenames.length) {
+      const files = await listFiles();
+      return c.html(
+        <>
+          <FileGrid files={files} locale={locale} />
+          {toast(c, "admin.nothing_selected", "Select at least one file to delete.", "warning")}
+        </>,
+        400
+      );
+    }
+
+    return c.html(<FileBulkConfirmDeleteModal filenames={filenames} locale={locale} />);
   });
 
   app.post("/upload", async (c) => {
+    const locale = getLocale(c);
     const body = await c.req.parseBody();
     const file = body.file;
     if (!(file instanceof File) || file.size === 0) {
       const files = await listFiles();
       return c.html(
         <>
-          <FileGrid files={files} />
-          {toast("admin.error", "Please select a file to upload.", "error")}
+          <FileGrid files={files} locale={locale} />
+          {toast(c, "admin.error", "Please select a file to upload.", "error")}
         </>,
         400
       );
     }
 
-    const uploadRes = await handleImageUpload(file);
+    const isImage = file.type.startsWith("image/");
+    const uploadRes = isImage
+      ? await handleImageUpload(file)
+      : await handlePresentationUpload(file);
+
     const files = await listFiles();
     if (uploadRes.error) {
       return c.html(
         <>
-          <FileGrid files={files} />
-          {toast("admin.error", uploadRes.error, "error")}
+          <FileGrid files={files} locale={locale} />
+          {toast(c, "admin.error", uploadRes.error, "error")}
         </>,
         400
       );
@@ -128,20 +178,22 @@ export function createFileAdminRoutes(
 
     return c.html(
       <>
-        <FileGrid files={files} />
-        {toast("admin.created", "File uploaded successfully.")}
+        <FileGrid files={files} locale={locale} />
+        {toast(c, "admin.created", "File uploaded successfully.")}
       </>
     );
   });
 
   app.get("/rename-modal", (c) => {
+    const locale = getLocale(c);
     const rawName = c.req.query("name") ?? "";
     const filename = sanitizeFilename(rawName);
-    if (!filename) return c.html(toast("admin.error", "Invalid filename.", "error"), 400);
-    return c.html(<RenameModal filename={filename} />);
+    if (!filename) return c.html(toast(c, "admin.error", "Invalid filename.", "error"), 400);
+    return c.html(<RenameModal filename={filename} locale={locale} />);
   });
 
   app.put("/rename", async (c) => {
+    const locale = getLocale(c);
     const body = await c.req.parseBody();
     const oldName = sanitizeFilename(String(body.oldName ?? ""));
     const newName = sanitizeFilename(String(body.newName ?? ""));
@@ -150,8 +202,8 @@ export function createFileAdminRoutes(
       const files = await listFiles();
       return c.html(
         <>
-          <FileGrid files={files} />
-          {toast("admin.error", "Invalid filename provided.", "error")}
+          <FileGrid files={files} locale={locale} />
+          {toast(c, "admin.error", "Invalid filename provided.", "error")}
         </>,
         400
       );
@@ -164,16 +216,16 @@ export function createFileAdminRoutes(
       const files = await listFiles();
       return c.html(
         <>
-          <FileGrid files={files} />
-          {toast("admin.created", `Renamed to ${newName}`)}
+          <FileGrid files={files} locale={locale} />
+          {toast(c, "admin.created", `Renamed to ${newName}`)}
         </>
       );
     } catch {
       const files = await listFiles();
       return c.html(
         <>
-          <FileGrid files={files} />
-          {toast("admin.error", "Failed to rename file.", "error")}
+          <FileGrid files={files} locale={locale} />
+          {toast(c, "admin.error", "Failed to rename file.", "error")}
         </>,
         500
       );
@@ -181,14 +233,15 @@ export function createFileAdminRoutes(
   });
 
   app.post("/duplicate", async (c) => {
+    const locale = getLocale(c);
     const body = await c.req.parseBody();
     const filename = sanitizeFilename(String(body.filename ?? ""));
     if (!filename) {
       const files = await listFiles();
       return c.html(
         <>
-          <FileGrid files={files} />
-          {toast("admin.error", "Invalid filename.", "error")}
+          <FileGrid files={files} locale={locale} />
+          {toast(c, "admin.error", "Invalid filename.", "error")}
         </>,
         400
       );
@@ -205,30 +258,71 @@ export function createFileAdminRoutes(
       const files = await listFiles();
       return c.html(
         <>
-          <FileGrid files={files} />
-          {toast("admin.created", `Duplicated as ${duplicateName}`)}
+          <FileGrid files={files} locale={locale} />
+          {toast(c, "admin.created", `Duplicated as ${duplicateName}`)}
         </>
       );
     } catch {
       const files = await listFiles();
       return c.html(
         <>
-          <FileGrid files={files} />
-          {toast("admin.error", "Failed to duplicate file.", "error")}
+          <FileGrid files={files} locale={locale} />
+          {toast(c, "admin.error", "Failed to duplicate file.", "error")}
         </>,
         500
       );
     }
   });
 
+  app.post("/bulk-delete", async (c) => {
+    const locale = getLocale(c);
+    const body = await c.req.parseBody();
+    const rawFilenames = Array.isArray(body.filenames)
+      ? body.filenames
+      : body.filenames
+      ? [body.filenames]
+      : [];
+    const filenames = rawFilenames
+      .map((f) => sanitizeFilename(String(f)))
+      .filter((f): f is string => Boolean(f));
+
+    if (!filenames.length) {
+      const files = await listFiles();
+      return c.html(
+        <>
+          <FileGrid files={files} locale={locale} />
+          {toast(c, "admin.nothing_selected", "Select at least one file to delete.", "warning")}
+        </>,
+        400
+      );
+    }
+
+    for (const filename of filenames) {
+      try {
+        await unlink(join(STORAGE_DIR, filename));
+      } catch (err) {
+        console.error(`Failed to delete file ${filename}:`, err);
+      }
+    }
+
+    const files = await listFiles();
+    return c.html(
+      <>
+        <FileGrid files={files} locale={locale} />
+        {toast(c, "admin.deleted", `${filenames.length} file(s) deleted.`)}
+      </>
+    );
+  });
+
   app.delete("/:filename", async (c) => {
+    const locale = getLocale(c);
     const filename = sanitizeFilename(c.req.param("filename"));
     if (!filename) {
       const files = await listFiles();
       return c.html(
         <>
-          <FileGrid files={files} />
-          {toast("admin.error", "Invalid filename.", "error")}
+          <FileGrid files={files} locale={locale} />
+          {toast(c, "admin.error", "Invalid filename.", "error")}
         </>,
         400
       );
@@ -240,16 +334,16 @@ export function createFileAdminRoutes(
       const files = await listFiles();
       return c.html(
         <>
-          <FileGrid files={files} />
-          {toast("admin.deleted", `File ${filename} deleted.`)}
+          <FileGrid files={files} locale={locale} />
+          {toast(c, "admin.deleted", `File ${filename} deleted.`)}
         </>
       );
     } catch {
       const files = await listFiles();
       return c.html(
         <>
-          <FileGrid files={files} />
-          {toast("admin.error", "Failed to delete file.", "error")}
+          <FileGrid files={files} locale={locale} />
+          {toast(c, "admin.error", "Failed to delete file.", "error")}
         </>,
         500
       );
