@@ -31,6 +31,16 @@ export function toPersianDigits(value: string | number): string {
   return String(value).replace(/\d/g, (d) => persianDigits[Number(d)] ?? d);
 }
 
+/**
+ * Normalizes Persian (۰-۹) and Arabic-Indic (٠-٩) digits to standard ASCII English digits (0-9).
+ */
+export function toEnglishDigits(value: string | number | null | undefined): string {
+  if (value === null || value === undefined) return "";
+  return String(value)
+    .replace(/[۰-۹]/g, (d) => String(d.charCodeAt(0) - 1776))
+    .replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 1632));
+}
+
 export function formatLocalizedNumber(value: string | number, locale: Locale = "en"): string {
-  return locale === "fa" ? toPersianDigits(value) : String(value);
+  return locale === "fa" ? toPersianDigits(toEnglishDigits(value)) : toEnglishDigits(value);
 }
