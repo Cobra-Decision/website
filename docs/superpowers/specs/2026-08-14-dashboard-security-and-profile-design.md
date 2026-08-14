@@ -32,6 +32,18 @@
 - Tag badges expose their description in a small hover-only daisyUI tooltip.
 - Every successful or rejected mutation returns a cached error-dictionary message as an HTMX out-of-band toast. The layout retains one `#toast-container` and the route returns an OOB toast without replacing the requested table/modal target.
 
+## Meet relation management
+
+- Each meet edit page lists its current tags and attendees.
+- An administrator can add a tag or attendee to that meet from the styled dropdowns.
+- Each existing tag and attendee mapping has its own delete action; saving the edit form also persists the complete current selection.
+
+## Role endpoint management
+
+- Each role edit page lists its current endpoint mappings.
+- An administrator can add a mapping from the valid endpoint dropdown, edit its mapping description, or delete it.
+- The Super Admin role and its seeded mappings are immutable.
+
 ## Verification
 
 - Tests cover password confirmation, self-profile isolation and password hashing, Super Admin report access, report query rejection for writes/multiple statements, and UTC-to-Tehran display conversion.
