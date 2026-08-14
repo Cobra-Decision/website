@@ -5,11 +5,11 @@ import { createPermissionChecker } from "../src/modules/auth/middleware";
 import { initializeDatabase } from "../src/modules/auth/database";
 
 test("registration requires only a valid email and password", () => {
-  expect(normalizeRegistration({ email: " user@example.com ", password: "secret123" })).toEqual({
+  expect(normalizeRegistration({ email: " user@example.com ", password: "secret123", password_confirmation: "secret123" })).toEqual({
     email: "user@example.com", password: "secret123", username: null, phone: null, firstName: null, lastName: null,
   });
-  expect(normalizeRegistration({ email: "invalid", password: "secret123" })).toBeNull();
-  expect(normalizeRegistration({ email: "user@example.com", password: "" })).toBeNull();
+  expect(normalizeRegistration({ email: "invalid", password: "secret123", password_confirmation: "secret123" })).toBeNull();
+  expect(normalizeRegistration({ email: "user@example.com", password: "", password_confirmation: "" })).toBeNull();
 });
 
 test("permission checker ignores soft-deleted permissions and can clear its cache", async () => {

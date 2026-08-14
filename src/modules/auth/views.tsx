@@ -40,7 +40,7 @@ export const Login = () => (
 export const Register = () => (
   <AuthCard title="Create your account" subtitle="Start with email and password. Complete your profile now or later.">
     <form class="space-y-4" hx-post="/auth/register" hx-target="#auth-result" hx-swap="innerHTML">
-      <div class="grid gap-4 sm:grid-cols-2"><Field label="Email" name="email" type="email" required /><Field label="Password" name="password" type="password" required /></div>
+      <div class="grid gap-4 sm:grid-cols-2"><Field label="Email" name="email" type="email" required /><Field label="Password" name="password" type="password" required /><Field label="Confirm password" name="password_confirmation" type="password" required /></div>
       <div class="divider text-xs uppercase text-base-content/50">Profile details</div>
       <div class="grid gap-4 sm:grid-cols-2"><Field label="Username" name="username" /><Field label="Phone" name="phone" /><Field label="First name" name="first_name" /><Field label="Last name" name="last_name" /></div>
       <Captcha />
@@ -60,9 +60,11 @@ export const Dashboard = ({ user }: { user: Profile }) => {
       <div class="flex-1"><a class="text-xl font-bold" href="/dashboard/member">Dashboard</a></div>
       <div class="dropdown dropdown-end" x-data>
         <button class="btn btn-ghost gap-3" tabindex={0}><div class="avatar placeholder"><div class="w-9 rounded-full bg-primary text-primary-content"><span>{name[0]?.toUpperCase()}</span></div></div><span class="hidden text-left sm:block"><span class="block text-sm font-semibold">{name}</span><span class="block text-xs opacity-60">{user.role_title}</span></span></button>
-        <div class="card dropdown-content z-10 mt-3 w-72 border border-base-300 bg-base-100 shadow-xl" tabindex={0}><div class="card-body gap-2 p-5"><p class="font-semibold">{name}</p><p class="text-sm text-base-content/60">{user.email}</p>{user.phone && <p class="text-sm text-base-content/60">{user.phone}</p>}<div class="divider my-1"></div><form hx-post="/auth/logout"><button class="btn btn-error btn-outline btn-sm w-full" type="submit">Log out</button></form></div></div>
+        <div class="card dropdown-content z-10 mt-3 w-72 border border-base-300 bg-base-100 shadow-xl" tabindex={0}><div class="card-body gap-2 p-5"><p class="font-semibold">{name}</p><p class="text-sm text-base-content/60">{user.email}</p>{user.phone && <p class="text-sm text-base-content/60">{user.phone}</p>}<a class="btn btn-outline btn-sm mt-2" href="/dashboard/profile">Edit profile</a><div class="divider my-1"></div><form hx-post="/auth/logout"><button class="btn btn-error btn-outline btn-sm w-full" type="submit">Log out</button></form></div></div>
       </div>
     </header>
     <main class="container mx-auto p-6 sm:p-10"><div class="hero rounded-box bg-base-100 py-16 shadow-sm"><div class="hero-content text-center"><div><h1 class="text-4xl font-bold">Welcome, {name}</h1><p class="mt-3 text-base-content/60">Your account is ready.</p>{user.role_title === "Super Admin" && <a class="btn btn-primary mt-6" href="/dashboard/admin">Open admin dashboard</a>}</div></div></div></main>
   </div>;
 };
+
+export const ProfileForm = ({ user }: { user: Profile }) => <main class="mx-auto max-w-2xl p-6 sm:p-10"><div class="card bg-base-100 shadow"><div class="card-body"><h1 class="card-title">Your profile</h1><form class="grid gap-4 mt-4 sm:grid-cols-2" hx-post="/dashboard/profile" hx-target="#profile-result">{[["Username", "username"], ["Phone", "phone"], ["First name", "first_name"], ["Last name", "last_name"]].map(([label, name]) => <label class="form-control"><span class="label-text">{label}</span><input class="input input-bordered w-full" name={name} value={String(user[name as keyof Profile] ?? "")} /></label>)}<label class="form-control sm:col-span-2"><span class="label-text">New password</span><input class="input input-bordered w-full" name="password" type="password" /></label><label class="form-control sm:col-span-2"><span class="label-text">Confirm new password</span><input class="input input-bordered w-full" name="password_confirmation" type="password" /></label><div id="profile-result" class="sm:col-span-2"></div><div class="modal-action sm:col-span-2"><a class="btn" href="/dashboard/member">Cancel</a><button class="btn btn-primary">Save changes</button></div></form></div></div></main>;

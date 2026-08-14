@@ -33,12 +33,19 @@ test("registration needs only email and password and redirects to login", async 
   const form = new FormData();
   form.set("email", "new@example.com");
   form.set("password", "secret123");
+  form.set("password_confirmation", "secret123");
   const response = await app.request("/auth/register", { method: "POST", body: form });
   expect(response.status).toBe(200);
   expect(response.headers.get("HX-Redirect")).toBe("/auth");
   expect(database.query("SELECT email, username, phone FROM users WHERE deleted_at IS NULL").get()).toEqual({
     email: "new@example.com", username: null, phone: null,
   });
+});
+
+test("registration rejects mismatched password confirmation", async () => {
+  const form = new FormData();
+  form.set("email", "new@example.com"); form.set("password", "secret123"); form.set("password_confirmation", "different");
+  expect((await app.request("/auth/register", { method: "POST", body: form })).status).toBe(400);
 });
 
 test("login redirects to dashboard and dashboard shows the profile", async () => {
@@ -85,6 +92,7 @@ test("member dashboard does not show admin navigation", async () => {
   const register = new FormData();
   register.set("email", "member@example.com");
   register.set("password", "secret123");
+  register.set("password_confirmation", "secret123");
   await app.request("/auth/register", { method: "POST", body: register });
   const login = new FormData();
   login.set("identifier", "member@example.com");
@@ -92,6 +100,17 @@ test("member dashboard does not show admin navigation", async () => {
   const response = await app.request("/auth/login", { method: "POST", body: login });
   const dashboard = await app.request("/dashboard", { headers: { cookie: response.headers.get("set-cookie")!.split(";")[0] } });
   expect(await dashboard.text()).not.toContain('href="/dashboard/admin"');
+});
+
+test("authenticated users update only their own profile", async () => {
+  const register = new FormData(); register.set("email", "member@example.com"); register.set("password", "secret123"); register.set("password_confirmation", "secret123");
+  await app.request("/auth/register", { method: "POST", body: register });
+  const login = new FormData(); login.set("identifier", "member@example.com"); login.set("password", "secret123");
+  const cookie = (await app.request("/auth/login", { method: "POST", body: login })).headers.get("set-cookie")!.split(";")[0];
+  const profile = new FormData(); profile.set("first_name", "Member"); profile.set("password", "new-secret"); profile.set("password_confirmation", "new-secret");
+  expect((await app.request("/dashboard/profile", { method: "POST", headers: { cookie }, body: profile })).status).toBe(200);
+  const user = database.query<{ first_name: string; password_hash: string }, []>("SELECT first_name,password_hash FROM users WHERE email='member@example.com'").get()!;
+  expect(user.first_name).toBe("Member"); expect(await Bun.password.verify("new-secret", user.password_hash)).toBe(true);
 });
 
 test("authenticated users are redirected away from auth pages", async () => {

@@ -6,7 +6,7 @@ import { create, deriveHmacKeySecret, randomInt } from "altcha-lib/frameworks/ho
 import { deriveKey } from "altcha-lib/algorithms/pbkdf2";
 import { Document } from "../../ui/layout";
 import { normalizeRegistration } from "./service";
-import { Dashboard, Login, Register, type Profile } from "./views";
+import { Dashboard, Login, ProfileForm, Register, type Profile } from "./views";
 
 type Captcha = { middleware: MiddlewareHandler; challengeHandler: Handler };
 type Claims = { sub: string; username: string; role_title: string; role_id: number };
@@ -106,4 +106,12 @@ export function createDashboardRoute(database: Database, jwtSecret: string, expe
       return c.redirect("/auth");
     }
   });
+}
+
+export function createProfileRoute(database: Database, jwtSecret: string) {
+  const userFor = async (c: Parameters<Handler>[0]) => {
+    const token = getCookie(c, "session"); if (!token) return null;
+    try { const claims = (await verify(token, jwtSecret, "HS256")) as unknown as Claims; return { claims, user: database.query<Profile, [number]>(`SELECT u.email,u.username,u.phone,u.first_name,u.last_name,r.title role_title FROM users u JOIN roles r ON r.id=u.role_id WHERE u.id=? AND u.deleted_at IS NULL`).get(Number(claims.sub)) }; } catch { return null; }
+  };
+  return new Hono().get("/", async (c) => { const current = await userFor(c); return current?.user ? c.html(<Document title="Profile"><ProfileForm user={current.user} /></Document>) : c.redirect("/auth"); }).post("/", async (c) => { const current = await userFor(c); if (!current?.user) return c.redirect("/auth"); const form = await c.req.parseBody(); const password = String(form.password ?? ""); if (password !== String(form.password_confirmation ?? "")) return c.html(<p class="alert alert-error">Passwords do not match.</p>, 400); const values = ["username", "phone", "first_name", "last_name"].map((field) => String(form[field] ?? "").trim() || null); database.run(`UPDATE users SET username=?,phone=?,first_name=?,last_name=?${password ? ",password_hash=?" : ""},updated_at=CURRENT_TIMESTAMP WHERE id=?`, [...values, ...(password ? [await Bun.password.hash(password)] : []), Number(current.claims.sub)]); return c.html(<p class="alert alert-success">Profile updated.</p>); });
 }
