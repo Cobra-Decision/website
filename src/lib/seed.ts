@@ -205,10 +205,10 @@ Practice giving **specific, actionable, and respectful** feedback in an open for
 - نکات کلیدی در پیاده‌سازی خطوط اتوماسیون CI/CD
 - پرسش و پاسخ آزاد پیرامون زیرساخت‌های مقیاس‌پذیر
 
-```bash
+\`\`\`bash
 # Example quick deployment check
 curl -sSL https://api.example.com/health | jq .status
-```
+\`\`\`
 
 ### Production Checklist:
 1. Ensure all database migrations run with transactional safety.

@@ -26,7 +26,7 @@ function sanitizeUrl(url: string): string {
 
 function parseInline(text: string): string {
   // Inline Code (always LTR)
-  let out = text.replace(/`([^`]+)`/g, (_, code) => `<code class="bg-base-300 px-1.5 py-0.5 rounded text-xs text-primary font-mono" dir="ltr">${escapeHtml(code)}</code>`);
+  let out = text.replace(/`([^`]+)`/g, (_, code) => `<code class="bg-base-300 px-1.5 py-0.5 rounded text-xs text-primary">${escapeHtml(code)}</code>`);
 
   // Bold & Italic
   out = out.replace(/\*\*\*([^*]+)\*\*\*/g, "<strong><em>$1</em></strong>");
@@ -79,7 +79,7 @@ export function renderMarkdown(markdown: string | null | undefined): string {
     // Code blocks
     if (line.trim().startsWith("```")) {
       if (inCodeBlock) {
-        htmlParts.push(`<pre class="p-4 rounded-xl bg-base-300 overflow-x-auto text-sm my-3 font-mono" dir="ltr"><code>${codeBlockBuffer.join("\n")}</code></pre>`);
+        htmlParts.push(`<pre class="p-4 rounded-xl bg-base-300 overflow-x-auto text-sm my-3 font-mono"><code>${codeBlockBuffer.join("\n")}</code></pre>`);
         codeBlockBuffer = [];
         inCodeBlock = false;
       } else {
@@ -105,24 +105,24 @@ export function renderMarkdown(markdown: string | null | undefined): string {
     // Headings
     if (trimmed.startsWith("### ")) {
       flushList();
-      htmlParts.push(`<h3 dir="auto">${parseInline(escapeHtml(trimmed.slice(4)))}</h3>`);
+      htmlParts.push(`<h3>${parseInline(escapeHtml(trimmed.slice(4)))}</h3>`);
       continue;
     }
     if (trimmed.startsWith("## ")) {
       flushList();
-      htmlParts.push(`<h2 dir="auto">${parseInline(escapeHtml(trimmed.slice(3)))}</h2>`);
+      htmlParts.push(`<h2>${parseInline(escapeHtml(trimmed.slice(3)))}</h2>`);
       continue;
     }
     if (trimmed.startsWith("# ")) {
       flushList();
-      htmlParts.push(`<h1 dir="auto">${parseInline(escapeHtml(trimmed.slice(2)))}</h1>`);
+      htmlParts.push(`<h1>${parseInline(escapeHtml(trimmed.slice(2)))}</h1>`);
       continue;
     }
 
     // Blockquote
     if (trimmed.startsWith("> ")) {
       flushList();
-      htmlParts.push(`<blockquote dir="auto">${parseInline(escapeHtml(trimmed.slice(2)))}</blockquote>`);
+      htmlParts.push(`<blockquote>${parseInline(escapeHtml(trimmed.slice(2)))}</blockquote>`);
       continue;
     }
 
@@ -134,7 +134,7 @@ export function renderMarkdown(markdown: string | null | undefined): string {
         htmlParts.push("<ul>");
         inUnorderedList = true;
       }
-      htmlParts.push(`<li dir="auto">${parseInline(escapeHtml(ulMatch[1] ?? ""))}</li>`);
+      htmlParts.push(`<li>${parseInline(escapeHtml(ulMatch[1] ?? ""))}</li>`);
       continue;
     }
 
@@ -146,18 +146,18 @@ export function renderMarkdown(markdown: string | null | undefined): string {
         htmlParts.push("<ol>");
         inOrderedList = true;
       }
-      htmlParts.push(`<li dir="auto">${parseInline(escapeHtml(olMatch[1] ?? ""))}</li>`);
+      htmlParts.push(`<li>${parseInline(escapeHtml(olMatch[1] ?? ""))}</li>`);
       continue;
     }
 
     // Regular paragraph
     flushList();
-    htmlParts.push(`<p dir="auto">${parseInline(escapeHtml(trimmed))}</p>`);
+    htmlParts.push(`<p>${parseInline(escapeHtml(trimmed))}</p>`);
   }
 
   flushList();
   if (inCodeBlock) {
-    htmlParts.push(`<pre class="p-4 rounded-xl bg-base-300 overflow-x-auto text-sm my-3 font-mono" dir="ltr"><code>${codeBlockBuffer.join("\n")}</code></pre>`);
+    htmlParts.push(`<pre class="p-4 rounded-xl bg-base-300 overflow-x-auto text-sm my-3 font-mono"><code>${codeBlockBuffer.join("\n")}</code></pre>`);
   }
 
   return htmlParts.join("\n");
