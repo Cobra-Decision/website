@@ -3,9 +3,9 @@ import { getCookie } from "hono/cookie";
 import { verify } from "hono/jwt";
 import type { Database } from "bun:sqlite";
 import { clearPermissionCache, createPermissionChecker } from "../auth/middleware";
-import { AdminLayout, CrudTable, MeetRelations, type Row, Toast } from "./views";
+import { AdminLayout, CrudTable, MeetRelations, type Row, Toast, AdminConfirmDeleteModal, AdminBulkConfirmDeleteModal } from "./views";
 import { FormMessage } from "../../ui/form-message";
-import { getErrorMessage, refreshLandingCache } from "../../lib/cache";
+import { getErrorMessage, refreshLandingCache, refreshErrorCache } from "../../lib/cache";
 import { validateReportSql } from "./report";
 import { SchemaTable } from "./report-views";
 import { generateId } from "../../lib/id";
@@ -13,7 +13,8 @@ import { handleImageUpload, handlePresentationUpload } from "./upload";
 import { createFileAdminRoutes } from "./files/routes";
 import { MeetingLinkGenerator } from "../../ui/dashboard";
 import { MarkdownEditor } from "../../ui/markdown-editor";
-import { getLocale } from "../../lib/i18n/context";
+import { getLocale, toEnglishDigits } from "../../lib/i18n/context";
+import { toUtcIso } from "../events/datetime";
 
 const guard = (db: Database, jwtSecret: string) => async (c: Context, next: Next) => {
   const token = getCookie(c, "session");
@@ -123,6 +124,7 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
   const form = (resource: keyof typeof config, id?: string, values: Row = {}, error?: string) => {
     const roles = db.query<{ id: string; title: string }, []>("SELECT id,title FROM roles WHERE deleted_at IS NULL ORDER BY title").all();
     const users = db.query<{ id: string; email: string }, []>("SELECT id,email FROM users WHERE deleted_at IS NULL ORDER BY email").all();
+    const allTags = resource === "meets" ? db.query<{ id: string; title: string }, []>("SELECT id,title FROM tags WHERE deleted_at IS NULL ORDER BY title").all() : [];
     const endpoints = resource === "roles" ? db.query<{ id: string; title: string }, []>("SELECT id,title FROM endpoints WHERE deleted_at IS NULL ORDER BY title").all() : [];
     const mappings =
       resource === "roles" && id
@@ -141,8 +143,6 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
         ? "time"
         : field === "duration_minutes"
         ? "number"
-        : field.endsWith("_url")
-        ? "url"
         : "text";
 
     const fieldInput = (field: string) =>
@@ -195,6 +195,7 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
           name={field}
           type={inputType(field)}
           value={field === "password" ? "" : String(values[field] ?? "")}
+          placeholder={field === "image_url" ? "URL (https://...) or path (/uploads/...)" : field === "file_url" ? "URL or OS file path" : ""}
           required={field === "title" || field === "email" || field === "scheduled_date" || field === "scheduled_time" || (!id && field === "password")}
         />
       );
@@ -238,6 +239,30 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
                   <span class="label-text font-medium">Or Upload Image / Cover (PNG, JPG, WebP - max 5MB)</span>
                   <input class="file-input file-input-bordered w-full" name="image_file" type="file" accept="image/png,image/jpeg,image/webp" />
                 </label>
+
+                {!id && (
+                  <>
+                    <label class="form-control sm:col-span-2">
+                      <span class="label-text font-medium">Initial Tags (optional)</span>
+                      <select class="select select-bordered w-full" name="initial_tag_id">
+                        <option value="">Select initial tag...</option>
+                        {allTags.map((tag) => (
+                          <option value={tag.id} key={tag.id}>{tag.title}</option>
+                        ))}
+                      </select>
+                    </label>
+
+                    <label class="form-control sm:col-span-2">
+                      <span class="label-text font-medium">Initial Attendee (optional)</span>
+                      <select class="select select-bordered w-full" name="initial_user_id">
+                        <option value="">Select initial attendee...</option>
+                        {users.map((user) => (
+                          <option value={user.id} key={user.id}>{user.email}</option>
+                        ))}
+                      </select>
+                    </label>
+                  </>
+                )}
               </>
             )}
 
@@ -353,26 +378,55 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
       return row ? c.html(form(resource, c.req.param("id"), row)) : c.notFound();
     });
 
-    app.get(`/${resource}/:id/confirm`, (c) =>
-      c.html(
-        <dialog class="modal modal-open">
-          <div class="modal-box">
-            <h3 class="font-bold">Delete {resource}?</h3>
-            <p class="py-4">This item will be removed from active results.</p>
-            <form hx-delete={`/dashboard/admin/${resource}/${c.req.param("id")}`} hx-target={`#${resource}-table`} hx-swap="outerHTML">
-              <button class="btn btn-error">Delete</button>
-              <button type="button" class="btn" onclick="this.closest('dialog').remove()">
-                Cancel
-              </button>
-            </form>
-          </div>
-        </dialog>
-      )
-    );
+    app.get(`/${resource}/:id/confirm`, (c) => {
+      const locale = getLocale(c);
+      const id = c.req.param("id");
+      const titleCol = resource === "users" ? "email" : "title";
+      const row = db.query(`SELECT ${titleCol} as title FROM ${table} WHERE id=? AND deleted_at IS NULL`).get(id) as { title?: string } | null;
+      return c.html(
+        <AdminConfirmDeleteModal
+          resource={resource}
+          id={id}
+          title={row?.title}
+          locale={locale}
+        />
+      );
+    });
+
+    app.post(`/${resource}/bulk-confirm`, async (c) => {
+      const locale = getLocale(c);
+      const body = await c.req.parseBody();
+      const rawIds = body["ids"] || body["ids[]"];
+      const ids = Array.isArray(rawIds) ? rawIds.map(String) : rawIds ? [String(rawIds)] : [];
+      if (!ids.length) {
+        return c.html(
+          toast("admin.nothing_selected", "Select at least one record.", "warning"),
+          400
+        );
+      }
+      const titleCol = resource === "users" ? "email" : "title";
+      const placeholders = ids.map(() => "?").join(",");
+      const rows = db.query(`SELECT id, ${titleCol} as label FROM ${table} WHERE id IN (${placeholders}) AND deleted_at IS NULL`).all(...ids) as { id: string; label: string }[];
+      return c.html(
+        <AdminBulkConfirmDeleteModal
+          resource={resource}
+          items={rows.length ? rows : ids.map((id) => ({ id, label: id }))}
+          locale={locale}
+        />
+      );
+    });
 
     app.post(`/${resource}`, async (c) => {
       const body = await c.req.parseBody();
       const submitted = valuesFrom(body);
+
+      // Normalize numeric & date/time inputs to English digits
+      for (const key of Object.keys(submitted)) {
+        if (typeof submitted[key] === "string" && (key.includes("date") || key.includes("time") || key.includes("phone") || key === "duration_minutes")) {
+          submitted[key] = toEnglishDigits(submitted[key]);
+        }
+      }
+
       const error = validate(resource, submitted);
       if (error) return failForm(c, resource, error, submitted);
 
@@ -403,11 +457,21 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
             const val = submitted[field];
             if (field === "status") return String(val ?? "upcoming") || "upcoming";
             if (field === "access_status") return String(val ?? "public") || "public";
-            if (field === "duration_minutes") return Number(val ?? 60) || 60;
+            if (field === "duration_minutes") return Number(toEnglishDigits(val ?? 60)) || 60;
             if (field === "description") return String(val ?? "");
             return String(val ?? "").trim() || null;
           });
           db.run(`INSERT INTO meets (id,${meetFields.join(",")}) VALUES (?,${meetFields.map(() => "?").join(",")})`, [id, ...values, scheduledAtUtc]);
+
+          // Handle initial tag and attendee selection on meet creation
+          const initialTagId = String(body.initial_tag_id ?? "").trim();
+          if (initialTagId && validRelation("tags", initialTagId)) {
+            db.run("INSERT OR IGNORE INTO meet_tags (meet_id,tag_id) VALUES (?,?)", [id, initialTagId]);
+          }
+          const initialUserId = String(body.initial_user_id ?? "").trim();
+          if (initialUserId && validRelation("users", initialUserId)) {
+            db.run("INSERT OR IGNORE INTO meet_attendees (meet_id,user_id) VALUES (?,?)", [id, initialUserId]);
+          }
         } else {
           const values = fields.map((field) => {
             const val = submitted[field];
@@ -438,20 +502,34 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
       const body = await c.req.parseBody();
       const submitted = valuesFrom(body);
       const id = c.req.param("id");
+
+      // Normalize numeric & date/time inputs to English digits
+      for (const key of Object.keys(submitted)) {
+        if (typeof submitted[key] === "string" && (key.includes("date") || key.includes("time") || key.includes("phone") || key === "duration_minutes")) {
+          submitted[key] = toEnglishDigits(submitted[key]);
+        }
+      }
+
       if (resource === "roles" && db.query("SELECT 1 FROM roles WHERE id=? AND title='Super Admin'").get(id)) return failForm(c, resource, "The Super Admin role is protected.", submitted, id, 403);
       const error = validate(resource, submitted, true);
       if (error) return failForm(c, resource, error, submitted, id);
 
       if (resource === "meets") {
+        const existingMeet = db.query<{ image_url: string | null; file_url: string | null }, [string]>("SELECT image_url, file_url FROM meets WHERE id=?").get(id);
         if (body.image_file instanceof File && body.image_file.size > 0) {
           const uploadResult = await handleImageUpload(body.image_file);
           if (uploadResult.error) return failForm(c, resource, uploadResult.error, submitted, id);
           if (uploadResult.url) submitted.image_url = uploadResult.url;
+        } else if (submitted.image_url === undefined || submitted.image_url === null) {
+          submitted.image_url = existingMeet?.image_url ?? null;
         }
+
         if (body.presentation_file instanceof File && body.presentation_file.size > 0) {
           const uploadDoc = await handlePresentationUpload(body.presentation_file);
           if (uploadDoc.error) return failForm(c, resource, uploadDoc.error, submitted, id);
           if (uploadDoc.url) submitted.file_url = uploadDoc.url;
+        } else if (submitted.file_url === undefined || submitted.file_url === null) {
+          submitted.file_url = existingMeet?.file_url ?? null;
         }
       }
 
@@ -468,7 +546,7 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
             const val = submitted[field];
             if (field === "status") return String(val ?? "upcoming") || "upcoming";
             if (field === "access_status") return String(val ?? "public") || "public";
-            if (field === "duration_minutes") return Number(val ?? 60) || 60;
+            if (field === "duration_minutes") return Number(toEnglishDigits(val ?? 60)) || 60;
             if (field === "description") return String(val ?? "");
             return String(val ?? "").trim() || null;
           });
@@ -580,19 +658,63 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
       c,
       "SQL report",
       <div class="space-y-6">
-        <form hx-post="/dashboard/admin/report" hx-target="#report-result" class="card border border-base-300 bg-base-100 shadow-sm">
-          <div class="card-body p-6">
-            <h1 class="card-title text-xl">Read-only SQL report</h1>
-            <textarea class="textarea textarea-bordered h-32 font-mono text-sm" name="sql" placeholder="SELECT * FROM users" required></textarea>
-            <div class="modal-action">
-              <button class="btn btn-primary">Run query</button>
+        <div class="card border border-base-300 bg-base-100 shadow-sm">
+          <div class="card-body p-6 space-y-4">
+            <div>
+              <h1 class="text-xl font-bold tracking-tight text-base-content">Read-only SQL Report</h1>
+              <p class="text-xs text-base-content/60 mt-0.5">
+                Run ad-hoc analytical SELECT and WITH queries across all system tables.
+              </p>
             </div>
+
+            {/* Quick Template Queries */}
+            <div class="flex flex-wrap gap-2" x-data="{}">
+              <span class="text-xs font-semibold text-base-content/60 self-center">Templates:</span>
+              <button
+                type="button"
+                class="btn btn-outline btn-xs font-mono"
+                x-on:click="document.getElementById('sql-input').value = 'SELECT m.id, m.title, m.status, count(ma.user_id) as attendee_count FROM meets m LEFT JOIN meet_attendees ma ON ma.meet_id = m.id GROUP BY m.id ORDER BY attendee_count DESC;'"
+              >
+                Meets & Attendee Counts
+              </button>
+              <button
+                type="button"
+                class="btn btn-outline btn-xs font-mono"
+                x-on:click="document.getElementById('sql-input').value = 'SELECT mv.id, mv.meet_id, m.title as meet_title, p.name as platform_name, mv.created_at FROM meet_visits mv JOIN meets m ON m.id = mv.meet_id LEFT JOIN platforms p ON p.id = mv.platform_id ORDER BY mv.created_at DESC LIMIT 50;'"
+              >
+                Traffic by Platform
+              </button>
+              <button
+                type="button"
+                class="btn btn-outline btn-xs font-mono"
+                x-on:click="document.getElementById('sql-input').value = 'SELECT u.id, u.email, u.username, r.title as role_name, u.created_at FROM users u JOIN roles r ON r.id = u.role_id WHERE u.deleted_at IS NULL ORDER BY u.created_at DESC;'"
+              >
+                User & Roles
+              </button>
+            </div>
+
+            <form hx-post="/dashboard/admin/report" hx-target="#report-result" class="space-y-4">
+              <textarea
+                id="sql-input"
+                class="textarea textarea-bordered w-full font-mono text-xs leading-relaxed focus:border-primary"
+                name="sql"
+                rows={4}
+                placeholder="SELECT * FROM meet_visits JOIN platforms ON platform_id = platforms.id;"
+                required
+              ></textarea>
+              <div class="flex justify-end gap-2">
+                <button type="reset" class="btn btn-ghost btn-sm">Clear</button>
+                <button class="btn btn-primary btn-sm">Run Query</button>
+              </div>
+            </form>
           </div>
-        </form>
+        </div>
+
         <div id="report-result"></div>
+
         <div class="card border border-base-300 bg-base-100 shadow-sm">
           <div class="card-body p-6">
-            <h2 class="card-title text-xl">Database Schema</h2>
+            <h2 class="text-xl font-bold tracking-tight text-base-content mb-4">Database Schema</h2>
             {schema}
           </div>
         </div>
@@ -609,19 +731,19 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
       const columns = Object.keys(rows[0] ?? {});
       return c.html(
         <div id="report-result" class="overflow-x-auto rounded-2xl border border-base-300 bg-base-100 p-4 shadow-sm">
-          <table class="table table-zebra">
+          <table class="table table-zebra table-sm">
             <thead class="bg-base-200/50 text-xs font-semibold uppercase tracking-wider text-base-content/70">
               <tr>
                 {columns.map((column) => (
-                  <th key={column}>{column}</th>
+                  <th key={column} class="font-mono text-xs">{column}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {rows.map((row) => (
-                <tr key={String(row.id ?? Math.random())}>
+              {rows.map((row, idx) => (
+                <tr key={String(row.id ?? idx)} class="hover">
                   {columns.map((column) => (
-                    <td key={column} class="text-sm">{String(row[column] ?? "—")}</td>
+                    <td key={column} class="text-xs font-mono">{String(row[column] ?? "—")}</td>
                   ))}
                 </tr>
               ))}

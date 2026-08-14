@@ -34,10 +34,15 @@ export async function seedSampleData(database: Database) {
     "/dashboard/account",
     "/dashboard/admin",
     "/dashboard/admin/users",
+    "/dashboard/admin/users/bulk-confirm",
     "/dashboard/admin/meets",
+    "/dashboard/admin/meets/bulk-confirm",
     "/dashboard/admin/tags",
+    "/dashboard/admin/tags/bulk-confirm",
     "/dashboard/admin/roles",
+    "/dashboard/admin/roles/bulk-confirm",
     "/dashboard/admin/endpoints",
+    "/dashboard/admin/endpoints/bulk-confirm",
     "/dashboard/admin/files",
     "/dashboard/admin/files/upload",
     "/dashboard/admin/files/upload-modal",
@@ -45,6 +50,7 @@ export async function seedSampleData(database: Database) {
     "/dashboard/admin/files/rename",
     "/dashboard/admin/files/rename-modal",
     "/dashboard/admin/files/duplicate",
+    "/dashboard/admin/files/bulk-confirm",
     "/dashboard/admin/report",
   ];
 
@@ -192,13 +198,24 @@ Practice giving **specific, actionable, and respectful** feedback in an open for
     },
     {
       title: "Open Community Table & DevOps",
-      description: `### Open Community Table
+      description: `### میز گفتگوی جامعه کاربری و دوآپس
+یک گفتگوی آزاد و صمیمی درباره تجربیات عملیاتی، چالش‌های معماری سرور و مسیر شغلی مهندسی نرم‌افزار.
 
-An open conversation about production operations, developer careers, and engineering challenges.
+- بررسی تجربیات و رخدادهای واقعی در پروداکشن
+- نکات کلیدی در پیاده‌سازی خطوط اتوماسیون CI/CD
+- پرسش و پاسخ آزاد پیرامون زیرساخت‌های مقیاس‌پذیر
 
-- Real-world incident reviews
-- Modern CI/CD automation tips
-- Q&A with experienced engineers`,
+```bash
+# Example quick deployment check
+curl -sSL https://api.example.com/health | jq .status
+```
+
+### Production Checklist:
+1. Ensure all database migrations run with transactional safety.
+2. Verify TLS certificate expiration and HTTP/2 connectivity.
+3. Review structured logs on [OpenTelemetry Dashboard](https://opentelemetry.io).
+
+> گفتگوی آزاد برای تمامی علاقه‌مندان به مباحث مدرن مهندسی نرم‌افزار باز است.`,
       topics: ["Career", "DevOps", "Open discussion"],
       date: "2099-06-26",
       time: "18:00",

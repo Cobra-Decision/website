@@ -163,12 +163,11 @@ export function CrudTable({
           </button>
           <button
             class="btn btn-outline btn-error btn-sm"
-            hx-post={`/dashboard/admin/${resource}/bulk-delete`}
+            hx-post={`/dashboard/admin/${resource}/bulk-confirm`}
             hx-include={`#${resource}-bulk-form`}
-            hx-target={`#${resource}-table`}
-            hx-swap="outerHTML"
+            hx-target="#modal"
           >
-            Delete Selected
+            {t("admin.delete_selected", locale)}
           </button>
         </div>
       </div>
@@ -288,27 +287,46 @@ export function CrudTable({
   );
 }
 
-export const Toast = ({ type, title, description }: { type: string; title: string; description: string }) => (
-  <div id="toast-container" hx-swap-oob="beforeend">
-    <div class={`alert alert-${type} shadow-lg`} data-toast={type}>
-      <span>
-        {title === description || !description
-          ? title
-          : title === "admin.created" || title === "admin.deleted"
-          ? description
-          : `<strong>${title}</strong> ${description}`}
-      </span>
-      <button
-        class="btn btn-ghost btn-xs"
-        type="button"
-        onclick="this.parentElement.remove()"
-        aria-label="Dismiss notification"
-      >
-        ×
-      </button>
+export const Toast = ({
+  type,
+  title,
+  description,
+  locale = "en",
+}: {
+  type: string;
+  title: string;
+  description: string;
+  locale?: Locale;
+}) => {
+  const localizedTitle = t(title as any, locale);
+  const displayTitle = localizedTitle !== title ? localizedTitle : title;
+
+  return (
+    <div id="toast-container" hx-swap-oob="beforeend">
+      <div class={`alert alert-${type} shadow-lg flex items-center justify-between gap-3`} data-toast={type}>
+        <div class="text-sm">
+          {displayTitle === description || !description ? (
+            <span>{displayTitle}</span>
+          ) : title === "admin.created" || title === "admin.deleted" ? (
+            <span>{description}</span>
+          ) : (
+            <span>
+              <strong class="font-semibold">{displayTitle}:</strong> {description}
+            </span>
+          )}
+        </div>
+        <button
+          class="btn btn-ghost btn-xs btn-circle"
+          type="button"
+          onclick="this.closest('.alert')?.remove()"
+          aria-label="Dismiss notification"
+        >
+          ✕
+        </button>
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 export function MeetRelations({
   meetId,
@@ -408,5 +426,97 @@ export function MeetRelations({
         </div>
       </div>
     </section>
+  );
+}
+
+export function AdminConfirmDeleteModal({
+  resource,
+  id,
+  title,
+  locale = "en",
+}: {
+  resource: string;
+  id: string;
+  title?: string;
+  locale?: Locale;
+}) {
+  return (
+    <dialog class="modal modal-open">
+      <div class="modal-box max-w-md">
+        <h3 class="font-bold text-lg text-base-content">{t("admin.confirm_delete_title", locale)}</h3>
+        <p class="text-sm text-base-content/70 mt-2">
+          {t("admin.confirm_delete_msg", locale)}
+        </p>
+        <div class="mt-2 rounded-lg bg-base-200/50 p-2 text-xs font-mono text-primary">
+          <span class="font-semibold text-base-content/60 uppercase">{resource}: </span>
+          {title || id}
+        </div>
+
+        <div class="modal-action">
+          <button type="button" class="btn btn-sm" onclick="this.closest('dialog').remove()">
+            {t("common.cancel", locale)}
+          </button>
+          <button
+            type="button"
+            class="btn btn-error btn-sm"
+            hx-delete={`/dashboard/admin/${resource}/${id}`}
+            hx-target={`#${resource}-table`}
+            hx-swap="outerHTML"
+            onclick="this.closest('dialog').remove()"
+          >
+            {t("common.delete", locale)}
+          </button>
+        </div>
+      </div>
+    </dialog>
+  );
+}
+
+export function AdminBulkConfirmDeleteModal({
+  resource,
+  items,
+  locale = "en",
+}: {
+  resource: string;
+  items: { id: string; label: string }[];
+  locale?: Locale;
+}) {
+  return (
+    <dialog class="modal modal-open">
+      <div class="modal-box max-w-md">
+        <h3 class="font-bold text-lg text-base-content">{t("admin.confirm_bulk_delete_title", locale)}</h3>
+        <p class="text-sm text-base-content/70 mt-2">
+          {t("admin.confirm_bulk_delete_msg", locale)}
+        </p>
+        <div class="mt-3 max-h-36 overflow-y-auto space-y-1 bg-base-200/50 p-2 rounded-lg text-xs font-mono">
+          {items.map((item) => (
+            <div key={item.id} class="truncate text-base-content/80">• {item.label}</div>
+          ))}
+        </div>
+
+        <form
+          hx-post={`/dashboard/admin/${resource}/bulk-delete`}
+          hx-target={`#${resource}-table`}
+          hx-swap="outerHTML"
+          class="mt-4"
+        >
+          {items.map((item) => (
+            <input type="hidden" name="ids" value={item.id} key={item.id} />
+          ))}
+          <div class="modal-action">
+            <button type="button" class="btn btn-sm" onclick="this.closest('dialog').remove()">
+              {t("common.cancel", locale)}
+            </button>
+            <button
+              type="submit"
+              class="btn btn-error btn-sm"
+              onclick="this.closest('dialog').remove()"
+            >
+              {t("common.delete", locale)} ({items.length})
+            </button>
+          </div>
+        </form>
+      </div>
+    </dialog>
   );
 }
