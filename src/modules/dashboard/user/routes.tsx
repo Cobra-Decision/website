@@ -7,6 +7,7 @@ import type { Profile } from "../../auth/views";
 import type { Tag } from "../../events/types";
 import { filterMeets } from "../../events/queries";
 import { UserDashboard, MeetsGrid } from "./views";
+import { getLocale } from "../../../lib/i18n/context";
 
 const authGuard = (jwtSecret: string) => async (c: Context, next: Next) => {
   const token = getCookie(c, "session");
@@ -41,6 +42,7 @@ export function createUserDashboardRoutes(database: Database, jwtSecret = proces
 
   const renderMeetsPage = (c: Context, activeTab: "all" | "attended") => {
     const auth = c.get("auth") as Claims;
+    const locale = getLocale(c);
     const user = loadUser(auth.sub);
     if (!user) return c.redirect("/auth");
 
@@ -50,7 +52,7 @@ export function createUserDashboardRoutes(database: Database, jwtSecret = proces
     });
 
     const tags = getTags();
-    return c.html(<UserDashboard user={user} meets={meets} tags={tags} activeTab={activeTab} />);
+    return c.html(<UserDashboard user={user} meets={meets} tags={tags} activeTab={activeTab} locale={locale} />);
   };
 
   app.get("/", (c) => renderMeetsPage(c, "all"));
@@ -59,6 +61,7 @@ export function createUserDashboardRoutes(database: Database, jwtSecret = proces
 
   app.get("/meets/filter", (c) => {
     const auth = c.get("auth") as Claims;
+    const locale = getLocale(c);
     const q = c.req.query("q");
     const tagId = c.req.query("tagId") ?? c.req.query("tag_id");
     const startDate = c.req.query("startDate") ?? c.req.query("start_date");
@@ -74,7 +77,7 @@ export function createUserDashboardRoutes(database: Database, jwtSecret = proces
       attendedOnly,
     });
 
-    return c.html(<MeetsGrid meets={meets} userId={auth.sub} />);
+    return c.html(<MeetsGrid meets={meets} userId={auth.sub} locale={locale} />);
   });
 
   return app;
