@@ -209,6 +209,48 @@ test("admin create forms persist every resource", async () => {
   expect(database.query("SELECT 1 FROM users WHERE email='forms@example.com'").get()).toBeTruthy();
 });
 
+test("admin edit delete bulk and endpoint mapping forms persist changes", async () => {
+  initializeEventsDatabase(database);
+  await initializeDatabase(database, { email: "admin@example.com", password: "secret123" });
+  const login = new FormData(); login.set("identifier", "admin@example.com"); login.set("password", "secret123");
+  const cookie = (await app.request("/auth/login", { method: "POST", body: login })).headers.get("set-cookie")!.split(";")[0];
+  const member = database.query<{ id: number }, []>("SELECT id FROM roles WHERE title='member'").get()!;
+  database.run("INSERT INTO tags (title) VALUES ('Before tag'),('Bulk tag')");
+  database.run("INSERT INTO endpoints (title) VALUES ('/before')");
+  database.run("INSERT INTO roles (title) VALUES ('Before role')");
+  database.run("INSERT INTO meets (title,scheduled_date,scheduled_time) VALUES ('Before meet','2099-01-01','18:00')");
+  database.run("INSERT INTO users (email,password_hash,role_id) VALUES ('before@example.com','hash',?)", [member.id]);
+  const id = (table: string, titleColumn: string, value: string) => database.query<{ id: number }, [string]>(`SELECT id FROM ${table} WHERE ${titleColumn}=?`).get(value)!.id;
+  const edits: [string, number, FormData, string, string][] = [];
+  const tag = new FormData(); tag.set("title", "After tag"); tag.set("description", "Updated"); edits.push(["tags", id("tags", "title", "Before tag"), tag, "tags", "After tag"]);
+  const endpoint = new FormData(); endpoint.set("title", "/after"); endpoint.set("description", "Updated"); edits.push(["endpoints", id("endpoints", "title", "/before"), endpoint, "endpoints", "/after"]);
+  const role = new FormData(); role.set("title", "After role"); role.set("description", "Updated"); edits.push(["roles", id("roles", "title", "Before role"), role, "roles", "After role"]);
+  const meet = new FormData(); meet.set("title", "After meet"); meet.set("description", "Updated"); meet.set("topics", "[]"); meet.set("scheduled_date", "2099-02-02"); meet.set("scheduled_time", "19:00"); meet.set("duration_minutes", "90"); edits.push(["meets", id("meets", "title", "Before meet"), meet, "meets", "After meet"]);
+  for (const [resource, recordId, body, table, title] of edits) {
+    expect((await app.request(`/dashboard/admin/${resource}/${recordId}`, { method: "POST", headers: { cookie }, body })).status).toBe(200);
+    expect(database.query(`SELECT 1 FROM ${table} WHERE title=? AND deleted_at IS NULL`).get(title)).toBeTruthy();
+  }
+  const userId = id("users", "email", "before@example.com");
+  const user = new FormData(); user.set("email", "after@example.com"); user.set("role_id", String(member.id)); user.set("password", "new-password");
+  expect((await app.request(`/dashboard/admin/users/${userId}`, { method: "POST", headers: { cookie }, body: user })).status).toBe(200);
+  expect(await Bun.password.verify("new-password", database.query<{ password_hash: string }, [number]>("SELECT password_hash FROM users WHERE id=?").get(userId)!.password_hash)).toBe(true);
+
+  const endpointId = id("endpoints", "title", "/after");
+  const roleId = id("roles", "title", "After role");
+  const mapping = new FormData(); mapping.set("endpoint_id", String(endpointId));
+  expect((await app.request(`/dashboard/admin/roles/${roleId}/endpoints`, { method: "POST", headers: { cookie }, body: mapping })).status).toBe(200);
+  expect(database.query("SELECT 1 FROM role_endpoints WHERE role_id=? AND endpoint_id=?").get(roleId, endpointId)).toBeTruthy();
+
+  const bulkTagId = id("tags", "title", "Bulk tag");
+  const bulk = new FormData(); bulk.append("ids", String(bulkTagId));
+  expect((await app.request("/dashboard/admin/tags/bulk-delete", { method: "POST", headers: { cookie }, body: bulk })).status).toBe(200);
+  expect(database.query<{ deleted_at: string }, [number]>("SELECT deleted_at FROM tags WHERE id=?").get(bulkTagId)).not.toEqual({ deleted_at: null });
+
+  const tagId = id("tags", "title", "After tag");
+  expect((await app.request(`/dashboard/admin/tags/${tagId}`, { method: "DELETE", headers: { cookie } })).status).toBe(200);
+  expect(database.query<{ deleted_at: string }, [number]>("SELECT deleted_at FROM tags WHERE id=?").get(tagId)).not.toEqual({ deleted_at: null });
+});
+
 test("meet tags and attendees can be managed independently", async () => {
   initializeEventsDatabase(database);
   await initializeDatabase(database, { email: "admin@example.com", password: "secret123" });
