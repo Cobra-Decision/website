@@ -25,6 +25,7 @@ test("auth pages load the shared UI stack and ALTCHA", async () => {
     expect(html).toContain('src="/altcha.js"');
     expect(html).not.toContain("cdn.jsdelivr.net/npm/altcha");
     expect(html).toContain("htmx.org");
+    expect(html).toContain("htmx:beforeSwap");
     expect(html).toContain('src="/altcha.js"');
     expect(html).toContain('<altcha-widget challenge="/auth/altcha/challenge"');
   }
@@ -137,7 +138,64 @@ test("admin database errors return an error toast", async () => {
   const html = await response.text();
   expect(response.status).toBe(400);
   expect(html).toContain("alert-error");
+  expect(html).toContain('id="record-modal"');
+  expect(html).toContain('role="alert"');
+  expect(html).toContain('value="member"');
   expect(html).toContain('id="toast-container" hx-swap-oob="beforeend"');
+});
+
+test("invalid admin forms preserve actionable UI", async () => {
+  initializeEventsDatabase(database);
+  await initializeDatabase(database, { email: "admin@example.com", password: "secret123" });
+  const login = new FormData(); login.set("identifier", "admin@example.com"); login.set("password", "secret123");
+  const cookie = (await app.request("/auth/login", { method: "POST", body: login })).headers.get("set-cookie")!.split(";")[0];
+
+  const meet = new FormData(); meet.set("title", "Missing schedule");
+  const meetResponse = await app.request("/dashboard/admin/meets", { method: "POST", headers: { cookie }, body: meet });
+  expect(meetResponse.status).toBe(400);
+  const meetHtml = await meetResponse.text();
+  expect(meetHtml).toContain("Scheduled date and time are required.");
+  expect(meetHtml).toContain('id="record-modal"');
+
+  const bulkResponse = await app.request("/dashboard/admin/tags/bulk-delete", { method: "POST", headers: { cookie }, body: new FormData() });
+  expect(bulkResponse.status).toBe(400);
+  expect(await bulkResponse.text()).toContain("Select at least one record.");
+
+  database.run("INSERT INTO meets (title,scheduled_date,scheduled_time) VALUES (?,?,?)", ["Relations", "2099-01-01", "18:00"]);
+  const meetId = database.query<{ id: number }, []>("SELECT id FROM meets WHERE title='Relations'").get()!.id;
+  const invalidTag = new FormData(); invalidTag.set("tag_id", "9999");
+  const relationResponse = await app.request(`/dashboard/admin/meets/${meetId}/tags`, { method: "POST", headers: { cookie }, body: invalidTag });
+  expect(relationResponse.status).toBe(400);
+  expect(await relationResponse.text()).toContain(`id="meet-relations-${meetId}"`);
+
+  const adminRole = database.query<{ id: number }, []>("SELECT id FROM roles WHERE title='admin'").get()!;
+  const invalidEndpoint = new FormData(); invalidEndpoint.set("endpoint_id", "9999");
+  const mappingResponse = await app.request(`/dashboard/admin/roles/${adminRole.id}/endpoints`, { method: "POST", headers: { cookie }, body: invalidEndpoint });
+  expect(mappingResponse.status).toBe(400);
+  const mappingHtml = await mappingResponse.text();
+  expect(mappingHtml).toContain('id="record-modal"');
+  expect(mappingHtml).toContain('id="toast-container" hx-swap-oob="beforeend"');
+});
+
+test("admin create forms persist every resource", async () => {
+  initializeEventsDatabase(database);
+  await initializeDatabase(database, { email: "admin@example.com", password: "secret123" });
+  const login = new FormData(); login.set("identifier", "admin@example.com"); login.set("password", "secret123");
+  const cookie = (await app.request("/auth/login", { method: "POST", body: login })).headers.get("set-cookie")!.split(";")[0];
+  const role = database.query<{ id: number }, []>("SELECT id FROM roles WHERE title='member'").get()!;
+
+  const submissions: [string, FormData, string, string][] = [];
+  const tag = new FormData(); tag.set("title", "Testing"); tag.set("description", "Test tag"); submissions.push(["tags", tag, "tags", "Testing"]);
+  const endpoint = new FormData(); endpoint.set("title", "/dashboard/admin/testing"); endpoint.set("description", "Test endpoint"); submissions.push(["endpoints", endpoint, "endpoints", "/dashboard/admin/testing"]);
+  const newRole = new FormData(); newRole.set("title", "Reviewer"); newRole.set("description", "Reviews content"); submissions.push(["roles", newRole, "roles", "Reviewer"]);
+  const meet = new FormData(); meet.set("title", "Form test meet"); meet.set("description", "Created through form"); meet.set("topics", '["Testing"]'); meet.set("scheduled_date", "2099-02-02"); meet.set("scheduled_time", "19:30"); meet.set("duration_minutes", "60"); submissions.push(["meets", meet, "meets", "Form test meet"]);
+  for (const [resource, body, table, title] of submissions) {
+    expect((await app.request(`/dashboard/admin/${resource}`, { method: "POST", headers: { cookie }, body })).status).toBe(200);
+    expect(database.query(`SELECT 1 FROM ${table} WHERE title=? AND deleted_at IS NULL`).get(title)).toBeTruthy();
+  }
+  const user = new FormData(); user.set("email", "forms@example.com"); user.set("password", "sample-password"); user.set("role_id", String(role.id));
+  expect((await app.request("/dashboard/admin/users", { method: "POST", headers: { cookie }, body: user })).status).toBe(200);
+  expect(database.query("SELECT 1 FROM users WHERE email='forms@example.com'").get()).toBeTruthy();
 });
 
 test("meet tags and attendees can be managed independently", async () => {

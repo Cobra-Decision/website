@@ -1,6 +1,7 @@
 import { Layout } from "../../ui/layout";
 
 export type Row = Record<string, string | number | null>;
+export const FormError = ({ message }: { message: string }) => <div class="alert alert-error" role="alert">{message}</div>;
 const links = [["Users", "/dashboard/admin/users"], ["Meets", "/dashboard/admin/meets"], ["Tags", "/dashboard/admin/tags"], ["Roles", "/dashboard/admin/roles"], ["Endpoints", "/dashboard/admin/endpoints"], ["SQL report", "/dashboard/admin/report"]] as const;
 
 export function AdminLayout({ children, allowed, title = "Admin", user }: { children: any; allowed: string[]; title?: string; user?: { name: string; email: string; role: string } }) {
