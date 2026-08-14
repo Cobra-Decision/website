@@ -1,19 +1,25 @@
 import type { MeetWithDetails } from "./types";
 import { TagBadge } from "../../ui/tag-badge";
+import { renderMarkdown } from "../../lib/markdown";
+import type { Locale } from "../../lib/i18n/translations";
+import { t, formatLocalizedNumber } from "../../lib/i18n/context";
+import { formatLocalizedDate, formatLocalizedTime } from "./datetime";
 
 export const DynamicCtaButton = ({
   meetId,
   isAuthenticated,
   isAttending,
+  locale = "en",
 }: {
   meetId: string;
   isAuthenticated: boolean;
   isAttending: boolean;
+  locale?: Locale;
 }) => {
   if (!isAuthenticated) {
     return (
-      <a href={`/auth?redirect=/meets/${meetId}`} class="btn btn-primary w-full">
-        Sign In to Attend
+      <a href={`/auth?redirect=/meets/${meetId}`} class="btn btn-primary w-full shadow-sm">
+        {t("meet.sign_in_to_attend", locale)}
       </a>
     );
   }
@@ -26,7 +32,7 @@ export const DynamicCtaButton = ({
         hx-swap="outerHTML"
         class="btn btn-outline btn-error w-full"
       >
-        Cancel Attendance
+        {t("meet.cancel_attend", locale)}
       </button>
     );
   }
@@ -36,9 +42,9 @@ export const DynamicCtaButton = ({
       hx-post={`/meets/${meetId}/attend`}
       hx-target="#attend-action"
       hx-swap="outerHTML"
-      class="btn btn-primary w-full"
+      class="btn btn-primary w-full shadow-md"
     >
-      Attend Meeting
+      {t("meet.attend", locale)}
     </button>
   );
 };
@@ -47,14 +53,41 @@ export const MeetingDetailPage = ({
   meet,
   isAuthenticated = false,
   isAttending = false,
+  locale = "en",
 }: {
   meet: MeetWithDetails;
   isAuthenticated?: boolean;
   isAttending?: boolean;
+  locale?: Locale;
 }) => {
   const presenterName = meet.presenter
     ? [meet.presenter.first_name, meet.presenter.last_name].filter(Boolean).join(" ") || meet.presenter.username || meet.presenter.email
-    : "Open discussion / No presenter assigned";
+    : t("meet.open_discussion", locale);
+
+  const formattedDate = formatLocalizedDate(meet.scheduled_date, locale);
+  const formattedTime = formatLocalizedTime(meet.scheduled_time, locale);
+  const formattedDuration = formatLocalizedNumber(meet.duration_minutes, locale);
+  const formattedAttendeeCount = formatLocalizedNumber(meet.attendee_count, locale);
+
+  const isPublic = meet.access_status === "public";
+  const canAccessMeetUrl = Boolean(meet.meet_url && (isPublic || isAttending));
+
+  const statusLabel =
+    meet.status === "live"
+      ? t("meet.status.live", locale)
+      : meet.status === "completed"
+      ? t("meet.status.completed", locale)
+      : t("meet.status.upcoming", locale);
+
+  const statusBadgeColor =
+    meet.status === "live"
+      ? "badge-success animate-pulse text-white"
+      : meet.status === "completed"
+      ? "badge-ghost"
+      : "badge-primary";
+
+  const accessLabel = isPublic ? t("meet.public", locale) : t("meet.private", locale);
+  const accessBadgeColor = isPublic ? "badge-outline" : "badge-warning badge-outline";
 
   return (
     <div class="min-h-screen bg-base-100 text-base-content">
@@ -62,14 +95,28 @@ export const MeetingDetailPage = ({
       <header class="border-b border-base-200 bg-base-100">
         <nav class="navbar mx-auto min-h-16 max-w-7xl px-5 sm:px-8">
           <a class="flex-1 text-xl font-bold tracking-tight" href="/">
-            CobraDecision<span class="text-primary">.</span>
+            {t("brand.name", locale)}<span class="text-primary">.</span>
           </a>
           <div class="flex-none gap-2">
+            <div class="join">
+              <a
+                href="/locale/en"
+                class={`btn btn-xs join-item ${locale === "en" ? "btn-primary font-bold" : "btn-ghost"}`}
+              >
+                EN
+              </a>
+              <a
+                href="/locale/fa"
+                class={`btn btn-xs join-item ${locale === "fa" ? "btn-primary font-bold" : "btn-ghost"}`}
+              >
+                فا
+              </a>
+            </div>
             <a class="btn btn-ghost btn-sm" href="/dashboard/user/meets">
-              Dashboard
+              {t("nav.dashboard", locale)}
             </a>
             <a class="btn btn-ghost btn-sm" href="/#meets">
-              ← Back to Meets
+              {t("nav.back_to_meets", locale)}
             </a>
           </div>
         </nav>
@@ -81,16 +128,18 @@ export const MeetingDetailPage = ({
           <div class="grid gap-8 lg:grid-cols-[1.2fr_.8fr] lg:items-center">
             <div class="space-y-4">
               <div class="flex flex-wrap items-center gap-2">
-                <span class="badge badge-primary font-medium">{meet.scheduled_date}</span>
-                <span class="badge badge-outline">{meet.scheduled_time}</span>
-                <span class="badge badge-ghost">{meet.duration_minutes} min duration</span>
+                <span class={`badge ${statusBadgeColor} font-medium`}>{statusLabel}</span>
+                <span class={`badge ${accessBadgeColor} font-medium`}>{accessLabel}</span>
+                <span class="badge badge-neutral font-medium">{formattedDate}</span>
+                <span class="badge badge-outline">{formattedTime}</span>
+                <span class="badge badge-ghost">{formattedDuration} {t("meet.minutes", locale)}</span>
               </div>
               <h1 class="text-3xl font-extrabold tracking-tight sm:text-5xl text-base-content">
                 {meet.title}
               </h1>
               {meet.topics.length > 0 && (
                 <p class="text-base text-base-content/70">
-                  <span class="font-semibold text-base-content">Topics: </span>
+                  <span class="font-semibold text-base-content">{t("meet.topics", locale)}: </span>
                   {meet.topics.join(" · ")}
                 </p>
               )}
@@ -113,48 +162,102 @@ export const MeetingDetailPage = ({
           {/* Main Description */}
           <div class="space-y-8">
             <div>
-              <h2 class="text-2xl font-bold text-base-content">About this meet</h2>
-              <div class="mt-4 prose prose-base max-w-none text-base-content/80 whitespace-pre-line leading-relaxed">
-                {meet.description || "No description provided for this session."}
-              </div>
+              <h2 class="text-2xl font-bold text-base-content mb-4">{t("meet.about", locale)}</h2>
+              <div
+                class="prose prose-base max-w-none text-base-content/90 leading-relaxed bg-base-100 rounded-2xl border border-base-200/60 p-6 shadow-sm"
+                dangerouslySetInnerHTML={{
+                  __html: renderMarkdown(meet.description) || `<p class="italic text-base-content/50">${t("meet.no_description", locale)}</p>`,
+                }}
+              />
             </div>
 
-            {meet.meet_url && (
-              <div class="rounded-2xl border border-primary/20 bg-primary/5 p-6 text-center sm:text-left sm:flex sm:items-center sm:justify-between">
-                <div>
-                  <h3 class="text-lg font-bold text-base-content">Ready to join?</h3>
-                  <p class="text-sm text-base-content/70">The virtual room link is live and accessible.</p>
+            {/* Presentation Attachment Material Card */}
+            {meet.file_url && (
+              <div class="rounded-2xl border border-secondary/30 bg-secondary/5 p-6 sm:flex sm:items-center sm:justify-between shadow-sm">
+                <div class="space-y-1">
+                  <div class="flex items-center gap-2">
+                    <span class="text-xl">📄</span>
+                    <h3 class="text-lg font-bold text-base-content">{t("meet.presentation_title", locale)}</h3>
+                  </div>
+                  <p class="text-sm text-base-content/70">
+                    {t("meet.presentation_desc", locale)}
+                  </p>
                 </div>
                 <a
-                  class="btn btn-primary mt-4 sm:mt-0"
-                  href={meet.meet_url}
+                  class="btn btn-secondary btn-outline mt-4 sm:mt-0 gap-2"
+                  href={meet.file_url}
                   target="_blank"
                   rel="noopener noreferrer"
+                  download
                 >
-                  Join Meeting URL →
+                  <span>📥</span>
+                  {t("meet.download_presentation", locale)}
                 </a>
               </div>
+            )}
+
+            {/* Room URL CTA logic */}
+            {meet.meet_url && (
+              canAccessMeetUrl ? (
+                <div class="rounded-2xl border border-primary/20 bg-primary/5 p-6 text-center sm:text-left sm:flex sm:items-center sm:justify-between shadow-sm">
+                  <div>
+                    <h3 class="text-lg font-bold text-base-content">{t("meet.ready_to_join", locale)}</h3>
+                    <p class="text-sm text-base-content/70">{t("meet.room_live", locale)}</p>
+                  </div>
+                  <a
+                    class="btn btn-primary mt-4 sm:mt-0 shadow-md font-semibold"
+                    href={meet.meet_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {t("meet.join_url", locale)}
+                  </a>
+                </div>
+              ) : (
+                <div class="rounded-2xl border border-warning/30 bg-warning/5 p-6 text-center sm:text-left sm:flex sm:items-center sm:justify-between shadow-sm">
+                  <div class="space-y-1">
+                    <div class="flex items-center gap-2">
+                      <span class="badge badge-warning badge-sm">🔒 {t("meet.private", locale)}</span>
+                      <h3 class="text-base font-bold text-base-content">{t("meet.private_notice_title", locale)}</h3>
+                    </div>
+                    <p class="text-xs text-base-content/70">
+                      {t("meet.private_notice_desc", locale)}
+                    </p>
+                  </div>
+                  <div class="mt-4 sm:mt-0">
+                    <DynamicCtaButton meetId={meet.id} isAuthenticated={isAuthenticated} isAttending={isAttending} locale={locale} />
+                  </div>
+                </div>
+              )
             )}
           </div>
 
           {/* Sidebar Metadata */}
           <aside class="space-y-6">
             <div class="card rounded-2xl border border-base-300 bg-base-100 p-6 shadow-sm">
-              <h3 class="text-lg font-bold border-b border-base-200 pb-3">Session Details</h3>
+              <h3 class="text-lg font-bold border-b border-base-200 pb-3">{t("meet.session_details", locale)}</h3>
 
               <div class="mt-4 space-y-4 text-sm">
                 <div>
-                  <p class="text-xs font-semibold text-base-content/50 uppercase tracking-wider">Date & Time</p>
-                  <p class="mt-1 font-medium">{meet.scheduled_date} at {meet.scheduled_time}</p>
+                  <p class="text-xs font-semibold text-base-content/50 uppercase tracking-wider">{t("meet.status", locale)} & {t("meet.access", locale)}</p>
+                  <div class="mt-1 flex flex-wrap gap-1.5">
+                    <span class={`badge ${statusBadgeColor} badge-sm`}>{statusLabel}</span>
+                    <span class={`badge ${accessBadgeColor} badge-sm`}>{accessLabel}</span>
+                  </div>
                 </div>
 
                 <div>
-                  <p class="text-xs font-semibold text-base-content/50 uppercase tracking-wider">Duration</p>
-                  <p class="mt-1 font-medium">{meet.duration_minutes} minutes</p>
+                  <p class="text-xs font-semibold text-base-content/50 uppercase tracking-wider">{t("meet.date_time", locale)}</p>
+                  <p class="mt-1 font-medium">{formattedDate} - {formattedTime}</p>
                 </div>
 
                 <div>
-                  <p class="text-xs font-semibold text-base-content/50 uppercase tracking-wider">Presenter</p>
+                  <p class="text-xs font-semibold text-base-content/50 uppercase tracking-wider">{t("meet.duration", locale)}</p>
+                  <p class="mt-1 font-medium">{formattedDuration} {t("meet.minutes", locale)}</p>
+                </div>
+
+                <div>
+                  <p class="text-xs font-semibold text-base-content/50 uppercase tracking-wider">{t("meet.presenter", locale)}</p>
                   <p class="mt-1 font-medium">{presenterName}</p>
                   {meet.presenter?.email && (
                     <p class="text-xs text-base-content/60">{meet.presenter.email}</p>
@@ -162,13 +265,13 @@ export const MeetingDetailPage = ({
                 </div>
 
                 <div>
-                  <p class="text-xs font-semibold text-base-content/50 uppercase tracking-wider">Attendees</p>
-                  <p class="mt-1 font-medium">{meet.attendee_count} registered</p>
+                  <p class="text-xs font-semibold text-base-content/50 uppercase tracking-wider">{t("meet.attendees", locale)}</p>
+                  <p class="mt-1 font-medium">{formattedAttendeeCount} {t("meet.registered", locale)}</p>
                 </div>
 
                 {meet.tags.length > 0 && (
                   <div>
-                    <p class="text-xs font-semibold text-base-content/50 uppercase tracking-wider mb-2">Tags</p>
+                    <p class="text-xs font-semibold text-base-content/50 uppercase tracking-wider mb-2">{t("meet.tags", locale)}</p>
                     <div class="flex flex-wrap gap-1.5">
                       {meet.tags.map((tag) => (
                         <TagBadge key={tag.id} title={tag.title} description={tag.description} size="sm" />
@@ -180,7 +283,7 @@ export const MeetingDetailPage = ({
 
               {/* Dynamic Auth / Attend CTA */}
               <div id="attend-action" class="mt-6 border-t border-base-200 pt-4">
-                <DynamicCtaButton meetId={meet.id} isAuthenticated={isAuthenticated} isAttending={isAttending} />
+                <DynamicCtaButton meetId={meet.id} isAuthenticated={isAuthenticated} isAttending={isAttending} locale={locale} />
               </div>
             </div>
           </aside>

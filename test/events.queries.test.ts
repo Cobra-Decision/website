@@ -25,25 +25,32 @@ test("stores Tehran schedule input as UTC and renders Persian date", () => {
   expect(formatTehran("2026-08-14T08:30:00.000Z").date).toContain("۱۴۰۵");
 });
 
-test("createMeet stores JSON topics and creates active tag mappings with string IDs", () => {
+test("createMeet stores status, access_status, file_url, JSON topics and creates active tag mappings", () => {
   const tag1 = generateId();
   const tag2 = generateId();
   database.run("INSERT INTO tags (id, title) VALUES (?, ?), (?, ?)", [tag1, "TypeScript", tag2, "Bun"]);
   const tags = database.query<{ id: string }, []>("SELECT id FROM tags ORDER BY id").all();
   const meet = createMeet(database, {
     title: "Bun meetup",
+    description: "# Agenda\n- Point 1",
     topics: ["TypeScript", "Web Architecture"],
     scheduledDate: "2099-01-01",
     scheduledTime: "19:00",
     durationMinutes: 90,
     meetUrl: "https://example.com",
+    fileUrl: "/uploads/presentation_1.pdf",
+    status: "live",
+    accessStatus: "private",
     imageUrl: null,
     presenterId: userId,
     tagIds: tags.map(({ id }) => id),
   });
-  expect(database.query("SELECT topics, duration_minutes FROM meets WHERE id = ?").get(meet.id)).toEqual({
+  expect(database.query("SELECT topics, duration_minutes, status, access_status, file_url FROM meets WHERE id = ?").get(meet.id)).toEqual({
     topics: '["TypeScript","Web Architecture"]',
     duration_minutes: 90,
+    status: "live",
+    access_status: "private",
+    file_url: "/uploads/presentation_1.pdf",
   });
   expect(database.query("SELECT COUNT(*) total FROM meet_tags WHERE meet_id = ?").get(meet.id)).toEqual({ total: 2 });
 });

@@ -7,6 +7,7 @@ import type { Claims } from "../auth/middleware";
 import { attendMeet, getMeetById, leaveMeet, recordMeetVisit } from "./queries";
 import { DynamicCtaButton, MeetingDetailPage } from "./views";
 import { RsvpButton } from "../dashboard/user/views";
+import { getLocale } from "../../lib/i18n/context";
 
 export function createEventsRoutes(database: Database, jwtSecret = process.env.JWT_SECRET ?? "development-secret") {
   const app = new Hono();
@@ -28,19 +29,21 @@ export function createEventsRoutes(database: Database, jwtSecret = process.env.J
     const meet = getMeetById(database, id);
     if (!meet) return c.notFound();
 
+    const locale = getLocale(c);
     const user = await getSessionUser(getCookie(c, "session"));
     const isAuthenticated = Boolean(user);
     const isAttending = Boolean(user && meet.attendee_ids.includes(user.sub));
 
     return c.html(
-      <Document title={`${meet.title} | CobraDecision`}>
-        <MeetingDetailPage meet={meet} isAuthenticated={isAuthenticated} isAttending={isAttending} />
+      <Document title={`${meet.title} | CobraDecision`} locale={locale}>
+        <MeetingDetailPage meet={meet} isAuthenticated={isAuthenticated} isAttending={isAttending} locale={locale} />
       </Document>
     );
   });
 
   app.post("/:id/attend", async (c) => {
     const id = c.req.param("id");
+    const locale = getLocale(c);
     const user = await getSessionUser(getCookie(c, "session"));
     if (!user) return c.html(<a href={`/auth?redirect=/meets/${id}`} class="btn btn-primary w-full">Sign In to Attend</a>, 401);
 
@@ -50,18 +53,19 @@ export function createEventsRoutes(database: Database, jwtSecret = process.env.J
 
     // If request comes from member dashboard RSVP button
     if (c.req.header("HX-Target")?.startsWith("rsvp-btn-")) {
-      return c.html(<RsvpButton meet={meet} isAttending={true} />);
+      return c.html(<RsvpButton meet={meet} isAttending={true} locale={locale} />);
     }
 
     return c.html(
       <div id="attend-action">
-        <DynamicCtaButton meetId={id} isAuthenticated={true} isAttending={true} />
+        <DynamicCtaButton meetId={id} isAuthenticated={true} isAttending={true} locale={locale} />
       </div>
     );
   });
 
   app.delete("/:id/attend", async (c) => {
     const id = c.req.param("id");
+    const locale = getLocale(c);
     const user = await getSessionUser(getCookie(c, "session"));
     if (!user) return c.html(<a href={`/auth?redirect=/meets/${id}`} class="btn btn-primary w-full">Sign In to Attend</a>, 401);
 
@@ -71,12 +75,12 @@ export function createEventsRoutes(database: Database, jwtSecret = process.env.J
 
     // If request comes from member dashboard RSVP button
     if (c.req.header("HX-Target")?.startsWith("rsvp-btn-")) {
-      return c.html(<RsvpButton meet={meet} isAttending={false} />);
+      return c.html(<RsvpButton meet={meet} isAttending={false} locale={locale} />);
     }
 
     return c.html(
       <div id="attend-action">
-        <DynamicCtaButton meetId={id} isAuthenticated={true} isAttending={false} />
+        <DynamicCtaButton meetId={id} isAuthenticated={true} isAttending={false} locale={locale} />
       </div>
     );
   });

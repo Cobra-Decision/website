@@ -7,6 +7,9 @@ export type Tag = {
   deleted_at: string | null;
 };
 
+export type MeetStatus = "upcoming" | "live" | "completed";
+export type MeetAccessStatus = "public" | "private";
+
 export type Meet = {
   id: string;
   title: string;
@@ -17,7 +20,10 @@ export type Meet = {
   scheduled_time: string;
   duration_minutes: number;
   meet_url: string | null;
+  file_url: string | null;
   image_url: string | null;
+  status: MeetStatus;
+  access_status: MeetAccessStatus;
   presenter_id: string | null;
   created_at: string;
   updated_at: string;
@@ -49,7 +55,10 @@ export type CreateMeetInput = {
   scheduledTime: string;
   durationMinutes?: number;
   meetUrl?: string | null;
+  fileUrl?: string | null;
   imageUrl?: string | null;
+  status?: MeetStatus;
+  accessStatus?: MeetAccessStatus;
   presenterId?: string | null;
   tagIds: string[];
 };

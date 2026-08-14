@@ -144,36 +144,69 @@ export async function seedSampleData(database: Database) {
   const samples = [
     {
       title: "Designing with Bun",
-      description: "A practical deep-dive into building blazing fast server-rendered TypeScript systems with HTMX.",
+      description: `# Designing with Bun & HTMX
+
+A practical deep-dive into building **blazing fast** server-rendered TypeScript systems.
+
+### Agenda & Key Takeaways:
+- **Server Performance**: Leveraging Bun's native SQLite and HTTP server.
+- **State Management**: Eliminating heavy client bundles with *HTMX*.
+- **Practical Architecture**: Clean code patterns for hypermedia-driven apps.
+
+> "The best code is the code you never have to ship to the browser."
+
+Check our [official documentation](https://bun.sh) before joining.`,
       topics: ["Bun", "Hono", "HTMX", "Architecture"],
       date: "2099-06-12",
       time: "18:30",
       duration: 90,
       presenter: maya.id,
+      status: "upcoming" as const,
+      accessStatus: "public" as const,
+      fileUrl: "/uploads/bun_masterclass_slides.pdf",
       url: "https://meet.example.com/designing-with-bun",
       image: "https://images.unsplash.com/photo-1499750310107-5fef28a66643?auto=format&fit=crop&w=800&q=80",
       tags: ["Engineering", "Architecture", "TypeScript"],
     },
     {
       title: "The Craft of Product Critique",
-      description: "Practice giving specific, useful, and respectful product feedback in an open collaborative forum.",
+      description: `## Collaborative Product Design Session
+
+Practice giving **specific, actionable, and respectful** feedback in an open forum.
+
+### Requirements:
+1. Review the attached presentation deck.
+2. Bring one user flow from your own product.
+3. Be ready for interactive whiteboard analysis.`,
       topics: ["Product design", "Feedback", "Design Systems"],
       date: "2099-06-19",
       time: "19:00",
       duration: 75,
       presenter: noah.id,
+      status: "upcoming" as const,
+      accessStatus: "private" as const,
+      fileUrl: "/uploads/product_critique_deck.pdf",
       url: "https://meet.example.com/product-critique",
       image: "https://images.unsplash.com/photo-1556761175-b413da4baf72?auto=format&fit=crop&w=800&q=80",
       tags: ["Design", "Community"],
     },
     {
       title: "Open Community Table & DevOps",
-      description: "An open conversation about production operations, developer careers, and engineering challenges.",
+      description: `### Open Community Table
+
+An open conversation about production operations, developer careers, and engineering challenges.
+
+- Real-world incident reviews
+- Modern CI/CD automation tips
+- Q&A with experienced engineers`,
       topics: ["Career", "DevOps", "Open discussion"],
       date: "2099-06-26",
       time: "18:00",
       duration: 60,
       presenter: null,
+      status: "completed" as const,
+      accessStatus: "public" as const,
+      fileUrl: null,
       url: "https://meet.example.com/community-table",
       image: "https://images.unsplash.com/photo-1517048676732-d65bc937f952?auto=format&fit=crop&w=800&q=80",
       tags: ["Community", "DevOps", "Career"],
@@ -192,11 +225,17 @@ export async function seedSampleData(database: Database) {
         scheduledTime: sample.time,
         durationMinutes: sample.duration,
         meetUrl: sample.url,
+        fileUrl: sample.fileUrl,
+        status: sample.status,
+        accessStatus: sample.accessStatus,
         imageUrl: sample.image,
         presenterId: sample.presenter,
         tagIds: tagIds(sample.tags),
       });
-    database.run("UPDATE meets SET description=?, meet_url=?, updated_at=CURRENT_TIMESTAMP WHERE id=?", [sample.description, sample.url, meet.id]);
+    database.run(
+      "UPDATE meets SET description=?, meet_url=?, file_url=?, status=?, access_status=?, updated_at=CURRENT_TIMESTAMP WHERE id=?",
+      [sample.description, sample.url, sample.fileUrl, sample.status, sample.accessStatus, meet.id]
+    );
     for (const tagId of tagIds(sample.tags)) {
       database.run("INSERT OR IGNORE INTO meet_tags (meet_id, tag_id) VALUES (?, ?)", [meet.id, tagId]);
     }

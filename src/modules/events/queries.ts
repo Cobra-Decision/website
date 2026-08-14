@@ -6,8 +6,8 @@ import { generateId } from "../../lib/id";
 
 export function createMeet(database: Database, data: CreateMeetInput): Meet {
   const id = data.id ?? generateId();
-  const insert = database.query(`INSERT INTO meets (id, title, description, topics, scheduled_at_utc, scheduled_date, scheduled_time, duration_minutes, meet_url, image_url, presenter_id)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING *`);
+  const insert = database.query(`INSERT INTO meets (id, title, description, topics, scheduled_at_utc, scheduled_date, scheduled_time, duration_minutes, meet_url, file_url, image_url, status, access_status, presenter_id)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING *`);
   const meet = database.transaction(() => {
     const row = insert.get(
       id,
@@ -19,7 +19,10 @@ export function createMeet(database: Database, data: CreateMeetInput): Meet {
       data.scheduledTime,
       data.durationMinutes ?? 60,
       data.meetUrl ?? null,
+      data.fileUrl ?? null,
       data.imageUrl ?? null,
+      data.status ?? "upcoming",
+      data.accessStatus ?? "public",
       data.presenterId ?? null
     ) as Meet;
     const map = database.query("INSERT INTO meet_tags (meet_id, tag_id) VALUES (?, ?)");
@@ -124,6 +127,9 @@ function hydrateMeets(database: Database, meets: Meet[]): MeetWithDetails[] {
     const attendeeIds = attendees.all(meet.id).map(({ user_id }) => user_id);
     return {
       ...meet,
+      status: meet.status ?? "upcoming",
+      access_status: meet.access_status ?? "public",
+      file_url: meet.file_url ?? null,
       topics: JSON.parse(meet.topics ?? "[]") as string[],
       presenter: meet.presenter_id === null ? null : presenter.get(meet.presenter_id) ?? null,
       attendee_count: attendeeIds.length,
