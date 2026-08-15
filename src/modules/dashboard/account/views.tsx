@@ -1,6 +1,7 @@
 import type { Profile } from "../../auth/views";
 import type { Tag } from "../../events/types";
 import { TagSelector } from "../../../ui/tag-selector";
+import { PhoneInput } from "../../../ui/phone-input";
 import type { Locale } from "../../../lib/i18n/translations";
 import { t, isRtl } from "../../../lib/i18n/context";
 import { LanguageSwitch } from "../../../ui/language-switch";
@@ -125,18 +126,15 @@ export function AccountPage({
                   />
                 </label>
 
-                <label class="form-control w-full sm:col-span-2">
-                  <span class="label-text font-medium text-xs">
-                    {rtl ? "شماره تماس" : "Phone Number"}
-                  </span>
-                  <input
-                    type="tel"
+                <div class="sm:col-span-2">
+                  <PhoneInput
+                    initialPhone={user.phone}
                     name="phone"
-                    value={user.phone ?? ""}
-                    placeholder="+98..."
-                    class="input input-bordered input-sm sm:input-md w-full"
+                    locale={locale}
+                    label={rtl ? "شماره تماس" : "Phone Number"}
+                    optional={true}
                   />
-                </label>
+                </div>
               </div>
 
               <div class="divider text-xs uppercase text-base-content/50">

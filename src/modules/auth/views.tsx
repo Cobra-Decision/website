@@ -2,6 +2,7 @@ import type { Locale } from "../../lib/i18n/translations";
 import { t } from "../../lib/i18n/context";
 import { LanguageSwitch } from "../../ui/language-switch";
 import { TagSelector } from "../../ui/tag-selector";
+import { PhoneInput } from "../../ui/phone-input";
 import type { Tag } from "../events/types";
 
 const Captcha = () => (
@@ -90,15 +91,22 @@ export const Register = ({ tags, locale = "en" }: { tags: Tag[]; locale?: Locale
         <Field label={t("auth.email", locale)} name="email" type="email" required />
         <Field label={t("auth.password", locale)} name="password" type="password" required />
         <Field label={t("auth.confirm_password", locale)} name="password_confirmation" type="password" required />
+        <Field label={t("auth.username", locale)} name="username" optionalLabel={t("auth.optional", locale)} />
       </div>
 
       <div class="divider text-xs uppercase text-base-content/50">{t("auth.profile_details", locale)}</div>
 
       <div class="grid gap-4 sm:grid-cols-2">
-        <Field label={t("auth.username", locale)} name="username" optionalLabel={t("auth.optional", locale)} />
-        <Field label={t("auth.phone", locale)} name="phone" optionalLabel={t("auth.optional", locale)} />
         <Field label={t("auth.first_name", locale)} name="first_name" optionalLabel={t("auth.optional", locale)} />
         <Field label={t("auth.last_name", locale)} name="last_name" optionalLabel={t("auth.optional", locale)} />
+        <div class="sm:col-span-2">
+          <PhoneInput
+            name="phone"
+            locale={locale}
+            label={t("auth.phone", locale)}
+            optional={true}
+          />
+        </div>
       </div>
 
       <div class="divider text-xs uppercase text-base-content/50">{t("auth.preferred_tags", locale)}</div>
@@ -139,11 +147,11 @@ export const Dashboard = ({ user }: { user: Profile }) => {
       <div class="flex-1"><a class="text-xl font-bold" href="/dashboard/user">Dashboard</a></div>
       <div class="dropdown dropdown-end" x-data>
         <button class="btn btn-ghost gap-3" tabindex={0}><div class="avatar placeholder"><div class="w-9 rounded-full bg-primary text-primary-content"><span>{name[0]?.toUpperCase()}</span></div></div><span class="hidden text-left sm:block"><span class="block text-sm font-semibold">{name}</span><span class="block text-xs opacity-60">{user.role_title}</span></span></button>
-        <div class="card dropdown-content z-10 mt-3 w-72 border border-base-300 bg-base-100 shadow-xl" tabindex={0}><div class="card-body gap-2 p-5"><p class="font-semibold">{name}</p><p class="text-sm text-base-content/60">{user.email}</p>{user.phone && <p class="text-sm text-base-content/60">{user.phone}</p>}<a class="btn btn-outline btn-sm mt-2" href="/dashboard/member/profile">Edit profile</a><div class="divider my-1"></div><form hx-post="/auth/logout"><button class="btn btn-error btn-outline btn-sm w-full" type="submit">Log out</button></form></div></div>
+        <div class="card dropdown-content z-10 mt-3 w-72 border border-base-300 bg-base-100 shadow-xl" tabindex={0}><div class="card-body gap-2 p-5"><p class="font-semibold">{name}</p><p class="text-sm text-base-content/60">{user.email}</p>{user.phone && <p class="text-sm text-base-content/60">{user.phone}</p>}<a class="btn btn-outline btn-sm mt-2" href="/dashboard/account">Edit profile</a><div class="divider my-1"></div><form hx-post="/auth/logout"><button class="btn btn-error btn-outline btn-sm w-full" type="submit">Log out</button></form></div></div>
       </div>
     </header>
     <main class="container mx-auto p-6 sm:p-10"><div class="hero rounded-box bg-base-100 py-16 shadow-sm"><div class="hero-content text-center"><div><h1 class="text-4xl font-bold">Welcome, {name}</h1><p class="mt-3 text-base-content/60">Your account is ready.</p>{user.role_title === "Super Admin" && <a class="btn btn-primary mt-6" href="/dashboard/admin">Open admin dashboard</a>}</div></div></div></main>
   </div>;
 };
 
-export const ProfileForm = ({ user }: { user: Profile }) => <main class="mx-auto max-w-2xl p-6 sm:p-10"><div class="card bg-base-100 shadow"><div class="card-body"><h1 class="card-title">Your profile</h1><form class="grid gap-4 mt-4 sm:grid-cols-2" hx-post="/dashboard/profile" hx-target="#profile-result">{[["Username", "username"], ["Phone", "phone"], ["First name", "first_name"], ["Last name", "last_name"]].map(([label, name]) => <label class="form-control"><span class="label-text">{label}</span><input class="input input-bordered w-full" name={name} value={String(user[name as keyof Profile] ?? "")} /></label>)}<label class="form-control sm:col-span-2"><span class="label-text">New password</span><input class="input input-bordered w-full" name="password" type="password" /></label><label class="form-control sm:col-span-2"><span class="label-text">Confirm new password</span><input class="input input-bordered w-full" name="password_confirmation" type="password" /></label><div id="profile-result" class="sm:col-span-2"></div><div class="modal-action sm:col-span-2"><a class="btn" href="/dashboard/user">Cancel</a><button class="btn btn-primary">Save changes</button></div></form></div></div></main>;
+export const ProfileForm = ({ user }: { user: Profile }) => <main class="mx-auto max-w-2xl p-6 sm:p-10"><div class="card bg-base-100 shadow"><div class="card-body"><h1 class="card-title">Your profile</h1><form class="grid gap-4 mt-4 sm:grid-cols-2" hx-post="/dashboard/profile" hx-target="#profile-result">{[["Username", "username"], ["First name", "first_name"], ["Last name", "last_name"]].map(([label, name]) => <label class="form-control"><span class="label-text">{label}</span><input class="input input-bordered w-full" name={name} value={String(user[name as keyof Profile] ?? "")} /></label>)}<div class="sm:col-span-2"><PhoneInput initialPhone={user.phone} name="phone" optional={true} /></div><label class="form-control sm:col-span-2"><span class="label-text">New password</span><input class="input input-bordered w-full" name="password" type="password" /></label><label class="form-control sm:col-span-2"><span class="label-text">Confirm new password</span><input class="input input-bordered w-full" name="password_confirmation" type="password" /></label><div id="profile-result" class="sm:col-span-2"></div><div class="modal-action sm:col-span-2"><a class="btn" href="/dashboard/user">Cancel</a><button class="btn btn-primary">Save changes</button></div></form></div></div></main>;
