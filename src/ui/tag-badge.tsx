@@ -16,18 +16,15 @@ export const TagBadge = ({
   removeAriaLabel,
 }: TagBadgeProps) => {
   const sizeClass = size === "xs" ? "badge-xs" : size === "md" ? "badge-md" : "badge-sm";
-  const badgeClasses = `badge badge-outline ${sizeClass} gap-1`;
+  const badgeClasses = `badge badge-outline ${sizeClass} inline-flex items-center gap-1 shrink-0 font-normal`;
 
   if (onRemoveHref) {
-    return (
-      <span
-        class={`tooltip ${badgeClasses}`}
-        data-tip={description ?? title}
-      >
+    const badgeContent = (
+      <span class={badgeClasses}>
         <span>{title}</span>
         <button
           type="button"
-          class="ml-0.5 inline-flex items-center justify-center opacity-60 hover:opacity-100 transition-opacity"
+          class="ms-0.5 inline-flex items-center justify-center opacity-60 hover:opacity-100 transition-opacity"
           aria-label={removeAriaLabel ?? `Remove ${title}`}
           hx-delete={onRemoveHref}
           hx-target={removeTarget}
@@ -37,12 +34,22 @@ export const TagBadge = ({
         </button>
       </span>
     );
+
+    if (description) {
+      return (
+        <span class="tooltip" data-tip={description}>
+          {badgeContent}
+        </span>
+      );
+    }
+
+    return badgeContent;
   }
 
   if (description) {
     return (
-      <span class={`tooltip ${badgeClasses}`} data-tip={description}>
-        {title}
+      <span class="tooltip" data-tip={description}>
+        <span class={badgeClasses}>{title}</span>
       </span>
     );
   }

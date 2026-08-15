@@ -22,20 +22,20 @@ export const Carousel = ({
         scrollNext() {
           const el = this.$refs.slider;
           const direction = ${rtl ? -1 : 1};
-          el.scrollBy({ left: 340 * direction, behavior: 'smooth' });
+          el.scrollBy({ left: 360 * direction, behavior: 'smooth' });
         },
         scrollPrev() {
           const el = this.$refs.slider;
           const direction = ${rtl ? -1 : 1};
-          el.scrollBy({ left: -340 * direction, behavior: 'smooth' });
+          el.scrollBy({ left: -360 * direction, behavior: 'smooth' });
         }
       }`}
     >
-      {/* Scrollable track */}
+      {/* Scrollable track with symmetrical gap */}
       <div
         x-ref="slider"
         id={id}
-        class="carousel carousel-center w-full space-x-4 space-x-reverse:rtl p-4 scroll-smooth focus:outline-none"
+        class="carousel carousel-center w-full flex items-stretch gap-5 p-4 scroll-smooth focus:outline-none overflow-x-auto"
         tabindex={0}
       >
         {children}

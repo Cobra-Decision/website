@@ -1,8 +1,7 @@
 import type { MeetWithDetails } from "../modules/events/types";
 import type { Locale } from "../lib/i18n/translations";
-import { t, formatLocalizedNumber, isRtl } from "../lib/i18n/context";
+import { t, formatLocalizedNumber } from "../lib/i18n/context";
 import { formatLocalizedDate, formatLocalizedTime } from "../modules/events/datetime";
-import { renderMarkdown } from "../lib/markdown";
 import { TagBadge } from "./tag-badge";
 
 /**
@@ -35,7 +34,7 @@ export const UnifiedMeetCard = ({
 }: {
   meet: MeetWithDetails;
   locale?: Locale;
-  variant?: "carousel" | "grid";
+  variant?: "carousel" | "grid" | "featured";
   actionSlot?: any;
 }) => {
   const formattedDate = formatLocalizedDate(meet.scheduled_date, locale);
@@ -57,12 +56,77 @@ export const UnifiedMeetCard = ({
       ? "badge-ghost"
       : "badge-primary";
 
-  const excerpt = getMarkdownExcerpt(meet.description, 130);
+  const excerpt = getMarkdownExcerpt(meet.description, variant === "featured" ? 160 : 120);
 
   const containerClasses =
     variant === "carousel"
       ? "carousel-item w-full sm:w-80 md:w-96 flex-shrink-0 flex flex-col overflow-hidden rounded-2xl border border-base-300 bg-base-100 shadow-sm transition hover:-translate-y-1 hover:shadow-xl group"
+      : variant === "featured"
+      ? "relative overflow-hidden rounded-3xl border border-base-300 bg-base-100 p-3 shadow-2xl transition hover:shadow-3xl group"
       : "flex flex-col overflow-hidden rounded-2xl border border-base-300 bg-base-100 shadow-sm transition hover:shadow-md group";
+
+  if (variant === "featured") {
+    return (
+      <article class={containerClasses} id={`meet-card-featured-${meet.id}`}>
+        <div class="relative aspect-video w-full overflow-hidden rounded-2xl bg-base-300">
+          <img
+            class="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+            src={meet.image_url ?? "https://images.unsplash.com/photo-1543269865-cbf427effbad?auto=format&fit=crop&w=900&q=80"}
+            alt={meet.title}
+            loading="lazy"
+          />
+          <div class="badge absolute start-3 top-3 border-0 bg-base-100/90 text-xs font-medium text-base-content backdrop-blur-sm">
+            {t("hero.up_next", locale)} · {formattedDate}
+          </div>
+          <div class="badge absolute end-3 top-3 border-0 p-0 text-xs font-medium">
+            <span class={`badge ${statusBadgeColor} badge-sm`}>{statusLabel}</span>
+          </div>
+        </div>
+
+        <div class="p-4 space-y-3">
+          <div class="flex items-center justify-between text-xs text-base-content/60">
+            <span>
+              {formattedTime} · {formattedDuration} {t("meet.minutes", locale)}
+            </span>
+            {meet.access_status === "private" && (
+              <span class="badge badge-warning badge-xs gap-1">🔒 {t("meet.private", locale)}</span>
+            )}
+          </div>
+
+          <h2 class="text-2xl font-bold tracking-tight hover:text-primary transition-colors">
+            <a href={`/meets/${meet.id}`}>{meet.title}</a>
+          </h2>
+
+          {excerpt ? (
+            <p class="text-sm text-base-content/70 line-clamp-2" dir="auto">
+              {excerpt}
+            </p>
+          ) : (
+            <p class="text-sm text-base-content/60">
+              {meet.topics.join(" · ") || t("hero.open_discussion", locale)}
+            </p>
+          )}
+
+          {meet.tags.length > 0 && (
+            <div class="flex flex-wrap items-center gap-1.5 pt-1">
+              {meet.tags.slice(0, 4).map((tag) => (
+                <TagBadge key={tag.id} title={tag.title} description={tag.description} size="xs" />
+              ))}
+            </div>
+          )}
+
+          <div class="mt-4 flex items-center justify-between border-t border-base-200 pt-3">
+            <span class="text-sm font-medium text-base-content/60">
+              {formattedAttendeeCount} {t("hero.attending", locale)}
+            </span>
+            <a class="btn btn-sm btn-primary" href={`/meets/${meet.id}`}>
+              {t("hero.view_details", locale)}
+            </a>
+          </div>
+        </div>
+      </article>
+    );
+  }
 
   return (
     <article class={containerClasses} id={`meet-card-${meet.id}`}>
@@ -103,7 +167,7 @@ export const UnifiedMeetCard = ({
           ) : null}
 
           {meet.tags.length > 0 && (
-            <div class="flex flex-wrap gap-1.5 pt-1">
+            <div class="flex flex-wrap items-center gap-1.5 pt-1">
               {meet.tags.slice(0, 3).map((tag) => (
                 <TagBadge key={tag.id} title={tag.title} description={tag.description} size="xs" />
               ))}

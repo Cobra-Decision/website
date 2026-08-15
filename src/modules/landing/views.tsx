@@ -1,7 +1,6 @@
 import type { LandingCache } from "../../lib/cache";
 import type { Locale } from "../../lib/i18n/translations";
 import { t, formatLocalizedNumber, isRtl } from "../../lib/i18n/context";
-import { formatLocalizedDate } from "../events/datetime";
 import { LanguageSwitch } from "../../ui/language-switch";
 import { UnifiedMeetCard } from "../../ui/meet-card";
 import { Carousel } from "../../ui/carousel";
@@ -55,30 +54,7 @@ export const Landing = ({ data, locale = "en" }: { data: LandingCache; locale?: 
             <div class="relative mx-auto w-full max-w-md">
               <div class="absolute -inset-5 rounded-[2rem] bg-primary/15 blur-2xl"></div>
               {featured ? (
-                <div class="relative overflow-hidden rounded-3xl border border-base-300 bg-base-100 p-3 shadow-2xl">
-                  <img
-                    class="aspect-video w-full rounded-2xl object-cover"
-                    src={featured.image_url ?? "https://images.unsplash.com/photo-1543269865-cbf427effbad?auto=format&fit=crop&w=900&q=80"}
-                    alt={featured.title}
-                  />
-                  <div class="p-4">
-                    <p class="text-sm font-medium text-primary">
-                      {t("hero.up_next", locale)} · {formatLocalizedDate(featured.scheduled_date, locale)}
-                    </p>
-                    <h2 class="mt-2 text-2xl font-bold">{featured.title}</h2>
-                    <p class="mt-2 text-sm text-base-content/60">
-                      {featured.topics.join(" · ") || t("hero.open_discussion", locale)}
-                    </p>
-                    <div class="mt-5 flex items-center justify-between">
-                      <span class="text-sm text-base-content/60">
-                        {formatLocalizedNumber(featured.attendee_count, locale)} {t("hero.attending", locale)}
-                      </span>
-                      <a class="btn btn-sm btn-primary" href={`/meets/${featured.id}`}>
-                        {t("hero.view_details", locale)}
-                      </a>
-                    </div>
-                  </div>
-                </div>
+                <UnifiedMeetCard meet={featured} locale={locale} variant="featured" />
               ) : (
                 <div class="relative rounded-3xl border border-dashed border-base-300 bg-base-100 p-12 text-center shadow-xl">
                   <div class="text-4xl">✦</div>
