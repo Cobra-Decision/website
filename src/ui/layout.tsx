@@ -2,6 +2,7 @@ import type { Child } from "hono/jsx";
 import { html } from "hono/html";
 import type { Locale } from "../lib/i18n/translations";
 import { isRtl } from "../lib/i18n/context";
+import { ScrollToTop } from "./scroll-to-top";
 
 export const Layout = ({
   children,
@@ -32,6 +33,7 @@ export const Layout = ({
       <body class="min-h-screen bg-base-200 text-base-content antialiased">
         <div id="toast-container" class="toast toast-top toast-end z-50"></div>
         {children}
+        <ScrollToTop locale={locale} />
       </body>
     </html>
   );

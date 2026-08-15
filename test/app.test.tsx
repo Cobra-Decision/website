@@ -27,6 +27,7 @@ test("all pages use static CobraDecision tab branding", async () => {
     const html = await (await app.request(path)).text();
     expect(html).toContain("<title>CobraDecision</title>");
     expect(html).toContain('rel="icon" href="/favicon.svg"');
+    expect(html).toContain('aria-label="Scroll to top"');
   }
 });
 
