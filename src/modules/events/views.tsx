@@ -40,8 +40,8 @@ export const DynamicCtaButton = ({
       <button
         hx-delete={`/meets/${meetId}/attend`}
         hx-target="#attend-action"
-        hx-swap="outerHTML"
-        class="btn btn-outline btn-error w-full"
+        hx-swap="innerHTML"
+        class="btn btn-outline btn-error w-full transition-all"
       >
         {t("meet.cancel_attend", locale)}
       </button>
@@ -52,11 +52,64 @@ export const DynamicCtaButton = ({
     <button
       hx-post={`/meets/${meetId}/attend`}
       hx-target="#attend-action"
-      hx-swap="outerHTML"
-      class="btn btn-primary w-full shadow-md"
+      hx-swap="innerHTML"
+      class="btn btn-primary w-full shadow-md transition-all"
     >
       {t("meet.attend", locale)}
     </button>
+  );
+};
+
+export const MeetAccessBanner = ({
+  meet,
+  isAuthenticated = false,
+  isAttending = false,
+  locale = "en",
+}: {
+  meet: MeetWithDetails;
+  isAuthenticated?: boolean;
+  isAttending?: boolean;
+  locale?: Locale;
+}) => {
+  const isPublic = meet.access_status === "public";
+  const canAccessMeetUrl = Boolean(meet.meet_url && (isPublic || isAttending));
+
+  if (!meet.meet_url) return null;
+
+  return (
+    <div id="meet-access-box" class="w-full">
+      {canAccessMeetUrl ? (
+        <div class="rounded-2xl border border-primary/20 bg-primary/5 p-6 text-center sm:text-start sm:flex sm:items-center sm:justify-between shadow-sm transition-all">
+          <div>
+            <h3 class="text-lg font-bold text-base-content">{t("meet.ready_to_join", locale)}</h3>
+            <p class="text-sm text-base-content/70">{t("meet.room_live", locale)}</p>
+          </div>
+          <a
+            class="btn btn-primary mt-4 sm:mt-0 shadow-md font-semibold"
+            href={meet.meet_url}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {t("meet.join_url", locale)}
+          </a>
+        </div>
+      ) : (
+        <div class="rounded-2xl border border-warning/30 bg-warning/5 p-6 text-center sm:text-start sm:flex sm:items-center sm:justify-between shadow-sm transition-all">
+          <div class="space-y-1">
+            <div class="flex items-center gap-2">
+              <span class="badge badge-warning badge-sm">🔒 {t("meet.private", locale)}</span>
+              <h3 class="text-base font-bold text-base-content">{t("meet.private_notice_title", locale)}</h3>
+            </div>
+            <p class="text-xs text-base-content/70">
+              {t("meet.private_notice_desc", locale)}
+            </p>
+          </div>
+          <div class="mt-4 sm:mt-0 sm:min-w-44">
+            <DynamicCtaButton meetId={meet.id} isAuthenticated={isAuthenticated} isAttending={isAttending} meetStatus={meet.status} locale={locale} />
+          </div>
+        </div>
+      )}
+    </div>
   );
 };
 
@@ -81,7 +134,6 @@ export const MeetingDetailPage = ({
   const formattedAttendeeCount = formatLocalizedNumber(meet.attendee_count, locale);
 
   const isPublic = meet.access_status === "public";
-  const canAccessMeetUrl = Boolean(meet.meet_url && (isPublic || isAttending));
 
   const statusLabel =
     meet.status === "live"
@@ -194,40 +246,8 @@ export const MeetingDetailPage = ({
               </div>
             )}
 
-            {/* Room URL CTA logic */}
-            {meet.meet_url && (
-              canAccessMeetUrl ? (
-                <div class="rounded-2xl border border-primary/20 bg-primary/5 p-6 text-center sm:text-start sm:flex sm:items-center sm:justify-between shadow-sm">
-                  <div>
-                    <h3 class="text-lg font-bold text-base-content">{t("meet.ready_to_join", locale)}</h3>
-                    <p class="text-sm text-base-content/70">{t("meet.room_live", locale)}</p>
-                  </div>
-                  <a
-                    class="btn btn-primary mt-4 sm:mt-0 shadow-md font-semibold"
-                    href={meet.meet_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    {t("meet.join_url", locale)}
-                  </a>
-                </div>
-              ) : (
-                <div class="rounded-2xl border border-warning/30 bg-warning/5 p-6 text-center sm:text-start sm:flex sm:items-center sm:justify-between shadow-sm">
-                  <div class="space-y-1">
-                    <div class="flex items-center gap-2">
-                      <span class="badge badge-warning badge-sm">🔒 {t("meet.private", locale)}</span>
-                      <h3 class="text-base font-bold text-base-content">{t("meet.private_notice_title", locale)}</h3>
-                    </div>
-                    <p class="text-xs text-base-content/70">
-                      {t("meet.private_notice_desc", locale)}
-                    </p>
-                  </div>
-                  <div class="mt-4 sm:mt-0">
-                    <DynamicCtaButton meetId={meet.id} isAuthenticated={isAuthenticated} isAttending={isAttending} meetStatus={meet.status} locale={locale} />
-                  </div>
-                </div>
-              )
-            )}
+            {/* Room URL Access Banner */}
+            <MeetAccessBanner meet={meet} isAuthenticated={isAuthenticated} isAttending={isAttending} locale={locale} />
           </div>
 
           {/* Sidebar Metadata */}
@@ -264,13 +284,15 @@ export const MeetingDetailPage = ({
 
                 <div>
                   <p class="text-xs font-semibold text-base-content/50 uppercase tracking-wider">{t("meet.attendees", locale)}</p>
-                  <p class="mt-1 font-medium">{formattedAttendeeCount} {t("meet.registered", locale)}</p>
+                  <p class="mt-1 font-medium">
+                    <span id="meet-attendee-count">{formattedAttendeeCount}</span> {t("meet.registered", locale)}
+                  </p>
                 </div>
 
                 {meet.tags.length > 0 && (
                   <div>
                     <p class="text-xs font-semibold text-base-content/50 uppercase tracking-wider mb-2">{t("meet.tags", locale)}</p>
-                    <div class="flex flex-wrap gap-1.5">
+                    <div class="flex flex-wrap items-center gap-1.5">
                       {meet.tags.map((tag) => (
                         <TagBadge key={tag.id} title={tag.title} description={tag.description} size="sm" />
                       ))}
@@ -279,9 +301,11 @@ export const MeetingDetailPage = ({
                 )}
               </div>
 
-              {/* Dynamic Auth / Attend CTA */}
-              <div id="attend-action" class="mt-6 border-t border-base-200 pt-4">
-                <DynamicCtaButton meetId={meet.id} isAuthenticated={isAuthenticated} isAttending={isAttending} meetStatus={meet.status} locale={locale} />
+              {/* Dynamic Auth / Attend CTA Container with stable dimensions */}
+              <div class="mt-6 border-t border-base-200 pt-4">
+                <div id="attend-action" class="w-full">
+                  <DynamicCtaButton meetId={meet.id} isAuthenticated={isAuthenticated} isAttending={isAttending} meetStatus={meet.status} locale={locale} />
+                </div>
               </div>
             </div>
           </aside>

@@ -5,9 +5,9 @@ import { verify } from "hono/jwt";
 import { Document } from "../../ui/layout";
 import type { Claims } from "../auth/middleware";
 import { attendMeet, getMeetById, leaveMeet, recordMeetVisit } from "./queries";
-import { DynamicCtaButton, MeetingDetailPage } from "./views";
+import { DynamicCtaButton, MeetAccessBanner, MeetingDetailPage } from "./views";
 import { RsvpButton } from "../dashboard/user/views";
-import { getLocale } from "../../lib/i18n/context";
+import { getLocale, formatLocalizedNumber } from "../../lib/i18n/context";
 
 export function createEventsRoutes(database: Database, jwtSecret = process.env.JWT_SECRET ?? "development-secret") {
   const app = new Hono();
@@ -56,9 +56,7 @@ export function createEventsRoutes(database: Database, jwtSecret = process.env.J
         return c.html(<RsvpButton meet={meetBefore} isAttending={false} locale={locale} />);
       }
       return c.html(
-        <div id="attend-action">
-          <DynamicCtaButton meetId={id} isAuthenticated={true} isAttending={false} meetStatus={meetBefore.status} locale={locale} />
-        </div>,
+        <DynamicCtaButton meetId={id} isAuthenticated={true} isAttending={false} meetStatus={meetBefore.status} locale={locale} />,
         400
       );
     }
@@ -72,10 +70,16 @@ export function createEventsRoutes(database: Database, jwtSecret = process.env.J
       return c.html(<RsvpButton meet={meet} isAttending={true} locale={locale} />);
     }
 
+    const formattedAttendeeCount = formatLocalizedNumber(meet.attendee_count, locale);
+
     return c.html(
-      <div id="attend-action">
+      <>
         <DynamicCtaButton meetId={id} isAuthenticated={true} isAttending={true} meetStatus={meet.status} locale={locale} />
-      </div>
+        <div id="meet-access-box" hx-swap-oob="outerHTML" class="w-full">
+          <MeetAccessBanner meet={meet} isAuthenticated={true} isAttending={true} locale={locale} />
+        </div>
+        <span id="meet-attendee-count" hx-swap-oob="innerHTML">{formattedAttendeeCount}</span>
+      </>
     );
   });
 
@@ -94,10 +98,16 @@ export function createEventsRoutes(database: Database, jwtSecret = process.env.J
       return c.html(<RsvpButton meet={meet} isAttending={false} locale={locale} />);
     }
 
+    const formattedAttendeeCount = formatLocalizedNumber(meet.attendee_count, locale);
+
     return c.html(
-      <div id="attend-action">
+      <>
         <DynamicCtaButton meetId={id} isAuthenticated={true} isAttending={false} meetStatus={meet.status} locale={locale} />
-      </div>
+        <div id="meet-access-box" hx-swap-oob="outerHTML" class="w-full">
+          <MeetAccessBanner meet={meet} isAuthenticated={true} isAttending={false} locale={locale} />
+        </div>
+        <span id="meet-attendee-count" hx-swap-oob="innerHTML">{formattedAttendeeCount}</span>
+      </>
     );
   });
 
