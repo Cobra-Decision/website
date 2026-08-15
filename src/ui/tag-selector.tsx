@@ -5,7 +5,7 @@ import { isRtl } from "../lib/i18n/context";
 export const TagSelector = ({
   tags,
   selectedTagIds = [],
-  minRequired = 0,
+  minRequired = 3,
   name = "tagIds",
   locale = "en",
   title,
@@ -20,7 +20,7 @@ export const TagSelector = ({
   subtitle?: string;
 }) => {
   const rtl = isRtl(locale);
-  const initialJson = JSON.stringify(selectedTagIds);
+  const selectedSet = new Set(selectedTagIds);
 
   const defaultTitle = rtl ? "موضوعات و برچسب‌های مورد علاقه" : "Preferred Topics & Tags";
   const defaultSubtitle = minRequired > 0
@@ -31,7 +31,7 @@ export const TagSelector = ({
     <div
       class="form-control w-full space-y-3"
       x-data={`{
-        selected: ${initialJson},
+        selected: ${JSON.stringify(selectedTagIds)},
         minRequired: ${minRequired},
         toggle(id) {
           if (this.selected.includes(id)) {
@@ -66,34 +66,50 @@ export const TagSelector = ({
             class="badge badge-sm font-medium transition-colors"
             x-bind:class="isValid ? 'badge-success text-success-content' : 'badge-warning text-warning-content'"
           >
-            <span x-text="count"></span> / {minRequired}
+            <span x-text="count">{selectedTagIds.length}</span> / {minRequired}
           </span>
         )}
       </div>
 
+      {/* Grid / Flex of selectable tag labels */}
       <div class="flex flex-wrap gap-2 p-3 rounded-2xl border border-base-300 bg-base-200/40 max-h-56 overflow-y-auto">
-        {tags.map((tag) => (
-          <button
-            key={tag.id}
-            type="button"
-            class="badge badge-lg gap-1.5 cursor-pointer select-none py-3 px-3.5 transition-all text-xs font-medium border"
-            x-bind:class={`isSelected('${tag.id}') ? 'badge-primary shadow-xs font-bold border-primary' : 'badge-ghost border-base-300 hover:border-primary/50 opacity-80 hover:opacity-100'`}
-            x-on:click={`toggle('${tag.id}')`}
-            title={tag.description ?? tag.title}
-          >
-            <span x-show={`isSelected('${tag.id}')`} class="text-[10px]">✓</span>
-            <span>{tag.title}</span>
-          </button>
-        ))}
+        {tags.map((tag) => {
+          const isInitial = selectedSet.has(tag.id);
+          return (
+            <label
+              key={tag.id}
+              class="badge badge-lg gap-1.5 cursor-pointer select-none py-3 px-3.5 transition-all text-xs font-medium border"
+              x-bind:class={`isSelected('${tag.id}') ? 'badge-primary shadow-xs font-bold border-primary' : 'badge-ghost border-base-300 hover:border-primary/50 opacity-80 hover:opacity-100'`}
+              title={tag.description ?? tag.title}
+            >
+              {/* Native checkbox ensures form submits multi-values even if Alpine fails or is slow */}
+              <input
+                type="checkbox"
+                name={name}
+                value={tag.id}
+                class="hidden"
+                checked={isInitial}
+                x-on:change={`toggle('${tag.id}')`}
+              />
+              <span
+                class="text-[10px]"
+                x-show={`isSelected('${tag.id}')`}
+                style={isInitial ? "" : "display: none;"}
+              >
+                ✓
+              </span>
+              <span>{tag.title}</span>
+            </label>
+          );
+        })}
       </div>
 
-      {/* Hidden inputs to submit selected tags */}
-      <template x-for="id in selected" x-bind:key="id">
-        <input type="hidden" name={name} x-bind:value="id" />
-      </template>
-
       {minRequired > 0 && (
-        <div x-show="!isValid" class="text-xs text-warning flex items-center gap-1 mt-1">
+        <div
+          x-show="!isValid"
+          style={selectedTagIds.length < minRequired ? "" : "display: none;"}
+          class="text-xs text-warning flex items-center gap-1 mt-1"
+        >
           <span>⚠️</span>
           <span>
             {rtl
