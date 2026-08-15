@@ -68,6 +68,14 @@ CREATE TABLE IF NOT EXISTS tags (
   deleted_at DATETIME
 );
 
+-- User Preferred Tags
+CREATE TABLE IF NOT EXISTS user_tags (
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  tag_id TEXT NOT NULL REFERENCES tags(id) ON DELETE CASCADE,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (user_id, tag_id)
+);
+
 -- Meets
 CREATE TABLE IF NOT EXISTS meets (
   id TEXT PRIMARY KEY,

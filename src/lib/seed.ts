@@ -261,6 +261,17 @@ curl -sSL https://api.example.com/health | jq .status
     }
   }
 
+  // Seed sample user preferred tags
+  const sampleUserTags = [
+    { userId: maya.id, tags: ["Engineering", "TypeScript", "Architecture"] },
+    { userId: noah.id, tags: ["Design", "Community", "Career"] },
+  ];
+  for (const userPref of sampleUserTags) {
+    for (const tagId of tagIds(userPref.tags)) {
+      database.run("INSERT OR IGNORE INTO user_tags (user_id, tag_id) VALUES (?, ?)", [userPref.userId, tagId]);
+    }
+  }
+
   const existingContact = database.query<{ id: string }, [string]>("SELECT id FROM contact_requests WHERE email = ?").get("hello@meetspace.example");
   if (!existingContact) {
     database.run("INSERT INTO contact_requests (id, email) VALUES (?, ?)", [generateId(), "hello@meetspace.example"]);

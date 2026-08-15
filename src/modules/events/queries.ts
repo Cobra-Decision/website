@@ -139,6 +139,31 @@ function hydrateMeets(database: Database, meets: Meet[]): MeetWithDetails[] {
   });
 }
 
+export function getAllTags(database: Database): Tag[] {
+  return database.query<Tag, []>("SELECT * FROM tags WHERE deleted_at IS NULL ORDER BY title ASC").all();
+}
+
+export function getUserPreferredTags(database: Database, userId: string): Tag[] {
+  return database.query<Tag, [string]>(`
+    SELECT t.* FROM tags t
+    JOIN user_tags ut ON ut.tag_id = t.id
+    WHERE ut.user_id = ? AND t.deleted_at IS NULL
+    ORDER BY t.title ASC
+  `).all(userId);
+}
+
+export function setUserPreferredTags(database: Database, userId: string, tagIds: string[]): void {
+  database.transaction(() => {
+    database.run("DELETE FROM user_tags WHERE user_id = ?", [userId]);
+    const insert = database.query("INSERT OR IGNORE INTO user_tags (user_id, tag_id) VALUES (?, ?)");
+    for (const tagId of tagIds) {
+      if (tagId && tagId.trim()) {
+        insert.run(userId, tagId.trim());
+      }
+    }
+  })();
+}
+
 export function recordMeetVisit(database: Database, meetId: string, platformSlug?: string) {
   try {
     let platformId: string | null = null;
