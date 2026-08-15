@@ -64,41 +64,21 @@ export const PhoneInput = ({
 }) => {
   const rtl = isRtl(locale);
   const { countryCode, nationalNumber } = parseInitialPhone(initialPhone);
-  const countriesJson = JSON.stringify(COUNTRIES);
   const defaultLabel = rtl ? "شماره تماس" : "Phone Number";
   const optionalText = rtl ? "اختیاری" : "Optional";
+  const initialCountry = COUNTRIES.find((c) => c.code === countryCode) ?? COUNTRIES[0];
 
   return (
     <div
       class="form-control w-full space-y-1.5"
       x-data={`{
-        countries: ${countriesJson},
-        selectedCode: '${countryCode}',
-        number: '${nationalNumber}',
-        open: false,
-        search: '',
-        get current() {
-          return this.countries.find(c => c.code === this.selectedCode) || this.countries[0];
-        },
-        get filtered() {
-          if (!this.search.trim()) return this.countries;
-          const q = this.search.toLowerCase();
-          return this.countries.filter(c =>
-            c.name.toLowerCase().includes(q) ||
-            c.nameFa.includes(q) ||
-            c.dialCode.includes(q) ||
-            c.code.toLowerCase().includes(q)
-          );
-        },
-        selectCountry(code) {
-          this.selectedCode = code;
-          this.open = false;
-          this.search = '';
-        },
-        get fullNumber() {
-          const cleanNum = this.number.replace(/^0+/, '').replace(/\\s+/g, '');
-          if (!cleanNum) return '';
-          return this.current.dialCode + cleanNum;
+        selectedDial: '${initialCountry.dialCode}',
+        nationalNumber: '${nationalNumber}',
+        updatePhone() {
+          const num = this.nationalNumber.replace(/^0+/, '').replace(/\\s+/g, '');
+          if ($refs.hiddenPhone) {
+            $refs.hiddenPhone.value = num ? this.selectedDial + num : '';
+          }
         }
       }`}
     >
@@ -112,70 +92,44 @@ export const PhoneInput = ({
         )}
       </div>
 
-      {/* Modern country picker + input group */}
+      {/* Group is always dir="ltr" so +dialCode and digits maintain correct international phone direction */}
       <div
-        class="relative flex rounded-xl border border-base-300 bg-base-100 focus-within:border-primary focus-within:ring-1 focus-within:ring-primary shadow-xs transition-all"
-        {...{ "x-on:click.outside": "open = false" }}
+        class="join w-full rounded-xl border border-base-300 bg-base-100 focus-within:border-primary focus-within:ring-1 focus-within:ring-primary shadow-xs transition-all overflow-hidden"
+        dir="ltr"
       >
-        {/* Country Selector Dropdown Trigger */}
-        <div class="relative">
-          <button
-            type="button"
-            class="flex h-full items-center gap-1.5 px-3 py-2 border-e border-base-300 bg-base-200/50 hover:bg-base-200 rounded-s-xl text-xs sm:text-sm font-medium transition-colors select-none"
-            x-on:click="open = !open"
-            aria-label="Select Country"
-          >
-            <span class="text-base sm:text-lg leading-none" x-text="current.flag"></span>
-            <span class="font-mono text-xs text-base-content/80" dir="ltr" x-text="current.dialCode"></span>
-            <span class="text-[10px] opacity-60">▼</span>
-          </button>
-
-          {/* Searchable Dropdown Menu */}
-          <div
-            x-show="open"
-            x-transition
-            class="absolute start-0 top-full z-50 mt-1 w-64 rounded-2xl border border-base-300 bg-base-100 p-2 shadow-2xl max-h-64 overflow-y-auto"
-            style="display: none;"
-          >
-            <input
-              type="text"
-              placeholder={rtl ? "جستجوی کشور یا کد..." : "Search country or code..."}
-              class="input input-bordered input-xs w-full mb-2 bg-base-200/50"
-              x-model="search"
-              x-on:click="$event.stopPropagation()"
-            />
-
-            <div class="space-y-0.5">
-              <template x-for="c in filtered" x-bind:key="c.code">
-                <button
-                  type="button"
-                  class="flex w-full items-center justify-between px-2.5 py-1.5 rounded-lg text-xs hover:bg-primary/10 hover:text-primary transition-colors text-start"
-                  x-bind:class="selectedCode === c.code ? 'bg-primary/15 font-bold text-primary' : ''"
-                  x-on:click="selectCountry(c.code)"
-                >
-                  <div class="flex items-center gap-2 truncate">
-                    <span class="text-base" x-text="c.flag"></span>
-                    <span class="truncate" x-text={`${rtl ? "c.nameFa" : "c.name"}`}></span>
-                  </div>
-                  <span class="font-mono text-xs opacity-70 ps-2" dir="ltr" x-text="c.dialCode"></span>
-                </button>
-              </template>
-            </div>
-          </div>
-        </div>
+        {/* Country Selector Dropdown */}
+        <select
+          class="select select-sm sm:select-md join-item border-0 bg-base-200/70 hover:bg-base-200 focus:bg-base-200 font-medium text-xs sm:text-sm focus:outline-none transition-colors max-w-[150px] sm:max-w-[180px] cursor-pointer"
+          x-model="selectedDial"
+          x-on:change="updatePhone()"
+          aria-label="Country Code"
+        >
+          {COUNTRIES.map((c) => (
+            <option key={c.code} value={c.dialCode} selected={c.code === countryCode}>
+              {c.flag} {c.dialCode} {rtl ? c.nameFa : c.name}
+            </option>
+          ))}
+        </select>
 
         {/* Local National Phone Number Input */}
         <input
           type="tel"
-          class="input input-sm sm:input-md w-full border-0 focus:outline-none focus:ring-0 bg-transparent px-3 text-xs sm:text-sm font-medium"
+          class="input input-sm sm:input-md join-item w-full border-0 focus:outline-none bg-transparent px-3 text-xs sm:text-sm font-medium tracking-wide"
           dir="ltr"
-          x-model="number"
-          x-bind:placeholder="current.placeholder"
+          value={nationalNumber}
+          x-model="nationalNumber"
+          x-on:input="updatePhone()"
+          placeholder={initialCountry.placeholder}
           autocomplete="tel-national"
         />
 
         {/* Hidden synced field submitted in forms */}
-        <input type="hidden" name={name} x-bind:value="fullNumber" />
+        <input
+          type="hidden"
+          name={name}
+          x-ref="hiddenPhone"
+          value={initialPhone ?? (nationalNumber ? `${initialCountry.dialCode}${nationalNumber}` : "")}
+        />
       </div>
     </div>
   );
