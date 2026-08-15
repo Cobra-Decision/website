@@ -36,27 +36,79 @@ export const DynamicCtaButton = ({
   }
 
   if (isAttending) {
+    const modalId = `modal-leave-${meetId}`;
     return (
-      <button
-        hx-delete={`/meets/${meetId}/attend`}
-        hx-target="#attend-action"
-        hx-swap="innerHTML"
-        class="btn btn-outline btn-error w-full transition-all"
-      >
-        {t("meet.cancel_attend", locale)}
-      </button>
+      <div class="w-full">
+        <button
+          type="button"
+          onclick={`document.getElementById('${modalId}').showModal()`}
+          class="btn btn-outline btn-error w-full transition-all"
+        >
+          {t("meet.cancel_attend", locale)}
+        </button>
+        <dialog id={modalId} class="modal modal-bottom sm:modal-middle text-start">
+          <div class="modal-box">
+            <h3 class="font-bold text-lg text-base-content">{t("meet.confirm_leave_title", locale)}</h3>
+            <p class="py-4 text-sm text-base-content/80">{t("meet.confirm_leave_desc", locale)}</p>
+            <div class="modal-action">
+              <form method="dialog">
+                <button class="btn btn-sm btn-ghost">{t("meet.cancel", locale)}</button>
+              </form>
+              <button
+                type="button"
+                hx-delete={`/meets/${meetId}/attend`}
+                hx-target="#attend-action"
+                hx-swap="innerHTML"
+                onclick={`document.getElementById('${modalId}').close()`}
+                class="btn btn-sm btn-error"
+              >
+                {t("meet.confirm", locale)}
+              </button>
+            </div>
+          </div>
+          <form method="dialog" class="modal-backdrop">
+            <button>close</button>
+          </form>
+        </dialog>
+      </div>
     );
   }
 
+  const modalId = `modal-attend-${meetId}`;
   return (
-    <button
-      hx-post={`/meets/${meetId}/attend`}
-      hx-target="#attend-action"
-      hx-swap="innerHTML"
-      class="btn btn-primary w-full shadow-md transition-all"
-    >
-      {t("meet.attend", locale)}
-    </button>
+    <div class="w-full">
+      <button
+        type="button"
+        onclick={`document.getElementById('${modalId}').showModal()`}
+        class="btn btn-primary w-full shadow-md transition-all"
+      >
+        {t("meet.attend", locale)}
+      </button>
+      <dialog id={modalId} class="modal modal-bottom sm:modal-middle text-start">
+        <div class="modal-box">
+          <h3 class="font-bold text-lg text-base-content">{t("meet.confirm_attend_title", locale)}</h3>
+          <p class="py-4 text-sm text-base-content/80">{t("meet.confirm_attend_desc", locale)}</p>
+          <div class="modal-action">
+            <form method="dialog">
+              <button class="btn btn-sm btn-ghost">{t("meet.cancel", locale)}</button>
+            </form>
+            <button
+              type="button"
+              hx-post={`/meets/${meetId}/attend`}
+              hx-target="#attend-action"
+              hx-swap="innerHTML"
+              onclick={`document.getElementById('${modalId}').close()`}
+              class="btn btn-sm btn-primary"
+            >
+              {t("meet.confirm", locale)}
+            </button>
+          </div>
+        </div>
+        <form method="dialog" class="modal-backdrop">
+          <button>close</button>
+        </form>
+      </dialog>
+    </div>
   );
 };
 

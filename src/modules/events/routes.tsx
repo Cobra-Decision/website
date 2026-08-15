@@ -8,6 +8,7 @@ import { attendMeet, getMeetById, leaveMeet, recordMeetVisit } from "./queries";
 import { DynamicCtaButton, MeetAccessBanner, MeetingDetailPage } from "./views";
 import { RsvpButton } from "../dashboard/user/views";
 import { getLocale, formatLocalizedNumber } from "../../lib/i18n/context";
+import { mailService } from "../mailer/service";
 
 export function createEventsRoutes(database: Database, jwtSecret = process.env.JWT_SECRET ?? "development-secret") {
   const app = new Hono();
@@ -64,6 +65,41 @@ export function createEventsRoutes(database: Database, jwtSecret = process.env.J
     attendMeet(database, id, user.sub);
     const meet = getMeetById(database, id);
     if (!meet) return c.notFound();
+
+    // Send confirmation email asynchronously
+    const attendeeUser = database
+      .query<{ email: string; first_name: string | null; username: string | null }, [string]>(
+        "SELECT email, first_name, username FROM users WHERE id = ? AND deleted_at IS NULL"
+      )
+      .get(user.sub);
+
+    if (attendeeUser) {
+      const presenterName = meet.presenter
+        ? [meet.presenter.first_name, meet.presenter.last_name].filter(Boolean).join(" ") ||
+          meet.presenter.username ||
+          meet.presenter.email
+        : undefined;
+
+      mailService
+        .sendMeetAttendanceEmail(
+          {
+            id: meet.id,
+            title: meet.title,
+            scheduledDate: meet.scheduled_date,
+            scheduledTime: meet.scheduled_time,
+            durationMinutes: meet.duration_minutes,
+            presenterName,
+            status: meet.status,
+            accessStatus: meet.access_status,
+          },
+          {
+            email: attendeeUser.email,
+            firstName: attendeeUser.first_name,
+            username: attendeeUser.username,
+          }
+        )
+        .catch((err) => console.error("[Events] RSVP email failed:", err));
+    }
 
     // If request comes from member dashboard RSVP button
     if (c.req.header("HX-Target")?.startsWith("rsvp-btn-")) {
