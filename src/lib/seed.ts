@@ -7,13 +7,13 @@ export async function seedSampleData(database: Database) {
     database.query<{ id: string; title: string }, []>("SELECT id, title FROM roles WHERE deleted_at IS NULL").all().map((role) => [role.title, role.id])
   );
 
-  const ensureUser = async (email: string, username: string, firstName: string, lastName: string, roleId = roles.member) => {
+  const ensureUser = async (email: string, username: string, firstName: string, lastName: string, phone = "+989123456789", roleId = roles.member) => {
     const existing = database.query<{ id: string }, [string]>("SELECT id FROM users WHERE email = ? AND deleted_at IS NULL").get(email);
     if (existing) return existing;
     const id = generateId();
     database.run(
-      "INSERT OR IGNORE INTO users (id, email, username, first_name, last_name, password_hash, role_id) VALUES (?, ?, ?, ?, ?, ?, ?)",
-      [id, email, username, firstName, lastName, await Bun.password.hash("sample-password"), roleId]
+      "INSERT OR IGNORE INTO users (id, email, username, phone, first_name, last_name, password_hash, role_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+      [id, email, username, phone, firstName, lastName, await Bun.password.hash("sample-password"), roleId]
     );
     return (
       database.query<{ id: string }, [string]>("SELECT id FROM users WHERE email = ? AND deleted_at IS NULL").get(email) ??
@@ -21,9 +21,9 @@ export async function seedSampleData(database: Database) {
     );
   };
 
-  const maya = await ensureUser("maya@example.com", "maya", "Maya", "Chen");
-  const noah = await ensureUser("noah@example.com", "noah", "Noah", "Patel");
-  await ensureUser("alex.admin@example.com", "alex-admin", "Alex", "Morgan", roles.admin);
+  const maya = await ensureUser("maya@example.com", "maya", "Maya", "Chen", "+989121112233");
+  const noah = await ensureUser("noah@example.com", "noah", "Noah", "Patel", "+14155552671");
+  await ensureUser("alex.admin@example.com", "alex-admin", "Alex", "Morgan", "+447911123456", roles.admin);
 
   // Register all system endpoints
   const endpointsToRegister = [
