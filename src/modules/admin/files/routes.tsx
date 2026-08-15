@@ -15,6 +15,7 @@ import { Toast } from "../views";
 import { getErrorMessage } from "../../../lib/cache";
 import { handleImageUpload, handlePresentationUpload } from "../upload";
 import { getLocale } from "../../../lib/i18n/context";
+import { logger } from "../../../lib/logger";
 
 const STORAGE_DIR = process.env.STORAGE_DIR ?? "./public/uploads";
 const ASSET_BASE_URL = (process.env.ASSET_BASE_URL ?? "/uploads").replace(/\/$/, "");
@@ -167,6 +168,12 @@ export function createFileAdminRoutes(
 
     const files = await listFiles();
     if (uploadRes.error) {
+      logger.file("FILE_UPLOAD_FAILED", {
+        level: "ERROR",
+        actor: { ip: c.req.header("x-forwarded-for") ?? "local" },
+        data: { filename: file.name, size: file.size, mimeType: file.type },
+        error: uploadRes.error,
+      });
       return c.html(
         <>
           <FileGrid files={files} locale={locale} />
@@ -175,6 +182,11 @@ export function createFileAdminRoutes(
         400
       );
     }
+
+    logger.file("FILE_UPLOADED", {
+      actor: { ip: c.req.header("x-forwarded-for") ?? "local" },
+      data: { filename: file.name, url: uploadRes.url, size: file.size, mimeType: file.type },
+    });
 
     return c.html(
       <>
@@ -213,6 +225,10 @@ export function createFileAdminRoutes(
       const oldPath = join(STORAGE_DIR, oldName);
       const newPath = join(STORAGE_DIR, newName);
       await rename(oldPath, newPath);
+      logger.file("FILE_RENAMED", {
+        actor: { ip: c.req.header("x-forwarded-for") ?? "local" },
+        data: { oldName, newName },
+      });
       const files = await listFiles();
       return c.html(
         <>
@@ -221,6 +237,11 @@ export function createFileAdminRoutes(
         </>
       );
     } catch {
+      logger.file("FILE_RENAME_FAILED", {
+        level: "ERROR",
+        actor: { ip: c.req.header("x-forwarded-for") ?? "local" },
+        data: { oldName, newName },
+      });
       const files = await listFiles();
       return c.html(
         <>
@@ -255,6 +276,10 @@ export function createFileAdminRoutes(
       const dest = join(STORAGE_DIR, duplicateName);
 
       await copyFile(src, dest);
+      logger.file("FILE_COPIED", {
+        actor: { ip: c.req.header("x-forwarded-for") ?? "local" },
+        data: { source: filename, destination: duplicateName },
+      });
       const files = await listFiles();
       return c.html(
         <>
@@ -300,8 +325,18 @@ export function createFileAdminRoutes(
     for (const filename of filenames) {
       try {
         await unlink(join(STORAGE_DIR, filename));
+        logger.file("FILE_DELETED", {
+          actor: { ip: c.req.header("x-forwarded-for") ?? "local" },
+          data: { filename, bulk: true },
+        });
       } catch (err) {
         console.error(`Failed to delete file ${filename}:`, err);
+        logger.file("FILE_DELETE_FAILED", {
+          level: "ERROR",
+          actor: { ip: c.req.header("x-forwarded-for") ?? "local" },
+          data: { filename, bulk: true },
+          error: err,
+        });
       }
     }
 
@@ -331,6 +366,10 @@ export function createFileAdminRoutes(
     try {
       const target = join(STORAGE_DIR, filename);
       await unlink(target);
+      logger.file("FILE_DELETED", {
+        actor: { ip: c.req.header("x-forwarded-for") ?? "local" },
+        data: { filename },
+      });
       const files = await listFiles();
       return c.html(
         <>
@@ -338,7 +377,13 @@ export function createFileAdminRoutes(
           {toast(c, "admin.deleted", `File ${filename} deleted.`)}
         </>
       );
-    } catch {
+    } catch (err) {
+      logger.file("FILE_DELETE_FAILED", {
+        level: "ERROR",
+        actor: { ip: c.req.header("x-forwarded-for") ?? "local" },
+        data: { filename },
+        error: err,
+      });
       const files = await listFiles();
       return c.html(
         <>

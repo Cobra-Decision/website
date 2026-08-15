@@ -9,6 +9,7 @@ import { DynamicCtaButton, MeetAccessBanner, MeetingDetailPage } from "./views";
 import { RsvpButton } from "../dashboard/user/views";
 import { getLocale, formatLocalizedNumber } from "../../lib/i18n/context";
 import { mailService } from "../mailer/service";
+import { logger } from "../../lib/logger";
 
 export function createEventsRoutes(database: Database, jwtSecret = process.env.JWT_SECRET ?? "development-secret") {
   const app = new Hono();
@@ -65,6 +66,11 @@ export function createEventsRoutes(database: Database, jwtSecret = process.env.J
     attendMeet(database, id, user.sub);
     const meet = getMeetById(database, id);
     if (!meet) return c.notFound();
+
+    logger.attendance("USER_ATTENDED", {
+      actor: { userId: user.sub, ip: c.req.header("x-forwarded-for") ?? "local", userAgent: c.req.header("user-agent") },
+      data: { meetId: id, meetTitle: meet.title, attendeeCount: meet.attendee_count },
+    });
 
     // Send confirmation email asynchronously
     const attendeeUser = database
@@ -128,6 +134,11 @@ export function createEventsRoutes(database: Database, jwtSecret = process.env.J
     leaveMeet(database, id, user.sub);
     const meet = getMeetById(database, id);
     if (!meet) return c.notFound();
+
+    logger.attendance("USER_UNATTENDED", {
+      actor: { userId: user.sub, ip: c.req.header("x-forwarded-for") ?? "local", userAgent: c.req.header("user-agent") },
+      data: { meetId: id, meetTitle: meet.title, attendeeCount: meet.attendee_count },
+    });
 
     // If request comes from member dashboard RSVP button
     if (c.req.header("HX-Target")?.startsWith("rsvp-btn-")) {

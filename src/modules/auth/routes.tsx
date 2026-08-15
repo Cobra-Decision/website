@@ -12,6 +12,7 @@ import { getLocale, t } from "../../lib/i18n/context";
 import { normalizeRegistration } from "./service";
 import { getAllTags, setUserPreferredTags } from "../events/queries";
 import { mailService } from "../mailer/service";
+import { logger } from "../../lib/logger";
 import { Dashboard, Login, ProfileForm, Register, type Profile } from "./views";
 
 type Captcha = { middleware: MiddlewareHandler; challengeHandler: Handler };
@@ -26,44 +27,54 @@ const cookieOptions = {
 };
 
 export async function createAltcha(): Promise<Captcha> {
-  const secret = (process.env.ALTCHA_HMAC_SECRET ?? "altcha-dev-secret-minimum-32-chars!").padEnd(32, "x");
-  const hmacKey = await deriveHmacKeySecret(secret);
-  return {
-    middleware: create({
-      hmacKey,
-      fetchParams: async () => ({
-        challenge: await deriveKey("challenge", secret),
-        maxNumber: 50_000,
-        salt: String(randomInt(100_000, 999_999)),
-      }),
-    }),
-    challengeHandler: async (c) =>
-      c.json({
-        algorithm: "SHA-256",
-        challenge: await deriveKey("challenge", secret),
-        maxnumber: 50_000,
-        salt: String(randomInt(100_000, 999_999)),
-        signature: "sample-sig",
-      }),
-  };
+  const secret = process.env.ALTCHA_HMAC_SECRET ?? "development-secret";
+  const altcha = create({
+    hmacSignatureSecret: secret,
+    hmacKeySignatureSecret: await deriveHmacKeySecret(secret),
+    deriveKey,
+    createChallengeParameters: () => ({ algorithm: "PBKDF2/SHA-256", cost: 5000, counter: randomInt(5000, 10000), expiresAt: new Date(Date.now() + 600_000) }),
+  });
+  return { middleware: altcha.middleware(), challengeHandler: altcha.challengeHandler };
 }
 
 export function createAuthRoutes(database: Database, captcha: Captcha, jwtSecret: string) {
+  const hasActiveSession = async (token: string | undefined) => {
+    if (!token) return false;
+    try {
+      const claims = (await verify(token, jwtSecret, "HS256")) as unknown as Claims;
+      return Boolean(database.query("SELECT 1 FROM users WHERE id = ? AND deleted_at IS NULL").get(claims.sub));
+    } catch {
+      return false;
+    }
+  };
+  const redirectAuthenticated = async (c: Parameters<Handler>[0]) => {
+    if (await hasActiveSession(getCookie(c, "session"))) {
+      const claims = (await verify(getCookie(c, "session")!, jwtSecret, "HS256")) as unknown as Claims;
+      return c.redirect(`/dashboard/${claims.role_title === "Super Admin" ? "admin" : "user"}`);
+    }
+    return null;
+  };
+
   return new Hono()
+    .get("/altcha/challenge", captcha.challengeHandler)
     .get("/altcha-challenge", captcha.challengeHandler)
     .get("/", async (c) => {
+      const authRedirect = await redirectAuthenticated(c);
+      if (authRedirect) return authRedirect;
       const locale = getLocale(c);
       return c.html(
-        <Document title="Sign in | CobraDecision" locale={locale}>
+        <Document title="CobraDecision" locale={locale}>
           <Login locale={locale} />
         </Document>
       );
     })
     .get("/register", async (c) => {
+      const authRedirect = await redirectAuthenticated(c);
+      if (authRedirect) return authRedirect;
       const locale = getLocale(c);
       const tags = getAllTags(database);
       return c.html(
-        <Document title="Register | CobraDecision" locale={locale}>
+        <Document title="CobraDecision" locale={locale}>
           <Register tags={tags} locale={locale} />
         </Document>
       );
@@ -81,7 +92,12 @@ export function createAuthRoutes(database: Database, captcha: Captcha, jwtSecret
         )
         .get(identifier, identifier, identifier);
       if (!user || !(await Bun.password.verify(password, user.password_hash))) {
-        return c.html(<FormMessage message="Invalid email/username or password." />, 401);
+        logger.auth("AUTH_LOGIN_FAILED", {
+          level: "WARN",
+          actor: { email: identifier, ip: c.req.header("x-forwarded-for") ?? "local", userAgent: c.req.header("user-agent") },
+          data: { identifier },
+        });
+        return c.html(<FormMessage message="Invalid credentials." />, 401);
       }
       const now = Math.floor(Date.now() / 1000);
       const token = await sign(
@@ -90,6 +106,9 @@ export function createAuthRoutes(database: Database, captcha: Captcha, jwtSecret
         "HS256"
       );
       setCookie(c, "session", token, cookieOptions);
+      logger.auth("AUTH_LOGIN_SUCCESS", {
+        actor: { userId: user.id, email: user.email, role: user.role_title, ip: c.req.header("x-forwarded-for") ?? "local", userAgent: c.req.header("user-agent") },
+      });
       c.header("HX-Redirect", `/dashboard/${user.role_title === "Super Admin" ? "admin" : "user"}`);
       return c.body(null);
     })
@@ -129,6 +148,10 @@ export function createAuthRoutes(database: Database, captcha: Captcha, jwtSecret
 
       // Send OTP Email
       await mailService.sendOtpEmail(input.email, otpCode);
+      logger.auth("AUTH_OTP_SENT", {
+        actor: { email: input.email, ip: c.req.header("x-forwarded-for") ?? "local", userAgent: c.req.header("user-agent") },
+        data: { username: input.username, phone: input.phone },
+      });
 
       // Return OTP verification UI component via HTMX swap
       return c.html(
@@ -174,6 +197,10 @@ export function createAuthRoutes(database: Database, captcha: Captcha, jwtSecret
         .get(email);
 
       if (!record || record.otp_code !== otp || Date.now() > record.expires_at) {
+        logger.auth("AUTH_OTP_VERIFY_FAILED", {
+          level: "WARN",
+          actor: { email, ip: c.req.header("x-forwarded-for") ?? "local", userAgent: c.req.header("user-agent") },
+        });
         return c.html(<FormMessage message={t("auth.invalid_otp", locale)} />, 400);
       }
 
@@ -195,6 +222,10 @@ export function createAuthRoutes(database: Database, captcha: Captcha, jwtSecret
         })();
 
         refreshLandingCache(database);
+        logger.auth("AUTH_REGISTER_SUCCESS", {
+          actor: { userId, email: input.email, ip: c.req.header("x-forwarded-for") ?? "local", userAgent: c.req.header("user-agent") },
+          data: { username: input.username, tagCount: input.tagIds.length },
+        });
         mailService.sendWelcomeEmail({
           email: input.email,
           firstName: input.firstName,
@@ -204,18 +235,39 @@ export function createAuthRoutes(database: Database, captcha: Captcha, jwtSecret
         c.header("HX-Redirect", "/auth");
         return c.body(null);
       } catch (err) {
+        logger.auth("AUTH_REGISTER_FAILED", {
+          level: "ERROR",
+          actor: { email, ip: c.req.header("x-forwarded-for") ?? "local", userAgent: c.req.header("user-agent") },
+          error: err,
+        });
         return c.html(<FormMessage message="Registration could not be completed." />, 409);
       }
     })
-    .post("/logout", (c) => {
+    .post("/logout", async (c) => {
+      const token = getCookie(c, "session");
+      let claims: Claims | null = null;
+      if (token) {
+        try {
+          claims = (await verify(token, jwtSecret, "HS256")) as unknown as Claims;
+        } catch {}
+      }
+      logger.auth("AUTH_LOGOUT", {
+        actor: { userId: claims?.sub, email: claims?.username, role: claims?.role_title, ip: c.req.header("x-forwarded-for") ?? "local" },
+      });
       deleteCookie(c, "session", cookieOptions);
       c.header("HX-Redirect", "/auth");
       return c.body(null);
     });
 }
 
+type DashboardEnv = {
+  Variables: {
+    sessionUser: { claims: Claims; user: Profile };
+  };
+};
+
 export function createDashboardRoute(database: Database, jwtSecret: string, expectedRole: "admin" | "member" = "member") {
-  const app = new Hono();
+  const app = new Hono<DashboardEnv>();
   const loadUser = async (c: Parameters<Handler>[0]) => {
     const token = getCookie(c, "session");
     if (!token) return null;
