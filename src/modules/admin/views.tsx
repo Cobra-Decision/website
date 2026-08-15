@@ -217,7 +217,14 @@ export function CrudTable({
           <table class="table table-zebra table-sm">
             <thead class="bg-base-200/50 text-xs font-semibold uppercase tracking-wider text-base-content/70">
               <tr>
-                <th class="w-10"></th>
+                <th class="w-10">
+                  <input
+                    type="checkbox"
+                    class="checkbox checkbox-sm"
+                    onclick={`const checked = this.checked; document.querySelectorAll('#${resource}-bulk-form input[name=ids]').forEach(el => el.checked = checked)`}
+                    aria-label="Select all"
+                  />
+                </th>
                 {columns.map((column) => (
                   <th key={column} class="whitespace-nowrap">
                     <button
