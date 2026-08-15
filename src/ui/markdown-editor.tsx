@@ -24,6 +24,15 @@ export function MarkdownEditor({
             return;
           }
           const escape = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+          const isRtl = (s) => {
+            const rtl = /[؀-ۿݐ-ݿࢠ-ࣿﭐ-﷿ﹰ-﻿]/;
+            const ltr = /[a-zA-Z]/;
+            for (let i = 0; i < s.length; i++) {
+              if (rtl.test(s[i])) return true;
+              if (ltr.test(s[i])) return false;
+            }
+            return false;
+          };
           const parseInline = (s) => {
             let res = s.replace(/\`([^\`]+)\`/g, '<code class="bg-base-300 px-1.5 py-0.5 rounded text-xs text-primary font-mono" dir="ltr">$1</code>');
             res = res.replace(/\\*\\*\\*([^*]+)\\*\\*\\*/g, '<strong><em>$1</em></strong>');
@@ -73,45 +82,49 @@ export function MarkdownEditor({
 
             if (trimmed.startsWith('### ')) {
               flushList();
-              parts.push('<h3 dir="auto" class="font-bold text-lg mt-3 mb-1">' + parseInline(escape(trimmed.slice(4))) + '</h3>');
+              parts.push('<h3 dir="auto" class="font-bold text-lg mt-4 mb-2">' + parseInline(escape(trimmed.slice(4))) + '</h3>');
               continue;
             }
             if (trimmed.startsWith('## ')) {
               flushList();
-              parts.push('<h2 dir="auto" class="font-bold text-xl mt-4 mb-2 border-b pb-1">' + parseInline(escape(trimmed.slice(3))) + '</h2>');
+              parts.push('<h2 dir="auto" class="font-bold text-xl mt-5 mb-2 border-b pb-1">' + parseInline(escape(trimmed.slice(3))) + '</h2>');
               continue;
             }
             if (trimmed.startsWith('# ')) {
               flushList();
-              parts.push('<h1 dir="auto" class="font-black text-2xl mt-5 mb-2 border-b pb-1">' + parseInline(escape(trimmed.slice(2))) + '</h1>');
+              parts.push('<h1 dir="auto" class="font-black text-2xl mt-6 mb-3 border-b pb-1">' + parseInline(escape(trimmed.slice(2))) + '</h1>');
               continue;
             }
 
             if (trimmed.startsWith('> ')) {
               flushList();
-              parts.push('<blockquote dir="auto" class="border-l-4 border-primary/40 pl-4 py-1 my-2 italic opacity-90">' + parseInline(escape(trimmed.slice(2))) + '</blockquote>');
+              parts.push('<blockquote dir="auto" class="border-s-4 border-primary/40 ps-4 py-1 my-3 italic opacity-90">' + parseInline(escape(trimmed.slice(2))) + '</blockquote>');
               continue;
             }
 
             const ulMatch = trimmed.match(/^[-*]\\s+(.*)$/);
             if (ulMatch) {
+              const itemContent = ulMatch[1] || '';
+              const itemDir = isRtl(itemContent) ? 'rtl' : 'ltr';
               if (!inUl) {
                 flushList();
-                parts.push('<ul class="list-disc list-inside space-y-1 my-2">');
+                parts.push('<ul class="list-disc ps-6 space-y-1.5 my-2" dir="' + itemDir + '">');
                 inUl = true;
               }
-              parts.push('<li dir="auto">' + parseInline(escape(ulMatch[1])) + '</li>');
+              parts.push('<li dir="' + itemDir + '">' + parseInline(escape(itemContent)) + '</li>');
               continue;
             }
 
             const olMatch = trimmed.match(/^\\d+\\.\\s+(.*)$/);
             if (olMatch) {
+              const itemContent = olMatch[1] || '';
+              const itemDir = isRtl(itemContent) ? 'rtl' : 'ltr';
               if (!inOl) {
                 flushList();
-                parts.push('<ol class="list-decimal list-inside space-y-1 my-2">');
+                parts.push('<ol class="list-decimal ps-6 space-y-1.5 my-2" dir="' + itemDir + '">');
                 inOl = true;
               }
-              parts.push('<li dir="auto">' + parseInline(escape(olMatch[1])) + '</li>');
+              parts.push('<li dir="' + itemDir + '">' + parseInline(escape(itemContent)) + '</li>');
               continue;
             }
 

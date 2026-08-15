@@ -26,7 +26,7 @@ function sanitizeUrl(url: string): string {
 
 function parseInline(text: string): string {
   // Inline Code (always LTR)
-  let out = text.replace(/`([^`]+)`/g, (_, code) => `<code class="bg-base-300 px-1.5 py-0.5 rounded text-xs text-primary">${escapeHtml(code)}</code>`);
+  let out = text.replace(/`([^`]+)`/g, (_, code) => `<code class="bg-base-300 px-1.5 py-0.5 rounded text-xs text-primary font-mono" dir="ltr">${escapeHtml(code)}</code>`);
 
   // Bold & Italic
   out = out.replace(/\*\*\*([^*]+)\*\*\*/g, "<strong><em>$1</em></strong>");
@@ -47,6 +47,17 @@ function parseInline(text: string): string {
   });
 
   return out;
+}
+
+function isRtlText(text: string): boolean {
+  const rtlChars = /[؀-ۿݐ-ݿࢠ-ࣿﭐ-﷿ﹰ-﻿]/;
+  const ltrChars = /[a-zA-Z]/;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i]!;
+    if (rtlChars.test(ch)) return true;
+    if (ltrChars.test(ch)) return false;
+  }
+  return false;
 }
 
 export function renderMarkdown(markdown: string | null | undefined): string {
@@ -79,7 +90,7 @@ export function renderMarkdown(markdown: string | null | undefined): string {
     // Code blocks
     if (line.trim().startsWith("```")) {
       if (inCodeBlock) {
-        htmlParts.push(`<pre class="p-4 rounded-xl bg-base-300 overflow-x-auto text-sm my-3 font-mono"><code>${codeBlockBuffer.join("\n")}</code></pre>`);
+        htmlParts.push(`<pre class="p-4 rounded-xl bg-base-300 overflow-x-auto text-sm my-3 font-mono text-left" dir="ltr"><code>${codeBlockBuffer.join("\n")}</code></pre>`);
         codeBlockBuffer = [];
         inCodeBlock = false;
       } else {
@@ -105,59 +116,63 @@ export function renderMarkdown(markdown: string | null | undefined): string {
     // Headings
     if (trimmed.startsWith("### ")) {
       flushList();
-      htmlParts.push(`<h3>${parseInline(escapeHtml(trimmed.slice(4)))}</h3>`);
+      htmlParts.push(`<h3 dir="auto" class="font-bold text-lg mt-4 mb-2">${parseInline(escapeHtml(trimmed.slice(4)))}</h3>`);
       continue;
     }
     if (trimmed.startsWith("## ")) {
       flushList();
-      htmlParts.push(`<h2>${parseInline(escapeHtml(trimmed.slice(3)))}</h2>`);
+      htmlParts.push(`<h2 dir="auto" class="font-bold text-xl mt-5 mb-2 border-b border-base-200/60 pb-1">${parseInline(escapeHtml(trimmed.slice(3)))}</h2>`);
       continue;
     }
     if (trimmed.startsWith("# ")) {
       flushList();
-      htmlParts.push(`<h1>${parseInline(escapeHtml(trimmed.slice(2)))}</h1>`);
+      htmlParts.push(`<h1 dir="auto" class="font-black text-2xl mt-6 mb-3 border-b border-base-200/60 pb-1">${parseInline(escapeHtml(trimmed.slice(2)))}</h1>`);
       continue;
     }
 
     // Blockquote
     if (trimmed.startsWith("> ")) {
       flushList();
-      htmlParts.push(`<blockquote>${parseInline(escapeHtml(trimmed.slice(2)))}</blockquote>`);
+      htmlParts.push(`<blockquote dir="auto" class="border-s-4 border-primary/40 ps-4 py-1 my-3 italic opacity-90">${parseInline(escapeHtml(trimmed.slice(2)))}</blockquote>`);
       continue;
     }
 
     // Unordered list (- or *)
     const ulMatch = trimmed.match(/^[-*]\s+(.*)$/);
     if (ulMatch) {
+      const itemContent = ulMatch[1] ?? "";
+      const itemDir = isRtlText(itemContent) ? "rtl" : "ltr";
       if (!inUnorderedList) {
         flushList();
-        htmlParts.push("<ul>");
+        htmlParts.push(`<ul class="list-disc ps-6 space-y-1.5 my-2" dir="${itemDir}">`);
         inUnorderedList = true;
       }
-      htmlParts.push(`<li>${parseInline(escapeHtml(ulMatch[1] ?? ""))}</li>`);
+      htmlParts.push(`<li dir="${itemDir}">${parseInline(escapeHtml(itemContent))}</li>`);
       continue;
     }
 
     // Ordered list (1. 2.)
     const olMatch = trimmed.match(/^\d+\.\s+(.*)$/);
     if (olMatch) {
+      const itemContent = olMatch[1] ?? "";
+      const itemDir = isRtlText(itemContent) ? "rtl" : "ltr";
       if (!inOrderedList) {
         flushList();
-        htmlParts.push("<ol>");
+        htmlParts.push(`<ol class="list-decimal ps-6 space-y-1.5 my-2" dir="${itemDir}">`);
         inOrderedList = true;
       }
-      htmlParts.push(`<li>${parseInline(escapeHtml(olMatch[1] ?? ""))}</li>`);
+      htmlParts.push(`<li dir="${itemDir}">${parseInline(escapeHtml(itemContent))}</li>`);
       continue;
     }
 
     // Regular paragraph
     flushList();
-    htmlParts.push(`<p>${parseInline(escapeHtml(trimmed))}</p>`);
+    htmlParts.push(`<p dir="auto" class="my-2 leading-relaxed">${parseInline(escapeHtml(trimmed))}</p>`);
   }
 
   flushList();
   if (inCodeBlock) {
-    htmlParts.push(`<pre class="p-4 rounded-xl bg-base-300 overflow-x-auto text-sm my-3 font-mono"><code>${codeBlockBuffer.join("\n")}</code></pre>`);
+    htmlParts.push(`<pre class="p-4 rounded-xl bg-base-300 overflow-x-auto text-sm my-3 font-mono text-left" dir="ltr"><code>${codeBlockBuffer.join("\n")}</code></pre>`);
   }
 
   return htmlParts.join("\n");
