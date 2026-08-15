@@ -1,5 +1,6 @@
 import type { Locale } from "../lib/i18n/translations";
-import { t } from "../lib/i18n/context";
+import { t, isRtl } from "../lib/i18n/context";
+import { LanguageSwitch } from "./language-switch";
 
 export type DashboardUser = {
   name: string;
@@ -35,6 +36,7 @@ export const UserProfileDropdown = ({
 }) => {
   const isAdmin = user.isSuperAdmin || user.role === "Super Admin" || user.role === "admin";
   const initial = user.name?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase() || "U";
+  const rtl = isRtl(locale);
 
   return (
     <div class="dropdown dropdown-end" x-data>
@@ -44,7 +46,7 @@ export const UserProfileDropdown = ({
             <span>{initial}</span>
           </div>
         </div>
-        <span class="hidden text-left sm:block">
+        <span class="hidden text-start sm:block">
           <span class="block text-sm font-semibold">{user.name}</span>
           {user.role && <span class="block text-xs opacity-60">{user.role}</span>}
         </span>
@@ -66,11 +68,11 @@ export const UserProfileDropdown = ({
           {isAdmin && (
             currentView === "admin" ? (
               <a class="btn btn-secondary btn-outline btn-sm mt-1" href="/dashboard/user/meets">
-                Switch to User View
+                {rtl ? "مشاهده نمای کاربری" : "Switch to User View"}
               </a>
             ) : (
               <a class="btn btn-primary btn-outline btn-sm mt-1" href="/dashboard/admin">
-                Switch to Admin Dashboard
+                {rtl ? "مشاهده داشبورد مدیریت" : "Switch to Admin Dashboard"}
               </a>
             )
           )}
@@ -110,20 +112,7 @@ export const DashboardNavbar = ({
       </a>
     </div>
     <div class="flex items-center gap-3">
-      <div class="join">
-        <a
-          href="/locale/en"
-          class={`btn btn-xs join-item ${locale === "en" ? "btn-primary font-bold" : "btn-ghost"}`}
-        >
-          EN
-        </a>
-        <a
-          href="/locale/fa"
-          class={`btn btn-xs join-item ${locale === "fa" ? "btn-primary font-bold" : "btn-ghost"}`}
-        >
-          فا
-        </a>
-      </div>
+      <LanguageSwitch currentLocale={locale} size="xs" />
       {user && <UserProfileDropdown user={user} currentView={currentView} locale={locale} />}
     </div>
   </header>
