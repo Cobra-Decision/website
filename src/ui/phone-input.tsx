@@ -113,14 +113,16 @@ export const PhoneInput = ({
       </div>
 
       {/* Modern country picker + input group */}
-      <div class="relative flex rounded-xl border border-base-300 bg-base-100 focus-within:border-primary focus-within:ring-1 focus-within:ring-primary shadow-xs transition-all">
+      <div
+        class="relative flex rounded-xl border border-base-300 bg-base-100 focus-within:border-primary focus-within:ring-1 focus-within:ring-primary shadow-xs transition-all"
+        {...{ "x-on:click.outside": "open = false" }}
+      >
         {/* Country Selector Dropdown Trigger */}
         <div class="relative">
           <button
             type="button"
             class="flex h-full items-center gap-1.5 px-3 py-2 border-e border-base-300 bg-base-200/50 hover:bg-base-200 rounded-s-xl text-xs sm:text-sm font-medium transition-colors select-none"
             x-on:click="open = !open"
-            x-on:click.outside="open = false"
             aria-label="Select Country"
           >
             <span class="text-base sm:text-lg leading-none" x-text="current.flag"></span>
@@ -140,7 +142,7 @@ export const PhoneInput = ({
               placeholder={rtl ? "جستجوی کشور یا کد..." : "Search country or code..."}
               class="input input-bordered input-xs w-full mb-2 bg-base-200/50"
               x-model="search"
-              x-on:click.stop
+              x-on:click="$event.stopPropagation()"
             />
 
             <div class="space-y-0.5">
