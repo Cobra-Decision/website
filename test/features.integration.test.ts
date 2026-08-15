@@ -33,6 +33,12 @@ beforeEach(async () => {
   register.append("tagIds", tag3);
   await app.request("/auth/register", { method: "POST", body: register });
 
+  const otpRecord = database.query<{ otp_code: string }, [string]>("SELECT otp_code FROM registration_otps WHERE email = ?").get("dashboard_user@example.com");
+  const verifyForm = new FormData();
+  verifyForm.set("email", "dashboard_user@example.com");
+  verifyForm.set("otp", otpRecord!.otp_code);
+  await app.request("/auth/verify-otp", { method: "POST", body: verifyForm });
+
   const login = new FormData();
   login.set("identifier", "dashboard_user@example.com");
   login.set("password", "secret123");

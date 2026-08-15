@@ -54,6 +54,9 @@ export async function seedSampleData(database: Database) {
     "/dashboard/admin/report",
     "/dashboard/admin/mailer",
     "/dashboard/admin/mailer/send",
+    "/dashboard/admin/mailer/subscribers",
+    "/dashboard/admin/mailer/test-modal",
+    "/dashboard/admin/mailer/test-send",
   ];
 
   for (const endpoint of endpointsToRegister) {

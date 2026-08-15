@@ -365,6 +365,12 @@ test("member dashboard does not show admin navigation", async () => {
   register.append("tagIds", tag2);
   register.append("tagIds", tag3);
   await app.request("/auth/register", { method: "POST", body: register });
+  const otpRecord = database.query<{ otp_code: string }, [string]>("SELECT otp_code FROM registration_otps WHERE email = ?").get("member@example.com");
+  const verifyForm = new FormData();
+  verifyForm.set("email", "member@example.com");
+  verifyForm.set("otp", otpRecord!.otp_code);
+  await app.request("/auth/verify-otp", { method: "POST", body: verifyForm });
+
   const login = new FormData();
   login.set("identifier", "member@example.com");
   login.set("password", "secret123");
@@ -380,6 +386,12 @@ test("authenticated users update only their own profile", async () => {
   const register = new FormData(); register.set("email", "member@example.com"); register.set("password", "secret123"); register.set("password_confirmation", "secret123");
   register.append("tagIds", tag1); register.append("tagIds", tag2); register.append("tagIds", tag3);
   await app.request("/auth/register", { method: "POST", body: register });
+  const otpRecord = database.query<{ otp_code: string }, [string]>("SELECT otp_code FROM registration_otps WHERE email = ?").get("member@example.com");
+  const verifyForm = new FormData();
+  verifyForm.set("email", "member@example.com");
+  verifyForm.set("otp", otpRecord!.otp_code);
+  await app.request("/auth/verify-otp", { method: "POST", body: verifyForm });
+
   const login = new FormData(); login.set("identifier", "member@example.com"); login.set("password", "secret123");
   const cookie = (await app.request("/auth/login", { method: "POST", body: login })).headers.get("set-cookie")!.split(";")[0];
   const profile = new FormData(); profile.set("first_name", "Member"); profile.set("password", "new-secret"); profile.set("password_confirmation", "new-secret");
@@ -397,6 +409,12 @@ test("profile uniqueness errors return visible feedback", async () => {
   const register = new FormData(); register.set("email", "member@example.com"); register.set("password", "secret123"); register.set("password_confirmation", "secret123");
   register.append("tagIds", tag1); register.append("tagIds", tag2); register.append("tagIds", tag3);
   await app.request("/auth/register", { method: "POST", body: register });
+  const otpRecord = database.query<{ otp_code: string }, [string]>("SELECT otp_code FROM registration_otps WHERE email = ?").get("member@example.com");
+  const verifyForm = new FormData();
+  verifyForm.set("email", "member@example.com");
+  verifyForm.set("otp", otpRecord!.otp_code);
+  await app.request("/auth/verify-otp", { method: "POST", body: verifyForm });
+
   const login = new FormData(); login.set("identifier", "member@example.com"); login.set("password", "secret123");
   const cookie = (await app.request("/auth/login", { method: "POST", body: login })).headers.get("set-cookie")!.split(";")[0];
   const profile = new FormData(); profile.set("username", "taken");
