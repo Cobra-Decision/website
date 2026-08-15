@@ -46,6 +46,8 @@ export async function initializeDatabase(database: Database, admin: AdminSeed = 
     "/dashboard/admin/files/duplicate",
     "/dashboard/admin/files/bulk-confirm",
     "/dashboard/admin/report",
+    "/dashboard/admin/mailer",
+    "/dashboard/admin/mailer/send",
   ];
   for (const endpoint of endpoints) {
     const existing = database.query<{ id: string }, [string]>("SELECT id FROM endpoints WHERE title = ?").get(endpoint);

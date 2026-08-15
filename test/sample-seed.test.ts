@@ -41,6 +41,9 @@ test("sample seed creates related data once across all tables", async () => {
   expect(database.query("SELECT COUNT(*) total FROM meets WHERE description='' OR scheduled_at_utc IS NULL OR meet_url IS NULL").get()).toEqual({ total: 0 });
   expect(database.query("SELECT COUNT(*) total FROM meet_tags mt LEFT JOIN meets m ON m.id=mt.meet_id LEFT JOIN tags t ON t.id=mt.tag_id WHERE m.id IS NULL OR t.id IS NULL").get()).toEqual({ total: 0 });
   expect(database.query("SELECT COUNT(*) total FROM meet_attendees ma LEFT JOIN meets m ON m.id=ma.meet_id LEFT JOIN users u ON u.id=ma.user_id WHERE m.id IS NULL OR u.id IS NULL").get()).toEqual({ total: 0 });
+  expect(database.query("SELECT COUNT(*) total FROM platforms WHERE slug = 'gmail'").get()).toEqual({ total: 1 });
+  expect(database.query("SELECT COUNT(*) total FROM endpoints WHERE title = '/dashboard/admin/mailer'").get()).toEqual({ total: 1 });
+  expect(database.query("SELECT COUNT(*) total FROM endpoints WHERE title = '/dashboard/admin/mailer/send'").get()).toEqual({ total: 1 });
   const users = database.query<{ password_hash: string }, []>("SELECT password_hash FROM users WHERE email IN ('maya@example.com','noah@example.com','alex.admin@example.com')").all();
   expect(users).toHaveLength(3);
   for (const user of users) expect(await Bun.password.verify("sample-password", user.password_hash)).toBe(true);

@@ -52,6 +52,8 @@ export async function seedSampleData(database: Database) {
     "/dashboard/admin/files/duplicate",
     "/dashboard/admin/files/bulk-confirm",
     "/dashboard/admin/report",
+    "/dashboard/admin/mailer",
+    "/dashboard/admin/mailer/send",
   ];
 
   for (const endpoint of endpointsToRegister) {
@@ -95,6 +97,7 @@ export async function seedSampleData(database: Database) {
   }
 
   const defaultPlatforms = [
+    { slug: "gmail", name: "Gmail" },
     { slug: "telegram", name: "Telegram" },
     { slug: "youtube", name: "YouTube" },
     { slug: "linkedin", name: "LinkedIn" },

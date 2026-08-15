@@ -14,34 +14,97 @@ export const RsvpButton = ({
   meet: MeetWithDetails;
   isAttending: boolean;
   locale?: Locale;
-}) => (
-  <div class="rsvp-button" id={`rsvp-btn-${meet.id}`}>
-    {meet.status === "completed" ? (
-      <span class="badge badge-ghost text-xs py-2 px-3">{t("meet.status.completed", locale)}</span>
-    ) : isAttending ? (
-      <button
-        type="button"
-        hx-delete={`/meets/${meet.id}/attend`}
-        hx-target={`#rsvp-btn-${meet.id}`}
-        hx-swap="outerHTML"
-        class="btn btn-sm btn-outline btn-success gap-1 hover:btn-error"
-      >
-        <span>{t("meet.joined", locale)}</span>
-        <span class="text-xs opacity-75">({t("meet.leave", locale)})</span>
-      </button>
-    ) : (
-      <button
-        type="button"
-        hx-post={`/meets/${meet.id}/attend`}
-        hx-target={`#rsvp-btn-${meet.id}`}
-        hx-swap="outerHTML"
-        class="btn btn-sm btn-primary"
-      >
-        {t("meet.attend", locale)}
-      </button>
-    )}
-  </div>
-);
+}) => {
+  const modalId = `rsvp-modal-${meet.id}`;
+  return (
+    <div class="rsvp-button" id={`rsvp-btn-${meet.id}`}>
+      {meet.status === "completed" ? (
+        <span class="badge badge-ghost text-xs py-2 px-3">{t("meet.status.completed", locale)}</span>
+      ) : isAttending ? (
+        <>
+          <button
+            type="button"
+            onclick={`document.getElementById('${modalId}').showModal()`}
+            class="btn btn-sm btn-outline btn-success gap-1 hover:btn-error"
+          >
+            <span>{t("meet.joined", locale)}</span>
+            <span class="text-xs opacity-75">({t("meet.leave", locale)})</span>
+          </button>
+          <dialog id={modalId} class="modal modal-bottom sm:modal-middle text-start">
+            <div class="modal-box">
+              <h3 class="font-bold text-lg text-base-content">{t("meet.confirm_leave_title", locale)}</h3>
+              <p class="py-4 text-sm text-base-content/80">
+                {t("meet.confirm_leave_desc", locale)}
+              </p>
+              <div class="rounded-lg bg-base-200 p-3 text-xs space-y-1 mb-4">
+                <div class="font-semibold text-base-content">{meet.title}</div>
+                <div class="text-base-content/70">{meet.scheduled_date} · {meet.scheduled_time}</div>
+              </div>
+              <div class="modal-action">
+                <form method="dialog">
+                  <button class="btn btn-sm btn-ghost">{t("meet.cancel", locale)}</button>
+                </form>
+                <button
+                  type="button"
+                  hx-delete={`/meets/${meet.id}/attend`}
+                  hx-target={`#rsvp-btn-${meet.id}`}
+                  hx-swap="outerHTML"
+                  onclick={`document.getElementById('${modalId}').close()`}
+                  class="btn btn-sm btn-error"
+                >
+                  {t("meet.confirm", locale)}
+                </button>
+              </div>
+            </div>
+            <form method="dialog" class="modal-backdrop">
+              <button>close</button>
+            </form>
+          </dialog>
+        </>
+      ) : (
+        <>
+          <button
+            type="button"
+            onclick={`document.getElementById('${modalId}').showModal()`}
+            class="btn btn-sm btn-primary"
+          >
+            {t("meet.attend", locale)}
+          </button>
+          <dialog id={modalId} class="modal modal-bottom sm:modal-middle text-start">
+            <div class="modal-box">
+              <h3 class="font-bold text-lg text-base-content">{t("meet.confirm_attend_title", locale)}</h3>
+              <p class="py-4 text-sm text-base-content/80">
+                {t("meet.confirm_attend_desc", locale)}
+              </p>
+              <div class="rounded-lg bg-base-200 p-3 text-xs space-y-1 mb-4">
+                <div class="font-semibold text-base-content">{meet.title}</div>
+                <div class="text-base-content/70">{meet.scheduled_date} · {meet.scheduled_time}</div>
+              </div>
+              <div class="modal-action">
+                <form method="dialog">
+                  <button class="btn btn-sm btn-ghost">{t("meet.cancel", locale)}</button>
+                </form>
+                <button
+                  type="button"
+                  hx-post={`/meets/${meet.id}/attend`}
+                  hx-target={`#rsvp-btn-${meet.id}`}
+                  hx-swap="outerHTML"
+                  onclick={`document.getElementById('${modalId}').close()`}
+                  class="btn btn-sm btn-primary"
+                >
+                  {t("meet.confirm", locale)}
+                </button>
+              </div>
+            </div>
+            <form method="dialog" class="modal-backdrop">
+              <button>close</button>
+            </form>
+          </dialog>
+        </>
+      )}
+    </div>
+  );
+};
 
 export const MeetsGrid = ({
   meets,

@@ -59,3 +59,11 @@ CREATE TABLE IF NOT EXISTS error_messages (
   updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   deleted_at TEXT
 );
+
+CREATE TABLE IF NOT EXISTS registration_otps (
+  email TEXT PRIMARY KEY,
+  otp_code TEXT NOT NULL,
+  payload TEXT NOT NULL,
+  expires_at INTEGER NOT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);

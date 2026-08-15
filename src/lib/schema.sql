@@ -136,3 +136,12 @@ CREATE TABLE IF NOT EXISTS contact_requests (
   email TEXT NOT NULL,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Registration OTPs
+CREATE TABLE IF NOT EXISTS registration_otps (
+  email TEXT PRIMARY KEY,
+  otp_code TEXT NOT NULL,
+  payload TEXT NOT NULL,
+  expires_at INTEGER NOT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);

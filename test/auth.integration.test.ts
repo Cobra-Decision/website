@@ -34,7 +34,7 @@ test("auth pages load the shared UI stack and ALTCHA", async () => {
   }
 });
 
-test("registration requires email, password, and at least 3 preferred tags, then redirects to login", async () => {
+test("registration creates OTP and verification completes user creation", async () => {
   const tag1 = generateId(), tag2 = generateId(), tag3 = generateId();
   database.run("INSERT INTO tags (id, title) VALUES (?, 'T1'), (?, 'T2'), (?, 'T3')", [tag1, tag2, tag3]);
 
@@ -47,13 +47,25 @@ test("registration requires email, password, and at least 3 preferred tags, then
   form.append("tagIds", tag3);
   const response = await app.request("/auth/register", { method: "POST", body: form });
   expect(response.status).toBe(200);
-  expect(response.headers.get("HX-Redirect")).toBe("/auth");
+  const html = await response.text();
+  expect(html).toContain('hx-post="/auth/verify-otp"');
+
+  const otpRecord = database.query<{ otp_code: string }, [string]>("SELECT otp_code FROM registration_otps WHERE email = ?").get("new@example.com");
+  expect(otpRecord).toBeDefined();
+
+  const verifyForm = new FormData();
+  verifyForm.set("email", "new@example.com");
+  verifyForm.set("otp", otpRecord!.otp_code);
+
+  const verifyRes = await app.request("/auth/verify-otp", { method: "POST", body: verifyForm });
+  expect(verifyRes.status).toBe(200);
+  expect(verifyRes.headers.get("HX-Redirect")).toBe("/auth");
   expect(database.query("SELECT email, username, phone FROM users WHERE deleted_at IS NULL").get()).toEqual({
     email: "new@example.com", username: null, phone: null,
   });
 });
 
-test("registration refreshes the cached landing user count", async () => {
+test("registration refreshes the cached landing user count on OTP verify", async () => {
   const tag1 = generateId(), tag2 = generateId(), tag3 = generateId();
   database.run("INSERT INTO tags (id, title) VALUES (?, 'T1'), (?, 'T2'), (?, 'T3')", [tag1, tag2, tag3]);
 
@@ -68,6 +80,15 @@ test("registration refreshes the cached landing user count", async () => {
   form.append("tagIds", tag3);
   const response = await app.request("/auth/register", { method: "POST", body: form });
   expect(response.status).toBe(200);
+
+  const otpRecord = database.query<{ otp_code: string }, [string]>("SELECT otp_code FROM registration_otps WHERE email = ?").get("cached@example.com");
+  expect(otpRecord).toBeDefined();
+
+  const verifyForm = new FormData();
+  verifyForm.set("email", "cached@example.com");
+  verifyForm.set("otp", otpRecord!.otp_code);
+  await app.request("/auth/verify-otp", { method: "POST", body: verifyForm });
+
   expect(getLandingCache().totalUsers).toBe(before + 1);
 });
 
