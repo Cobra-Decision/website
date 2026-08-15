@@ -12,6 +12,7 @@ const managementLinks = [
   ["Roles", "/dashboard/admin/roles"],
   ["Endpoints", "/dashboard/admin/endpoints"],
   ["File Management", "/dashboard/admin/files"],
+  ["Mail Management", "/dashboard/admin/mailer"],
 ] as const;
 
 const reportLinks = [

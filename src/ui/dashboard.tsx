@@ -15,6 +15,7 @@ export type PlatformOption = {
 };
 
 export const DEFAULT_PLATFORMS: PlatformOption[] = [
+  { slug: "gmail", name: "Gmail" },
   { slug: "telegram", name: "Telegram" },
   { slug: "youtube", name: "YouTube" },
   { slug: "linkedin", name: "LinkedIn" },

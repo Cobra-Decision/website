@@ -15,6 +15,9 @@ import { MeetingLinkGenerator } from "../../ui/dashboard";
 import { MarkdownEditor } from "../../ui/markdown-editor";
 import { getLocale, toEnglishDigits } from "../../lib/i18n/context";
 import { toUtcIso } from "../events/datetime";
+import { mailService } from "../mailer/service";
+import { MailerDashboardView } from "./mailer-views";
+import { getAllTags } from "../events/queries";
 
 const guard = (db: Database, jwtSecret: string) => async (c: Context, next: Next) => {
   const token = getCookie(c, "session");
@@ -754,6 +757,70 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
       );
     } catch {
       return c.html(<>{<div id="report-result"></div>}{toast("admin.report_error", "Query could not be run.", "error")}</>, 400);
+    }
+  });
+
+  // Mailer Management Dashboard Routes
+  app.get("/mailer", async (c) => {
+    const stats = mailService.getStats();
+    const buffer = mailService.getBuffer();
+    const tags = getAllTags(db);
+    const users = db
+      .query<{ id: string; email: string; first_name: string | null; last_name: string | null }, []>(
+        "SELECT id, email, first_name, last_name FROM users WHERE deleted_at IS NULL ORDER BY email ASC"
+      )
+      .all();
+
+    return page(c, "Mail Management", <MailerDashboardView stats={stats} buffer={buffer} tags={tags} users={users} />);
+  });
+
+  app.post("/mailer/send", async (c) => {
+    const body = await c.req.parseBody({ all: true });
+    const targetMode = String(body.targetMode ?? "all") as "all" | "tags" | "domain" | "selected";
+    const subject = String(body.subject ?? "").trim();
+    const emailBody = String(body.body ?? "").trim();
+    const format = String(body.format ?? "html") as "html" | "text";
+
+    if (!subject || !emailBody) {
+      return c.html(<div class="alert alert-error text-xs">Subject and email body are required.</div>, 400);
+    }
+
+    let tagIds: string[] = [];
+    if (Array.isArray(body.tagIds)) tagIds = body.tagIds.map(String);
+    else if (typeof body.tagIds === "string" && body.tagIds.trim()) tagIds = [body.tagIds.trim()];
+
+    let userIds: string[] = [];
+    if (Array.isArray(body.userIds)) userIds = body.userIds.map(String);
+    else if (typeof body.userIds === "string" && body.userIds.trim()) userIds = [body.userIds.trim()];
+
+    const domain = String(body.domain ?? "").trim();
+
+    try {
+      const count = await mailService.sendBatchEmails(
+        db,
+        {
+          mode: targetMode,
+          tagIds,
+          domain,
+          userIds,
+        },
+        subject,
+        emailBody,
+        format
+      );
+
+      return c.html(
+        <div class="alert alert-success text-xs">
+          <span>Enqueued {count} batch email(s) via {mailService.getProvider().name}.</span>
+        </div>
+      );
+    } catch (err: any) {
+      return c.html(
+        <div class="alert alert-error text-xs">
+          <span>Failed to send batch emails: {err?.message || String(err)}</span>
+        </div>,
+        500
+      );
     }
   });
 
