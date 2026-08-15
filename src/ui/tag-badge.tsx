@@ -2,6 +2,7 @@ export type TagBadgeProps = {
   title: string;
   description?: string | null;
   size?: "xs" | "sm" | "md";
+  variant?: "outline" | "ghost" | "primary" | "secondary" | "neutral";
   onRemoveHref?: string;
   removeTarget?: string;
   removeAriaLabel?: string;
@@ -11,12 +12,14 @@ export const TagBadge = ({
   title,
   description,
   size = "sm",
+  variant = "outline",
   onRemoveHref,
   removeTarget,
   removeAriaLabel,
 }: TagBadgeProps) => {
-  const sizeClass = size === "xs" ? "badge-xs" : size === "md" ? "badge-md" : "badge-sm";
-  const badgeClasses = `badge badge-outline ${sizeClass} inline-flex items-center gap-1 shrink-0 font-normal`;
+  const sizeClass = size === "xs" ? "badge-sm text-[11px] px-2 py-0.5" : size === "md" ? "badge-md px-3 py-1" : "badge-sm px-2.5 py-0.5";
+  const variantClass = variant === "outline" ? "badge-outline" : `badge-${variant}`;
+  const badgeClasses = `badge ${variantClass} ${sizeClass} inline-flex items-center gap-1 shrink-0 font-medium`;
 
   if (onRemoveHref) {
     const badgeContent = (
