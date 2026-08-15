@@ -50,7 +50,7 @@ export function AdminLayout({
         {/* Flat Admin Sidebar matching User Dashboard */}
         <aside class="drawer-side z-20">
           <label for="admin-drawer" class="drawer-overlay" aria-label="close sidebar" />
-          <ul class="menu p-4 w-72 min-h-full bg-base-100 text-base-content border-r border-base-300 space-y-1">
+          <ul class="menu p-4 w-72 min-h-full bg-base-100 text-base-content border-e border-base-300 space-y-1">
             <li class="menu-title text-xs font-bold uppercase tracking-wider text-base-content/50">
               Management
             </li>

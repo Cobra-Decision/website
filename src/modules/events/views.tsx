@@ -4,6 +4,7 @@ import { renderMarkdown } from "../../lib/markdown";
 import type { Locale } from "../../lib/i18n/translations";
 import { t, formatLocalizedNumber } from "../../lib/i18n/context";
 import { formatLocalizedDate, formatLocalizedTime } from "./datetime";
+import { LanguageSwitch } from "../../ui/language-switch";
 
 export const DynamicCtaButton = ({
   meetId,
@@ -108,20 +109,7 @@ export const MeetingDetailPage = ({
             {t("brand.name", locale)}<span class="text-primary">.</span>
           </a>
           <div class="flex-none gap-2">
-            <div class="join">
-              <a
-                href="/locale/en"
-                class={`btn btn-xs join-item ${locale === "en" ? "btn-primary font-bold" : "btn-ghost"}`}
-              >
-                EN
-              </a>
-              <a
-                href="/locale/fa"
-                class={`btn btn-xs join-item ${locale === "fa" ? "btn-primary font-bold" : "btn-ghost"}`}
-              >
-                فا
-              </a>
-            </div>
+            <LanguageSwitch currentLocale={locale} size="xs" />
             <a class="btn btn-ghost btn-sm" href="/dashboard/user/meets">
               {t("nav.dashboard", locale)}
             </a>
@@ -209,7 +197,7 @@ export const MeetingDetailPage = ({
             {/* Room URL CTA logic */}
             {meet.meet_url && (
               canAccessMeetUrl ? (
-                <div class="rounded-2xl border border-primary/20 bg-primary/5 p-6 text-center sm:text-left sm:flex sm:items-center sm:justify-between shadow-sm">
+                <div class="rounded-2xl border border-primary/20 bg-primary/5 p-6 text-center sm:text-start sm:flex sm:items-center sm:justify-between shadow-sm">
                   <div>
                     <h3 class="text-lg font-bold text-base-content">{t("meet.ready_to_join", locale)}</h3>
                     <p class="text-sm text-base-content/70">{t("meet.room_live", locale)}</p>
@@ -224,7 +212,7 @@ export const MeetingDetailPage = ({
                   </a>
                 </div>
               ) : (
-                <div class="rounded-2xl border border-warning/30 bg-warning/5 p-6 text-center sm:text-left sm:flex sm:items-center sm:justify-between shadow-sm">
+                <div class="rounded-2xl border border-warning/30 bg-warning/5 p-6 text-center sm:text-start sm:flex sm:items-center sm:justify-between shadow-sm">
                   <div class="space-y-1">
                     <div class="flex items-center gap-2">
                       <span class="badge badge-warning badge-sm">🔒 {t("meet.private", locale)}</span>

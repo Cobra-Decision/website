@@ -1,86 +1,20 @@
 import type { LandingCache } from "../../lib/cache";
-import type { MeetWithDetails } from "../events/types";
-import { TagBadge } from "../../ui/tag-badge";
 import type { Locale } from "../../lib/i18n/translations";
-import { t, formatLocalizedNumber } from "../../lib/i18n/context";
-import { formatLocalizedDate, formatLocalizedTime } from "../events/datetime";
-
-const MeetCard = ({ meet, locale = "en" }: { meet: MeetWithDetails; locale?: Locale }) => {
-  const formattedDate = formatLocalizedDate(meet.scheduled_date, locale);
-  const formattedTime = formatLocalizedTime(meet.scheduled_time, locale);
-  const formattedDuration = formatLocalizedNumber(meet.duration_minutes, locale);
-  const formattedAttendeeCount = formatLocalizedNumber(meet.attendee_count, locale);
-
-  const statusLabel =
-    meet.status === "live"
-      ? t("meet.status.live", locale)
-      : meet.status === "completed"
-      ? t("meet.status.completed", locale)
-      : t("meet.status.upcoming", locale);
-
-  const statusBadgeColor =
-    meet.status === "live"
-      ? "badge-success text-white"
-      : meet.status === "completed"
-      ? "badge-ghost"
-      : "badge-primary";
-
-  return (
-    <article class="carousel-item w-full sm:w-80 md:w-96 flex-shrink-0 flex-col overflow-hidden rounded-2xl border border-base-300 bg-base-100 shadow-sm transition hover:-translate-y-1 hover:shadow-xl">
-      <div class="relative aspect-video w-full overflow-hidden bg-base-300">
-        <img
-          class="h-full w-full object-cover transition duration-500 group-hover:scale-105"
-          src={meet.image_url ?? "https://images.unsplash.com/photo-1543269865-cbf427effbad?auto=format&fit=crop&w=800&q=80"}
-          alt={meet.title}
-        />
-        <div class="badge absolute left-4 top-4 border-0 bg-base-100/90 font-medium text-base-content">
-          {formattedDate}
-        </div>
-        <div class="badge absolute right-4 top-4 border-0 text-xs font-medium">
-          <span class={`badge ${statusBadgeColor} badge-sm`}>{statusLabel}</span>
-        </div>
-      </div>
-      <div class="flex flex-1 flex-col justify-between space-y-3 p-5">
-        <div class="space-y-2">
-          <div class="flex items-center justify-between text-sm text-base-content/60">
-            <span>
-              {formattedTime} · {formattedDuration} {t("meet.minutes", locale)}
-            </span>
-            {meet.access_status === "private" && (
-              <span class="badge badge-warning badge-xs">🔒 {t("meet.private", locale)}</span>
-            )}
-          </div>
-          <h3 class="mt-1 text-lg font-bold text-base-content line-clamp-1">{meet.title}</h3>
-          {meet.description ? (
-            <p class="text-sm leading-relaxed text-base-content/70 line-clamp-3">
-              {meet.description}
-            </p>
-          ) : null}
-          <div class="flex flex-wrap gap-2 pt-1">
-            {meet.tags.slice(0, 3).map((tag) => (
-              <TagBadge key={tag.id} title={tag.title} description={tag.description} size="sm" />
-            ))}
-          </div>
-        </div>
-        <div class="flex items-center justify-between border-t border-base-200 pt-4">
-          <span class="text-xs font-medium text-base-content/60">{formattedAttendeeCount} {t("hero.attending", locale)}</span>
-          <a class="btn btn-primary btn-sm shadow-sm" href={`/meets/${meet.id}`}>
-            {t("hero.view_details", locale)}
-          </a>
-        </div>
-      </div>
-    </article>
-  );
-};
+import { t, formatLocalizedNumber, isRtl } from "../../lib/i18n/context";
+import { formatLocalizedDate } from "../events/datetime";
+import { LanguageSwitch } from "../../ui/language-switch";
+import { UnifiedMeetCard } from "../../ui/meet-card";
+import { Carousel } from "../../ui/carousel";
 
 export const Landing = ({ data, locale = "en" }: { data: LandingCache; locale?: Locale }) => {
   const featured = data.meets[0];
   const totalUsersFormatted = formatLocalizedNumber(data.totalUsers, locale);
   const totalHoursFormatted = formatLocalizedNumber(data.totalMeetHours, locale);
   const totalMeetsFormatted = formatLocalizedNumber(data.meets.length, locale);
+  const rtl = isRtl(locale);
 
   return (
-    <div class="overflow-x-hidden bg-base-100">
+    <div class="overflow-x-hidden bg-base-100 min-h-screen">
       <header class="border-b border-base-200 bg-base-100 sticky top-0 z-30 backdrop-blur bg-base-100/90">
         <nav class="navbar mx-auto min-h-20 max-w-7xl px-5 sm:px-8">
           <a class="flex-1 text-xl font-bold tracking-tight" href="/">
@@ -91,21 +25,8 @@ export const Landing = ({ data, locale = "en" }: { data: LandingCache; locale?: 
             <a class="link-hover" href="#meets">{t("nav.meets", locale)}</a>
             <a class="link-hover" href="#contact">{t("nav.contact", locale)}</a>
           </div>
-          <div class="flex-none gap-3 pl-4">
-            <div class="join">
-              <a
-                href="/locale/en"
-                class={`btn btn-xs join-item ${locale === "en" ? "btn-primary font-bold" : "btn-ghost"}`}
-              >
-                EN
-              </a>
-              <a
-                href="/locale/fa"
-                class={`btn btn-xs join-item ${locale === "fa" ? "btn-primary font-bold" : "btn-ghost"}`}
-              >
-                فا
-              </a>
-            </div>
+          <div class="flex-none gap-3 ps-4">
+            <LanguageSwitch currentLocale={locale} size="xs" />
             <a class="btn btn-primary btn-sm px-5" href="/auth">{t("nav.sign_in", locale)}</a>
           </div>
         </nav>
@@ -215,7 +136,7 @@ export const Landing = ({ data, locale = "en" }: { data: LandingCache; locale?: 
           </div>
         </section>
 
-        {/* Meets Carousel Section */}
+        {/* Meets Carousel Section with Unified Meet Cards */}
         <section id="meets" class="bg-base-200 py-20">
           <div class="mx-auto max-w-7xl px-5 sm:px-8">
             <div class="flex items-end justify-between gap-6">
@@ -223,18 +144,18 @@ export const Landing = ({ data, locale = "en" }: { data: LandingCache; locale?: 
                 <p class="font-semibold text-primary">{t("meets.section_badge", locale)}</p>
                 <h2 class="mt-3 text-3xl font-bold sm:text-4xl">{t("meets.section_title", locale)}</h2>
               </div>
-              <p class="hidden max-w-xs text-right text-sm text-base-content/60 sm:block">
+              <p class="hidden max-w-xs text-end text-sm text-base-content/60 sm:block">
                 {t("meets.section_subtitle", locale)}
               </p>
             </div>
 
-            <div class="mt-10 w-full max-w-full overflow-x-auto px-2 sm:px-4">
+            <div class="mt-10 w-full max-w-full">
               {data.meets.length ? (
-                <div class="carousel carousel-center w-full space-x-4 p-4 scroll-smooth">
+                <Carousel id="landing-meets-carousel" locale={locale}>
                   {data.meets.map((meet) => (
-                    <MeetCard key={meet.id} meet={meet} locale={locale} />
+                    <UnifiedMeetCard key={meet.id} meet={meet} locale={locale} variant="carousel" />
                   ))}
-                </div>
+                </Carousel>
               ) : (
                 <div class="rounded-2xl border border-dashed border-base-300 bg-base-100 p-10 text-center text-base-content/60">
                   {t("meets.empty", locale)}
