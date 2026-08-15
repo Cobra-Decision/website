@@ -91,6 +91,10 @@ export function createAccountRoutes(database: Database, jwtSecret = process.env.
       tagIds = [body.tagIds.trim()];
     }
 
+    if (body.tagIds !== undefined && tagIds.length < 3) {
+      return c.html(<FormMessage message="Please select at least 3 preferred tags." />, 400);
+    }
+
     try {
       database.transaction(() => {
         database.run(

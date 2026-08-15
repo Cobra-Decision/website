@@ -15,12 +15,16 @@ export function normalizeRegistration(form: Record<string, unknown>): Registrati
   const password = String(form.password ?? "");
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !password || password !== String(form.password_confirmation ?? "")) return null;
 
-  // Extract tagIds (can be single string, array of strings, or undefined)
+  // Extract tagIds (support array from form or individual field)
   let tagIds: string[] = [];
   if (Array.isArray(form.tagIds)) {
     tagIds = form.tagIds.map((t) => String(t).trim()).filter(Boolean);
+  } else if (Array.isArray(form["tagIds[]"])) {
+    tagIds = (form["tagIds[]"] as unknown[]).map((t) => String(t).trim()).filter(Boolean);
   } else if (typeof form.tagIds === "string" && form.tagIds.trim()) {
     tagIds = [form.tagIds.trim()];
+  } else if (typeof form["tagIds[]"] === "string" && form["tagIds[]"].trim()) {
+    tagIds = [form["tagIds[]"].trim()];
   }
 
   // Enforce at least 3 preferred tags on registration

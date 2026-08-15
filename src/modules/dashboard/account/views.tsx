@@ -145,10 +145,11 @@ export function AccountPage({
               <TagSelector
                 tags={allTags}
                 selectedTagIds={userTagIds}
+                minRequired={3}
                 name="tagIds"
                 locale={locale}
                 title={rtl ? "برچسب‌های منتخب شما" : "Your Preferred Tags"}
-                subtitle={rtl ? "موضوعات مورد علاقه خود را انتخاب کنید تا جلسات مرتبط به شما پیشنهاد شود:" : "Choose the tags that match your interests to get relevant recommendations:"}
+                subtitle={rtl ? "موضوعات مورد علاقه خود را انتخاب کنید تا جلسات مرتبط به شما پیشنهاد شود (حداقل ۳ مورد):" : "Choose at least 3 tags that match your interests to get relevant recommendations:"}
               />
 
               <div class="divider text-xs uppercase text-base-content/50">
