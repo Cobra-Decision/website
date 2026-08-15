@@ -16,11 +16,23 @@ services:
       - SEED_ADMIN_PASSWORD=${SEED_ADMIN_PASSWORD}
       - STORAGE_DIR=/app/public/uploads
       - ASSET_BASE_URL=/uploads
+      - LOG_DIR=/app/log
+      - GMAIL_USER=${GMAIL_USER}
+      - GMAIL_APP_PASSWORD=${GMAIL_APP_PASSWORD}
+      - SMTP_HOST=${SMTP_HOST:-smtp.gmail.com}
+      - SMTP_PORT=${SMTP_PORT:-465}
+      - SMTP_USER=${SMTP_USER}
+      - SMTP_PASS=${SMTP_PASS}
+      - SMTP_FROM=${SMTP_FROM}
+      - MEET_REMINDER_DAYS_BEFORE=${MEET_REMINDER_DAYS_BEFORE:-1}
+      - BASE_URL=${BASE_URL:-http://localhost:3000}
     volumes:
       # Persistent SQLite database file
       - ./app.sqlite:/app/app.sqlite
       # Persistent uploaded assets and materials
       - ./public/uploads:/app/public/uploads
+      # Persistent log directory
+      - ./log:/app/log
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:3000/ || exit 1"]
       interval: 30s
