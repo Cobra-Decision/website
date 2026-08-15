@@ -29,7 +29,7 @@ export const DynamicCtaButton = ({
 
   if (!isAuthenticated) {
     return (
-      <a href={`/auth?redirect=/meets/${meetId}`} class="btn btn-primary w-full shadow-sm">
+      <a href="/auth" class="btn btn-primary w-full shadow-sm">
         {t("meet.sign_in_to_attend", locale)}
       </a>
     );
@@ -294,7 +294,7 @@ export const MeetingDetailPage = ({
                     <p class="text-xs font-semibold text-base-content/50 uppercase tracking-wider mb-2">{t("meet.tags", locale)}</p>
                     <div class="flex flex-wrap items-center gap-1.5">
                       {meet.tags.map((tag) => (
-                        <TagBadge key={tag.id} title={tag.title} description={tag.description} size="sm" />
+                        <TagBadge key={tag.id} title={tag.title} description={tag.description} size="xs" />
                       ))}
                     </div>
                   </div>

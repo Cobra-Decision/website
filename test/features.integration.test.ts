@@ -166,6 +166,7 @@ test("GET /meets/:id hides private meeting room URL for non-attendees and shows 
   const guestHtml = await guestRes.text();
   expect(guestHtml).not.toContain("https://meet.jit.si/secret-room");
   expect(guestHtml).toContain("Private Meeting Access");
+  expect(guestHtml).toContain('href="/auth"');
 
   // Member attends
   await app.request(`/meets/${meet.id}/attend`, {

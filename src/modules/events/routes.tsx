@@ -45,7 +45,7 @@ export function createEventsRoutes(database: Database, jwtSecret = process.env.J
     const id = c.req.param("id");
     const locale = getLocale(c);
     const user = await getSessionUser(getCookie(c, "session"));
-    if (!user) return c.html(<a href={`/auth?redirect=/meets/${id}`} class="btn btn-primary w-full">Sign In to Attend</a>, 401);
+    if (!user) return c.html(<a href="/auth" class="btn btn-primary w-full">Sign In to Attend</a>, 401);
 
     const meetBefore = getMeetById(database, id);
     if (!meetBefore) return c.notFound();
@@ -87,7 +87,7 @@ export function createEventsRoutes(database: Database, jwtSecret = process.env.J
     const id = c.req.param("id");
     const locale = getLocale(c);
     const user = await getSessionUser(getCookie(c, "session"));
-    if (!user) return c.html(<a href={`/auth?redirect=/meets/${id}`} class="btn btn-primary w-full">Sign In to Attend</a>, 401);
+    if (!user) return c.html(<a href="/auth" class="btn btn-primary w-full">Sign In to Attend</a>, 401);
 
     leaveMeet(database, id, user.sub);
     const meet = getMeetById(database, id);
