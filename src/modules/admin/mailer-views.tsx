@@ -10,16 +10,74 @@ export const MailerDashboardView = ({
   stats: MailerStats;
   buffer: EmailMessage[];
   tags: Tag[];
-  users: { id: string; email: string; first_name: string | null; last_name: string | null }[];
+  users: { id: string; email: string; first_name: string | null; last_name: string | null; username: string | null }[];
 }) => {
   return (
-    <div class="space-y-8" x-data="{ format: 'html', targetMode: 'all', preview: false, body: '' }">
+    <div
+      class="space-y-8"
+      x-data={`{
+        format: 'html',
+        targetMode: 'all',
+        preview: false,
+        body: '',
+        tagSearch: '',
+        userSearch: '',
+        allTags: ${JSON.stringify(tags.map((t) => ({ id: t.id, title: t.title })))},
+        allUsers: ${JSON.stringify(
+          users.map((u) => ({
+            id: u.id,
+            email: u.email,
+            name: [u.first_name, u.last_name].filter(Boolean).join(" ") || u.username || u.email,
+          }))
+        )},
+        selectedTagIds: [],
+        selectedUserIds: [],
+        get filteredTags() {
+          if (!this.tagSearch.trim()) return this.allTags;
+          const q = this.tagSearch.toLowerCase();
+          return this.allTags.filter(t => t.title.toLowerCase().includes(q));
+        },
+        get filteredUsers() {
+          if (!this.userSearch.trim()) return this.allUsers;
+          const q = this.userSearch.toLowerCase();
+          return this.allUsers.filter(u => u.email.toLowerCase().includes(q) || u.name.toLowerCase().includes(q));
+        },
+        selectAllFilteredUsers() {
+          const ids = this.filteredUsers.map(u => u.id);
+          this.selectedUserIds = Array.from(new Set([...this.selectedUserIds, ...ids]));
+        },
+        clearSelectedUsers() {
+          this.selectedUserIds = [];
+        },
+        selectAllFilteredTags() {
+          const ids = this.filteredTags.map(t => t.id);
+          this.selectedTagIds = Array.from(new Set([...this.selectedTagIds, ...ids]));
+        },
+        clearSelectedTags() {
+          this.selectedTagIds = [];
+        },
+        insertTag(placeholder) {
+          this.body = (this.body || '') + placeholder;
+        },
+        get interpolatedPreview() {
+          if (!this.body) return '<span class=\"text-gray-400 italic\">Empty preview</span>';
+          return this.body
+            .replace(/\\{\\{\\s*name\\s*\\}\\}/gi, 'John Doe')
+            .replace(/\\{\\{\\s*email\\s*\\}\\}/gi, 'user@example.com')
+            .replace(/\\{\\{\\s*first_name\\s*\\}\\}/gi, 'John')
+            .replace(/\\{\\{\\s*last_name\\s*\\}\\}/gi, 'Doe')
+            .replace(/\\{\\{\\s*username\\s*\\}\\}/gi, 'johndoe')
+            .replace(/\\{\\{\\s*date\\s*\\}\\}/gi, new Date().toLocaleDateString())
+            .replace(/\\{\\{\\s*unsubscribe_url\\s*\\}\\}/gi, '#');
+        }
+      }`}
+    >
       {/* Header */}
       <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 class="text-2xl font-bold tracking-tight text-base-content sm:text-3xl">Mail Management</h1>
           <p class="text-sm text-base-content/60">
-            Inspect circular email buffer, monitor delivery stats, and compose batch or stack emails.
+            Inspect circular email buffer, monitor delivery stats, and compose batch or stack emails with attachments.
           </p>
         </div>
         <button
@@ -68,7 +126,7 @@ export const MailerDashboardView = ({
             <div>
               <h2 class="text-lg font-bold text-base-content">Compose Batch / Stack Email</h2>
               <p class="text-xs text-base-content/60">
-                Send unified email to all users, specific tag followers, or domain matches.
+                Send unified email to all users, specific tag followers, or domain matches with attachments.
               </p>
             </div>
             {/* Format Style Selector */}
@@ -96,13 +154,14 @@ export const MailerDashboardView = ({
             hx-post="/dashboard/admin/mailer/send"
             hx-target="#composer-result"
             hx-swap="innerHTML"
+            hx-encoding="multipart/form-data"
             class="space-y-4"
           >
             <input type="hidden" name="format" x-bind:value="format" />
 
             {/* Target Audience Select */}
             <div class="grid gap-4 sm:grid-cols-2">
-              <div class="form-control">
+              <div class="form-control sm:col-span-2">
                 <label class="label"><span class="label-text font-semibold text-xs">Target Audience</span></label>
                 <select
                   class="select select-bordered select-sm w-full"
@@ -116,18 +175,41 @@ export const MailerDashboardView = ({
                 </select>
               </div>
 
-              {/* Tag selector */}
-              <div class="form-control" x-show="targetMode === 'tags'" x-cloak>
-                <label class="label"><span class="label-text font-semibold text-xs">Select Tags</span></label>
-                <select class="select select-bordered select-sm w-full" name="tagIds" multiple size={3}>
-                  {tags.map((t) => (
-                    <option value={t.id} key={t.id}>{t.title}</option>
-                  ))}
-                </select>
+              {/* Tag selector with Search and Filter */}
+              <div class="form-control sm:col-span-2 space-y-2" x-show="targetMode === 'tags'" x-cloak>
+                <div class="flex items-center justify-between">
+                  <label class="label-text font-semibold text-xs">
+                    Select Tags (<span x-text="selectedTagIds.length"></span> selected)
+                  </label>
+                  <div class="flex gap-1">
+                    <button type="button" class="btn btn-xs btn-ghost" x-on:click="selectAllFilteredTags()">Select All</button>
+                    <button type="button" class="btn btn-xs btn-ghost" x-on:click="clearSelectedTags()">Clear</button>
+                  </div>
+                </div>
+                <input
+                  type="text"
+                  placeholder="🔍 Search tags..."
+                  x-model="tagSearch"
+                  class="input input-bordered input-xs w-full"
+                />
+                <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-40 overflow-y-auto p-2 border border-base-300 rounded-lg bg-base-200/40">
+                  <template x-for="tag in filteredTags" x-bind:key="tag.id">
+                    <label class="cursor-pointer label justify-start gap-2 py-1 px-2 rounded hover:bg-base-200 bg-base-100 border border-base-300/50">
+                      <input
+                        type="checkbox"
+                        name="tagIds"
+                        x-bind:value="tag.id"
+                        x-model="selectedTagIds"
+                        class="checkbox checkbox-primary checkbox-xs"
+                      />
+                      <span class="label-text text-xs truncate" x-text="tag.title"></span>
+                    </label>
+                  </template>
+                </div>
               </div>
 
               {/* Domain Input */}
-              <div class="form-control" x-show="targetMode === 'domain'" x-cloak>
+              <div class="form-control sm:col-span-2" x-show="targetMode === 'domain'" x-cloak>
                 <label class="label"><span class="label-text font-semibold text-xs">Email Domain</span></label>
                 <input
                   type="text"
@@ -137,16 +219,40 @@ export const MailerDashboardView = ({
                 />
               </div>
 
-              {/* Selected Users */}
-              <div class="form-control sm:col-span-2" x-show="targetMode === 'selected'" x-cloak>
-                <label class="label"><span class="label-text font-semibold text-xs">Select Users</span></label>
-                <select class="select select-bordered select-sm w-full h-32" name="userIds" multiple>
-                  {users.map((u) => (
-                    <option value={u.id} key={u.id}>
-                      {u.email} {[u.first_name, u.last_name].filter(Boolean).join(" ") ? `(${[u.first_name, u.last_name].filter(Boolean).join(" ")})` : ""}
-                    </option>
-                  ))}
-                </select>
+              {/* Selected Users with Search and Filter */}
+              <div class="form-control sm:col-span-2 space-y-2" x-show="targetMode === 'selected'" x-cloak>
+                <div class="flex items-center justify-between">
+                  <label class="label-text font-semibold text-xs">
+                    Select Users (<span x-text="selectedUserIds.length"></span> selected)
+                  </label>
+                  <div class="flex gap-1">
+                    <button type="button" class="btn btn-xs btn-ghost" x-on:click="selectAllFilteredUsers()">Select Filtered</button>
+                    <button type="button" class="btn btn-xs btn-ghost" x-on:click="clearSelectedUsers()">Clear</button>
+                  </div>
+                </div>
+                <input
+                  type="text"
+                  placeholder="🔍 Search users by name or email..."
+                  x-model="userSearch"
+                  class="input input-bordered input-xs w-full"
+                />
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto p-2 border border-base-300 rounded-lg bg-base-200/40">
+                  <template x-for="u in filteredUsers" x-bind:key="u.id">
+                    <label class="cursor-pointer label justify-start gap-2 py-1 px-2 rounded hover:bg-base-200 bg-base-100 border border-base-300/50">
+                      <input
+                        type="checkbox"
+                        name="userIds"
+                        x-bind:value="u.id"
+                        x-model="selectedUserIds"
+                        class="checkbox checkbox-primary checkbox-xs"
+                      />
+                      <span class="label-text text-xs truncate">
+                        <strong x-text="u.email"></strong>
+                        <span class="text-base-content/60 text-2xs ml-1" x-text="'(' + u.name + ')'"></span>
+                      </span>
+                    </label>
+                  </template>
+                </div>
               </div>
             </div>
 
@@ -162,12 +268,34 @@ export const MailerDashboardView = ({
               />
             </div>
 
-            {/* Email Body Editor */}
+            {/* File Attachment Upload */}
             <div class="form-control">
-              <div class="flex items-center justify-between pb-1">
-                <label class="label-text font-semibold text-xs">
-                  <span x-text="format === 'html' ? 'Email HTML Body' : 'Email Plain Text Body'"></span>
-                </label>
+              <label class="label">
+                <span class="label-text font-semibold text-xs">Attach Files (Optional)</span>
+                <span class="label-text-alt text-base-content/60 text-2xs">PDF, Images, Documents (max 25MB)</span>
+              </label>
+              <input
+                type="file"
+                name="attachment"
+                class="file-input file-input-bordered file-input-sm w-full"
+              />
+            </div>
+
+            {/* Email Body Editor & Live Tag Replacement */}
+            <div class="form-control">
+              <div class="flex flex-wrap items-center justify-between pb-1 gap-2">
+                <div class="flex items-center gap-2">
+                  <label class="label-text font-semibold text-xs">
+                    <span x-text="format === 'html' ? 'Email HTML Body' : 'Email Plain Text Body'"></span>
+                  </label>
+                  {/* Tag Insertion Helpers */}
+                  <div class="flex flex-wrap gap-1">
+                    <button type="button" class="badge badge-sm badge-outline hover:badge-primary text-2xs font-mono cursor-pointer" x-on:click="insertTag('{{name}}')">+ name</button>
+                    <button type="button" class="badge badge-sm badge-outline hover:badge-primary text-2xs font-mono cursor-pointer" x-on:click="insertTag('{{email}}')">+ email</button>
+                    <button type="button" class="badge badge-sm badge-outline hover:badge-primary text-2xs font-mono cursor-pointer" x-on:click="insertTag('{{username}}')">+ username</button>
+                    <button type="button" class="badge badge-sm badge-outline hover:badge-primary text-2xs font-mono cursor-pointer" x-on:click="insertTag('{{date}}')">+ date</button>
+                  </div>
+                </div>
                 <button
                   type="button"
                   x-show="format === 'html'"
@@ -184,19 +312,22 @@ export const MailerDashboardView = ({
                 x-model="body"
                 rows={7}
                 placeholder={
-                  "Enter email content here...\nFor HTML mode: <h2>Hello</h2><p>Your message here</p>"
+                  "Enter email content here...\nFor HTML mode: <h2>Hello {{name}}</h2><p>Your message here</p>"
                 }
                 class="textarea textarea-bordered font-mono text-sm w-full"
               ></textarea>
 
-              {/* Live Preview Pane */}
+              {/* Live Preview Pane with Tag Replacement */}
               <div
                 x-show="preview && format === 'html'"
                 x-cloak
                 class="mt-3 rounded-xl border border-base-300 bg-white p-4 text-black shadow-inner"
               >
-                <div class="text-xs font-bold uppercase text-gray-400 border-b pb-1 mb-2">HTML Output Preview</div>
-                <div x-html="body" class="prose max-w-none"></div>
+                <div class="flex items-center justify-between border-b pb-1 mb-2">
+                  <span class="text-xs font-bold uppercase text-gray-400">Live HTML Output (Variables Interpolated)</span>
+                  <span class="text-2xs text-gray-400">Preview Mode</span>
+                </div>
+                <div x-html="interpolatedPreview" class="prose max-w-none"></div>
               </div>
             </div>
 

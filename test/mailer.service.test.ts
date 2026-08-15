@@ -130,12 +130,36 @@ describe("MailService Singleton and Providers", () => {
     expect(service1).toBe(service2);
     expect(service1.getProvider().name).toBe("fallback-console-file");
 
-    const msg = await service1.enqueueEmail({ to: "test@example.com", subject: "Test Subject", html: "<p>Hello</p>" });
+    const msg = await service1.enqueueEmail({
+      to: "test@example.com",
+      subject: "Test Subject",
+      html: "<p>Hello</p>",
+      attachments: [{ filename: "doc.txt", content: "Hello World", contentType: "text/plain" }],
+    });
     expect(msg.to).toBe("test@example.com");
+    expect(msg.attachmentCount).toBe(1);
 
     const buffer = service1.getBuffer();
     expect(buffer.length).toBe(1);
     expect(buffer[0].subject).toBe("Test Subject");
+    expect(buffer[0].attachmentCount).toBe(1);
     expect(service1.getStats().bufferSize).toBe(1);
+  });
+
+  test("attachments support buffer or string content", async () => {
+    const fallback = new FallbackProvider();
+    const service = MailService.getInstance(50, fallback);
+
+    const msg = await service.enqueueEmail({
+      to: "client@example.com",
+      subject: "With PDF",
+      text: "See attached",
+      attachments: [
+        { filename: "spec.pdf", content: Buffer.from("%PDF-1.4 test"), contentType: "application/pdf" },
+      ],
+    });
+
+    expect(msg.attachmentCount).toBe(1);
+    expect(msg.status).toBe("queued");
   });
 });

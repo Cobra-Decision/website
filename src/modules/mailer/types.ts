@@ -1,3 +1,9 @@
+export interface EmailAttachment {
+  filename: string;
+  content: Buffer | Uint8Array | string;
+  contentType?: string;
+}
+
 export interface EmailMessage {
   id: string;
   to: string;
@@ -8,6 +14,7 @@ export interface EmailMessage {
   sentAt?: Date;
   provider: string;
   format?: "html" | "text";
+  attachmentCount?: number;
 }
 
 export interface EmailPayload {
@@ -15,6 +22,7 @@ export interface EmailPayload {
   subject: string;
   html?: string;
   text?: string;
+  attachments?: EmailAttachment[];
 }
 
 export interface EmailProvider {

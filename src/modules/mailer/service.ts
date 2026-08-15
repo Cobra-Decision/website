@@ -10,6 +10,7 @@ import {
 } from "./templates";
 import type { BatchFilterOptions, EmailMessage, EmailPayload, EmailProvider, MailerStats } from "./types";
 import { generateId } from "../../lib/id";
+import { logger } from "../../lib/logger";
 
 export class MailService {
   private static instance: MailService | null = null;
@@ -68,18 +69,31 @@ export class MailService {
   public async enqueueEmail(payload: EmailPayload): Promise<EmailMessage> {
     const message: EmailMessage = {
       id: generateId(),
-      to: payload.to,
+      to: Array.isArray(payload.to) ? payload.to.join(", ") : payload.to,
       subject: payload.subject,
       status: "queued",
       createdAt: new Date(),
       provider: this.provider.name,
       format: payload.html ? "html" : "text",
+      attachmentCount: payload.attachments?.length ?? 0,
     };
 
+    // Zero-overhead memory retention: RingBuffer stores lightweight metadata only
     this.ringBuffer.push(message);
     this.queue.push(message);
 
-    // Detach execution to microtask
+    logger.email("EMAIL_QUEUED", {
+      actor: { email: Array.isArray(payload.to) ? payload.to.join(",") : payload.to },
+      data: {
+        messageId: message.id,
+        subject: message.subject,
+        provider: message.provider,
+        format: message.format,
+        attachments: payload.attachments?.map((a) => a.filename),
+      },
+    });
+
+    // Process immediately in microtask, garbage-collecting payload buffer after execution
     queueMicrotask(() => this.processQueue(payload, message));
     return message;
   }
@@ -93,10 +107,20 @@ export class MailService {
       msg.status = "sent";
       msg.sentAt = new Date();
       this.totalSent++;
+      logger.email("EMAIL_SENT_SUCCESS", {
+        actor: { email: Array.isArray(payload.to) ? payload.to.join(",") : payload.to },
+        data: { messageId: msg.id, subject: msg.subject, provider: this.provider.name },
+      });
     } catch (err: any) {
       msg.status = "failed";
       msg.error = err?.message || String(err);
       this.totalFailed++;
+      logger.email("EMAIL_SENT_FAILED", {
+        level: "ERROR",
+        actor: { email: Array.isArray(payload.to) ? payload.to.join(",") : payload.to },
+        data: { messageId: msg.id, subject: msg.subject, provider: this.provider.name },
+        error: err,
+      });
     } finally {
       const idx = this.queue.indexOf(msg);
       if (idx !== -1) this.queue.splice(idx, 1);
@@ -201,7 +225,8 @@ export class MailService {
     filter: BatchFilterOptions,
     subject: string,
     body: string,
-    format: "html" | "text" = "html"
+    format: "html" | "text" = "html",
+    attachments?: import("./types").EmailAttachment[]
   ): Promise<number> {
     let emails: string[] = [];
 
@@ -238,6 +263,7 @@ export class MailService {
         to,
         subject,
         ...(format === "html" ? { html: body, text: body.replace(/<[^>]*>?/gm, "") } : { text: body }),
+        ...(attachments && attachments.length ? { attachments } : {}),
       };
       await this.enqueueEmail(payload);
     }

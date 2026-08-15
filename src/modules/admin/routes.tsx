@@ -18,8 +18,15 @@ import { toUtcIso } from "../events/datetime";
 import { mailService } from "../mailer/service";
 import { MailerDashboardView } from "./mailer-views";
 import { getAllTags } from "../events/queries";
+import { logger } from "../../lib/logger";
 
-const guard = (db: Database, jwtSecret: string) => async (c: Context, next: Next) => {
+type AdminEnv = {
+  Variables: {
+    auth: { sub: string; role_id: string };
+  };
+};
+
+const guard = (db: Database, jwtSecret: string) => async (c: Context<AdminEnv>, next: Next) => {
   const token = getCookie(c, "session");
   if (!token) return c.redirect("/auth");
   try {
@@ -38,9 +45,9 @@ const guard = (db: Database, jwtSecret: string) => async (c: Context, next: Next
 };
 
 export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECRET ?? "development-secret") {
-  const app = new Hono();
-  const page = (c: Context, title: string, body: any) => {
-    const auth = c.get("auth") as { role_id: string; sub: string };
+  const app = new Hono<AdminEnv>();
+  const page = (c: Context<AdminEnv>, title: string, body: any) => {
+    const auth = c.get("auth");
     const locale = getLocale(c);
     const allowed = db
       .query<{ title: string }, [string]>(
@@ -475,6 +482,12 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
           if (initialUserId && validRelation("users", initialUserId)) {
             db.run("INSERT OR IGNORE INTO meet_attendees (meet_id,user_id) VALUES (?,?)", [id, initialUserId]);
           }
+
+          const adminAuth = c.get("auth") as { sub: string; role_id: string } | undefined;
+          logger.meet("MEET_CREATED", {
+            actor: { userId: adminAuth?.sub, role: adminAuth?.role_id, ip: c.req.header("x-forwarded-for") ?? "local" },
+            data: { meetId: id, title: submitted.title, scheduledDate: submitted.scheduled_date, scheduledTime: submitted.scheduled_time, presenterId: submitted.presenter_id },
+          });
         } else {
           const values = fields.map((field) => {
             const val = submitted[field];
@@ -496,6 +509,13 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
       for (const id of ids) {
         if (!(resource === "roles" && db.query("SELECT 1 FROM roles WHERE id=? AND title='Super Admin'").get(id))) {
           db.run(`UPDATE ${table} SET deleted_at=CURRENT_TIMESTAMP, updated_at=CURRENT_TIMESTAMP WHERE id=?`, [id]);
+          if (resource === "meets") {
+            const adminAuth = c.get("auth") as { sub: string; role_id: string } | undefined;
+            logger.meet("MEET_DELETED", {
+              actor: { userId: adminAuth?.sub, role: adminAuth?.role_id, ip: c.req.header("x-forwarded-for") ?? "local" },
+              data: { meetId: id, bulk: true },
+            });
+          }
         }
       }
       return c.html(tableResponse(resource, "admin.deleted", "Deleted"));
@@ -554,6 +574,11 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
             return String(val ?? "").trim() || null;
           });
           db.run(`UPDATE meets SET ${meetFields.map((field) => `${field}=?`).join(",")}, updated_at=CURRENT_TIMESTAMP WHERE id=?`, [...values, scheduledAtUtc, id]);
+          const adminAuth = c.get("auth") as { sub: string; role_id: string } | undefined;
+          logger.meet("MEET_UPDATED", {
+            actor: { userId: adminAuth?.sub, role: adminAuth?.role_id, ip: c.req.header("x-forwarded-for") ?? "local" },
+            data: { meetId: id, title: submitted.title, status: submitted.status, accessStatus: submitted.access_status },
+          });
         } else {
           const values = fields.map((field) => {
             const val = submitted[field];
@@ -572,6 +597,13 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
       const id = c.req.param("id");
       if (resource === "roles" && db.query("SELECT 1 FROM roles WHERE id=? AND title='Super Admin'").get(id)) return c.html(toast("admin.super_admin_protected", "Protected"), 403);
       db.run(`UPDATE ${table} SET deleted_at=CURRENT_TIMESTAMP, updated_at=CURRENT_TIMESTAMP WHERE id=?`, [id]);
+      if (resource === "meets") {
+        const adminAuth = c.get("auth") as { sub: string; role_id: string } | undefined;
+        logger.meet("MEET_DELETED", {
+          actor: { userId: adminAuth?.sub, role: adminAuth?.role_id, ip: c.req.header("x-forwarded-for") ?? "local" },
+          data: { meetId: id },
+        });
+      }
       return c.html(tableResponse(resource, "admin.deleted", "Deleted"));
     });
   }
@@ -766,8 +798,8 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
     const buffer = mailService.getBuffer();
     const tags = getAllTags(db);
     const users = db
-      .query<{ id: string; email: string; first_name: string | null; last_name: string | null }, []>(
-        "SELECT id, email, first_name, last_name FROM users WHERE deleted_at IS NULL ORDER BY email ASC"
+      .query<{ id: string; email: string; first_name: string | null; last_name: string | null; username: string | null }, []>(
+        "SELECT id, email, first_name, last_name, username FROM users WHERE deleted_at IS NULL ORDER BY email ASC"
       )
       .all();
 
@@ -795,6 +827,16 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
 
     const domain = String(body.domain ?? "").trim();
 
+    const attachments: import("../mailer/types").EmailAttachment[] = [];
+    if (body.attachment instanceof File && body.attachment.size > 0) {
+      const buffer = Buffer.from(await body.attachment.arrayBuffer());
+      attachments.push({
+        filename: body.attachment.name,
+        content: buffer,
+        contentType: body.attachment.type || "application/octet-stream",
+      });
+    }
+
     try {
       const count = await mailService.sendBatchEmails(
         db,
@@ -806,7 +848,8 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
         },
         subject,
         emailBody,
-        format
+        format,
+        attachments
       );
 
       return c.html(

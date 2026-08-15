@@ -18,9 +18,10 @@ export class FallbackProvider implements EmailProvider {
   async send(message: EmailPayload): Promise<boolean> {
     const timestamp = new Date().toISOString();
     const content = message.text ?? message.html ?? "";
-    const logEntry = `[${timestamp}] [MAIL-FALLBACK] To: ${message.to} | Subject: ${message.subject}\n${content}\n---\n`;
+    const attachInfo = message.attachments?.length ? ` | Attachments: ${message.attachments.map((a) => a.filename).join(", ")}` : "";
+    const logEntry = `[${timestamp}] [MAIL-FALLBACK] To: ${message.to} | Subject: ${message.subject}${attachInfo}\n${content}\n---\n`;
 
-    console.log(`📨 [Email Sent] To: ${message.to} | Subject: ${message.subject}`);
+    console.log(`📨 [Email Sent] To: ${message.to} | Subject: ${message.subject}${attachInfo}`);
 
     try {
       mkdirSync(dirname(this.logPath), { recursive: true });
@@ -52,10 +53,18 @@ export class SmtpProvider implements EmailProvider {
     return Boolean(this.user && this.pass && this.host);
   }
 
+  private extractEmail(address: string): string {
+    const match = address.match(/<([^>]+)>/);
+    return (match ? match[1] : address).trim();
+  }
+
   async send(message: EmailPayload): Promise<boolean> {
     if (!this.isAvailable()) {
       throw new Error("SMTP credentials not configured");
     }
+
+    const fromAddress = this.extractEmail(this.from || this.user);
+    const toAddress = this.extractEmail(Array.isArray(message.to) ? message.to[0] : message.to);
 
     return new Promise<boolean>((resolve, reject) => {
       let socket: any;
@@ -101,32 +110,78 @@ export class SmtpProvider implements EmailProvider {
             sendCommand(Buffer.from(this.pass).toString("base64"));
           } else if (step === 4 && code === 235) {
             step = 5;
-            sendCommand(`MAIL FROM:<${this.from || this.user}>`);
+            sendCommand(`MAIL FROM:<${fromAddress}>`);
           } else if (step === 5 && code === 250) {
             step = 6;
-            sendCommand(`RCPT TO:<${message.to}>`);
+            sendCommand(`RCPT TO:<${toAddress}>`);
           } else if (step === 6 && code === 250) {
             step = 7;
             sendCommand("DATA");
           } else if (step === 7 && code === 354) {
             step = 8;
             const isHtml = Boolean(message.html);
-            const contentType = isHtml ? "text/html" : "text/plain";
             const body = message.html ?? message.text ?? "";
+            const hasAttachments = Boolean(message.attachments && message.attachments.length > 0);
 
-            const headers = [
-              `From: ${this.from || this.user}`,
-              `To: ${message.to}`,
-              `Subject: =?UTF-8?B?${Buffer.from(message.subject).toString("base64")}?=`,
-              "MIME-Version: 1.0",
-              `Content-Type: ${contentType}; charset=UTF-8`,
-              "Content-Transfer-Encoding: 8bit",
-              `Date: ${new Date().toUTCString()}`,
-              "",
-              body,
-              ".",
-            ].join("\r\n");
-            sendCommand(headers);
+            let mimeMessage = "";
+            if (hasAttachments) {
+              const boundary = `====_NextPart_${Date.now()}_====`;
+              const textContentType = isHtml ? "text/html" : "text/plain";
+
+              const headerLines = [
+                `From: ${this.from || this.user}`,
+                `To: ${message.to}`,
+                `Subject: =?UTF-8?B?${Buffer.from(message.subject).toString("base64")}?=`,
+                "MIME-Version: 1.0",
+                `Content-Type: multipart/mixed; boundary="${boundary}"`,
+                `Date: ${new Date().toUTCString()}`,
+                "",
+                `--${boundary}`,
+                `Content-Type: ${textContentType}; charset=UTF-8`,
+                "Content-Transfer-Encoding: 8bit",
+                "",
+                body,
+                "",
+              ];
+
+              for (const attach of message.attachments!) {
+                const attachType = attach.contentType || "application/octet-stream";
+                const base64Content = Buffer.isBuffer(attach.content)
+                  ? attach.content.toString("base64")
+                  : typeof attach.content === "string"
+                  ? Buffer.from(attach.content).toString("base64")
+                  : Buffer.from(attach.content).toString("base64");
+
+                headerLines.push(
+                  `--${boundary}`,
+                  `Content-Type: ${attachType}; name="${attach.filename}"`,
+                  `Content-Disposition: attachment; filename="${attach.filename}"`,
+                  "Content-Transfer-Encoding: base64",
+                  "",
+                  base64Content.match(/.{1,76}/g)?.join("\r\n") ?? base64Content,
+                  ""
+                );
+              }
+
+              headerLines.push(`--${boundary}--`, "", ".");
+              mimeMessage = headerLines.join("\r\n");
+            } else {
+              const contentType = isHtml ? "text/html" : "text/plain";
+              mimeMessage = [
+                `From: ${this.from || this.user}`,
+                `To: ${message.to}`,
+                `Subject: =?UTF-8?B?${Buffer.from(message.subject).toString("base64")}?=`,
+                "MIME-Version: 1.0",
+                `Content-Type: ${contentType}; charset=UTF-8`,
+                "Content-Transfer-Encoding: 8bit",
+                `Date: ${new Date().toUTCString()}`,
+                "",
+                body,
+                ".",
+              ].join("\r\n");
+            }
+
+            sendCommand(mimeMessage);
           } else if (step === 8 && code === 250) {
             step = 9;
             sendCommand("QUIT");

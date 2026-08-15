@@ -82,18 +82,22 @@ describe("Mailer Integration & Batching", () => {
     );
     expect(batchCount).toBeGreaterThan(0);
 
-    // Test Batch Email to specific domain
+    // Test Batch Email to specific domain with attachments
     const domainCount = await service.sendBatchEmails(
       database,
       { mode: "domain", domain: "example.com" },
       "Example Domain Notice",
       "Notice for example.com users",
-      "text"
+      "text",
+      [{ filename: "notice.pdf", content: "PDF_DUMMY_DATA", contentType: "application/pdf" }]
     );
     expect(domainCount).toBeGreaterThan(0);
 
     const stats = service.getStats();
     expect(stats.bufferSize).toBeGreaterThan(0);
     expect(stats.activeProvider).toBe("fallback-console-file");
+
+    const recent = service.getBuffer();
+    expect(recent[recent.length - 1].attachmentCount).toBe(1);
   });
 });
