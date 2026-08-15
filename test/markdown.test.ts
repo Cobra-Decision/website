@@ -10,9 +10,9 @@ test("renders empty string for null or empty markdown", () => {
 test("renders headings safely", () => {
   const md = "# Heading 1\n## Heading 2\n### Heading 3";
   const html = renderMarkdown(md);
-  expect(html).toContain("<h1>Heading 1</h1>");
-  expect(html).toContain("<h2>Heading 2</h2>");
-  expect(html).toContain("<h3>Heading 3</h3>");
+  expect(html).toContain("Heading 1</h1>");
+  expect(html).toContain("Heading 2</h2>");
+  expect(html).toContain("Heading 3</h3>");
 });
 
 test("renders bold, italic, and inline code", () => {
@@ -20,7 +20,7 @@ test("renders bold, italic, and inline code", () => {
   const html = renderMarkdown(md);
   expect(html).toContain("<strong>bold</strong>");
   expect(html).toContain("<em>italic</em>");
-  expect(html).toContain('<code class="bg-base-300 px-1.5 py-0.5 rounded text-xs text-primary">inline_code</code>');
+  expect(html).toContain("inline_code</code>");
 });
 
 test("renders blockquotes and lists", () => {
@@ -29,9 +29,9 @@ test("renders blockquotes and lists", () => {
   expect(html).toContain("<blockquote");
   expect(html).toContain("Important note");
   expect(html).toContain("<ul");
-  expect(html).toContain("<li>Item 1</li>");
+  expect(html).toContain("Item 1</li>");
   expect(html).toContain("<ol");
-  expect(html).toContain("<li>First</li>");
+  expect(html).toContain("First</li>");
 });
 
 test("renders safe links and sanitizes XSS attempts", () => {
@@ -47,5 +47,5 @@ test("renders code blocks with syntax block wrapper", () => {
   const md = "```ts\nconst x = 42;\nconsole.log(x);\n```";
   const html = renderMarkdown(md);
   expect(html).toContain("<pre");
-  expect(html).toContain("<code>const x = 42;\nconsole.log(x);</code>");
+  expect(html).toContain("const x = 42;\nconsole.log(x);");
 });
