@@ -28,10 +28,15 @@ export async function initializeDatabase(database: Database, admin: AdminSeed = 
     "/dashboard/account",
     "/dashboard/admin",
     "/dashboard/admin/users",
+    "/dashboard/admin/users/bulk-confirm",
     "/dashboard/admin/meets",
+    "/dashboard/admin/meets/bulk-confirm",
     "/dashboard/admin/tags",
+    "/dashboard/admin/tags/bulk-confirm",
     "/dashboard/admin/roles",
+    "/dashboard/admin/roles/bulk-confirm",
     "/dashboard/admin/endpoints",
+    "/dashboard/admin/endpoints/bulk-confirm",
     "/dashboard/admin/files",
     "/dashboard/admin/files/upload",
     "/dashboard/admin/files/upload-modal",
@@ -39,6 +44,7 @@ export async function initializeDatabase(database: Database, admin: AdminSeed = 
     "/dashboard/admin/files/rename",
     "/dashboard/admin/files/rename-modal",
     "/dashboard/admin/files/duplicate",
+    "/dashboard/admin/files/bulk-confirm",
     "/dashboard/admin/report",
   ];
   for (const endpoint of endpoints) {
@@ -58,6 +64,20 @@ export async function initializeDatabase(database: Database, admin: AdminSeed = 
         "INSERT OR IGNORE INTO role_endpoints (id, role_id, endpoint_id, description) VALUES (?, ?, ?, ?)",
         [generateId(), r.id, e.id, "Dashboard access"]
       );
+    }
+  }
+
+  const memberRole = database.query<{ id: string }, [string]>("SELECT id FROM roles WHERE title = ?").get("member");
+  if (memberRole) {
+    const memberEndpoints = ["/dashboard", "/dashboard/user", "/dashboard/user/meets", "/dashboard/user/my-meets", "/dashboard/account"];
+    for (const path of memberEndpoints) {
+      const ep = database.query<{ id: string }, [string]>("SELECT id FROM endpoints WHERE title = ?").get(path);
+      if (ep) {
+        database.run(
+          "INSERT OR IGNORE INTO role_endpoints (id, role_id, endpoint_id, description) VALUES (?, ?, ?, ?)",
+          [generateId(), memberRole.id, ep.id, "Member dashboard access"]
+        );
+      }
     }
   }
 

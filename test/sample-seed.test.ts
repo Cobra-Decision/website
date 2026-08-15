@@ -14,7 +14,20 @@ test("sample seed creates related data once across all tables", async () => {
   initializeEventsDatabase(database);
   initializeLandingDatabase(database);
   await seedSampleData(database);
-  const tables = ["roles", "users", "endpoints", "role_endpoints", "error_messages", "tags", "meets", "meet_attendees", "meet_tags", "contact_requests"];
+  const tables = [
+    "roles",
+    "users",
+    "endpoints",
+    "role_endpoints",
+    "error_messages",
+    "tags",
+    "meets",
+    "meet_attendees",
+    "meet_tags",
+    "platforms",
+    "user_tags",
+    "contact_requests",
+  ];
   const counts = Object.fromEntries(tables.map((table) => [table, database.query<{ total: number }, []>(`SELECT COUNT(*) total FROM ${table}`).get()!.total]));
   await seedSampleData(database);
 
