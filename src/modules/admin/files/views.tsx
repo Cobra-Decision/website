@@ -62,7 +62,7 @@ export function FileGrid({
           </button>
           <button
             class="btn btn-outline btn-error btn-sm"
-            hx-get="/dashboard/admin/files/bulk-confirm"
+            hx-post="/dashboard/admin/files/bulk-confirm"
             hx-include="#files-bulk-form"
             hx-target="#file-modal"
           >

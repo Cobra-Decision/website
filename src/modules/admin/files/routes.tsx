@@ -127,9 +127,17 @@ export function createFileAdminRoutes(
     return c.html(<FileConfirmDeleteModal filename={filename} locale={locale} />);
   });
 
-  app.get("/bulk-confirm", async (c) => {
+  app.on(["GET", "POST"], "/bulk-confirm", async (c) => {
     const locale = getLocale(c);
-    const rawFilenames = c.req.queries("filenames") ?? (c.req.query("filenames") ? [c.req.query("filenames")!] : []);
+    let rawFilenames: string[] = [];
+    if (c.req.method === "POST") {
+      const body = await c.req.parseBody();
+      const raw = body["filenames"] || body["filenames[]"];
+      rawFilenames = Array.isArray(raw) ? raw.map(String) : raw ? [String(raw)] : [];
+    } else {
+      const queried = c.req.queries("filenames") ?? (c.req.query("filenames") ? [c.req.query("filenames")!] : []);
+      rawFilenames = queried;
+    }
     const filenames = rawFilenames.map((f) => sanitizeFilename(f)).filter((f): f is string => Boolean(f));
 
     if (!filenames.length) {
