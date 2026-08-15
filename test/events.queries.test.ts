@@ -2,7 +2,7 @@ import { afterEach, beforeEach, expect, test } from "bun:test";
 import { Database } from "bun:sqlite";
 import { initializeDatabase } from "../src/modules/auth/database";
 import { initializeEventsDatabase } from "../src/modules/events/database";
-import { createMeet, filterMeets, getUpcomingMeets, recordMeetVisit, toggleAttendance } from "../src/modules/events/queries";
+import { createMeet, filterMeets, getUpcomingMeets, recordMeetVisit, toggleAttendance, getUserPreferredTags, setUserPreferredTags } from "../src/modules/events/queries";
 import { formatTehran, toUtcIso } from "../src/modules/events/datetime";
 import { generateId } from "../src/lib/id";
 
@@ -92,4 +92,21 @@ test("recordMeetVisit logs visit with or without platform slug", () => {
   expect(visits[0]).toEqual({ meet_id: meet.id, platform_id: platformId });
   expect(visits[1]).toEqual({ meet_id: meet.id, platform_id: null });
   expect(visits[2]).toEqual({ meet_id: meet.id, platform_id: null });
+});
+
+test("getUserPreferredTags and setUserPreferredTags manages user_tags table", () => {
+  const tag1 = generateId();
+  const tag2 = generateId();
+  database.run("INSERT INTO tags (id, title, description) VALUES (?, 'T1', 'D1'), (?, 'T2', 'D2')", [tag1, tag2]);
+
+  setUserPreferredTags(database, userId, [tag1, tag2]);
+  const preferred = getUserPreferredTags(database, userId);
+  expect(preferred.map((t) => t.id)).toEqual([tag1, tag2]);
+
+  setUserPreferredTags(database, userId, [tag2]);
+  const updated = getUserPreferredTags(database, userId);
+  expect(updated.map((t) => t.id)).toEqual([tag2]);
+
+  setUserPreferredTags(database, userId, []);
+  expect(getUserPreferredTags(database, userId)).toHaveLength(0);
 });

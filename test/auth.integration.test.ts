@@ -13,6 +13,7 @@ let app: ReturnType<typeof createApp>;
 beforeEach(async () => {
   database = new Database(":memory:");
   await initializeDatabase(database);
+  initializeEventsDatabase(database);
   const passCaptcha: MiddlewareHandler = async (_, next) => next();
   app = createApp({ database, captcha: { middleware: passCaptcha, challengeHandler: (c) => c.json({ challenge: "test" }) } });
 });
@@ -33,11 +34,17 @@ test("auth pages load the shared UI stack and ALTCHA", async () => {
   }
 });
 
-test("registration needs only email and password and redirects to login", async () => {
+test("registration requires email, password, and at least 3 preferred tags, then redirects to login", async () => {
+  const tag1 = generateId(), tag2 = generateId(), tag3 = generateId();
+  database.run("INSERT INTO tags (id, title) VALUES (?, 'T1'), (?, 'T2'), (?, 'T3')", [tag1, tag2, tag3]);
+
   const form = new FormData();
   form.set("email", "new@example.com");
   form.set("password", "secret123");
   form.set("password_confirmation", "secret123");
+  form.append("tagIds", tag1);
+  form.append("tagIds", tag2);
+  form.append("tagIds", tag3);
   const response = await app.request("/auth/register", { method: "POST", body: form });
   expect(response.status).toBe(200);
   expect(response.headers.get("HX-Redirect")).toBe("/auth");
@@ -47,12 +54,18 @@ test("registration needs only email and password and redirects to login", async 
 });
 
 test("registration refreshes the cached landing user count", async () => {
+  const tag1 = generateId(), tag2 = generateId(), tag3 = generateId();
+  database.run("INSERT INTO tags (id, title) VALUES (?, 'T1'), (?, 'T2'), (?, 'T3')", [tag1, tag2, tag3]);
+
   initCache(database);
   const before = getLandingCache().totalUsers;
   const form = new FormData();
   form.set("email", "cached@example.com");
   form.set("password", "secret123");
   form.set("password_confirmation", "secret123");
+  form.append("tagIds", tag1);
+  form.append("tagIds", tag2);
+  form.append("tagIds", tag3);
   const response = await app.request("/auth/register", { method: "POST", body: form });
   expect(response.status).toBe(200);
   expect(getLandingCache().totalUsers).toBe(before + 1);
@@ -320,10 +333,16 @@ test("meet tags and attendees can be managed independently", async () => {
 
 test("member dashboard does not show admin navigation", async () => {
   await initializeEventsDatabase(database);
+  const tag1 = generateId(), tag2 = generateId(), tag3 = generateId();
+  database.run("INSERT INTO tags (id, title) VALUES (?, 'T1'), (?, 'T2'), (?, 'T3')", [tag1, tag2, tag3]);
+
   const register = new FormData();
   register.set("email", "member@example.com");
   register.set("password", "secret123");
   register.set("password_confirmation", "secret123");
+  register.append("tagIds", tag1);
+  register.append("tagIds", tag2);
+  register.append("tagIds", tag3);
   await app.request("/auth/register", { method: "POST", body: register });
   const login = new FormData();
   login.set("identifier", "member@example.com");
@@ -334,7 +353,11 @@ test("member dashboard does not show admin navigation", async () => {
 });
 
 test("authenticated users update only their own profile", async () => {
+  const tag1 = generateId(), tag2 = generateId(), tag3 = generateId();
+  database.run("INSERT INTO tags (id, title) VALUES (?, 'T1'), (?, 'T2'), (?, 'T3')", [tag1, tag2, tag3]);
+
   const register = new FormData(); register.set("email", "member@example.com"); register.set("password", "secret123"); register.set("password_confirmation", "secret123");
+  register.append("tagIds", tag1); register.append("tagIds", tag2); register.append("tagIds", tag3);
   await app.request("/auth/register", { method: "POST", body: register });
   const login = new FormData(); login.set("identifier", "member@example.com"); login.set("password", "secret123");
   const cookie = (await app.request("/auth/login", { method: "POST", body: login })).headers.get("set-cookie")!.split(";")[0];
@@ -347,7 +370,11 @@ test("authenticated users update only their own profile", async () => {
 test("profile uniqueness errors return visible feedback", async () => {
   const member = database.query<{ id: string }, []>("SELECT id FROM roles WHERE title='member'").get()!;
   database.run("INSERT INTO users (id,email,username,password_hash,role_id) VALUES (?,?,?,?,?)", [generateId(), "taken@example.com", "taken", "hash", member.id]);
+  const tag1 = generateId(), tag2 = generateId(), tag3 = generateId();
+  database.run("INSERT INTO tags (id, title) VALUES (?, 'T1'), (?, 'T2'), (?, 'T3')", [tag1, tag2, tag3]);
+
   const register = new FormData(); register.set("email", "member@example.com"); register.set("password", "secret123"); register.set("password_confirmation", "secret123");
+  register.append("tagIds", tag1); register.append("tagIds", tag2); register.append("tagIds", tag3);
   await app.request("/auth/register", { method: "POST", body: register });
   const login = new FormData(); login.set("identifier", "member@example.com"); login.set("password", "secret123");
   const cookie = (await app.request("/auth/login", { method: "POST", body: login })).headers.get("set-cookie")!.split(";")[0];

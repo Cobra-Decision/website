@@ -20,10 +20,17 @@ beforeEach(async () => {
   const passCaptcha: MiddlewareHandler = async (_, next) => next();
   app = createApp({ database, captcha: { middleware: passCaptcha, challengeHandler: (c) => c.json({}) } });
 
+  // Create 3 sample tags
+  const tag1 = generateId(), tag2 = generateId(), tag3 = generateId();
+  database.run("INSERT INTO tags (id, title, description) VALUES (?, 'T1', 'D1'), (?, 'T2', 'D2'), (?, 'T3', 'D3')", [tag1, tag2, tag3]);
+
   const register = new FormData();
   register.set("email", "dashboard_user@example.com");
   register.set("password", "secret123");
   register.set("password_confirmation", "secret123");
+  register.append("tagIds", tag1);
+  register.append("tagIds", tag2);
+  register.append("tagIds", tag3);
   await app.request("/auth/register", { method: "POST", body: register });
 
   const login = new FormData();

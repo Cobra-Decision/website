@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { parseInitialPhone, COUNTRIES } from "../src/ui/phone-input";
+import { parseInitialPhone, COUNTRIES } from "../../src/ui/phone-input";
 
 test("COUNTRIES list provides ISO code, dialCode, and formatting metadata", () => {
   expect(COUNTRIES.length).toBeGreaterThanOrEqual(10);
