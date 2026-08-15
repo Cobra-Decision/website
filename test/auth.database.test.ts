@@ -55,3 +55,23 @@ test("existing configured seed user is promoted to Super Admin", async () => {
   await initializeDatabase(database, { email: "admin@example.com", password: "secret" });
   expect(database.query<{ title: string }, []>("SELECT r.title FROM users u JOIN roles r ON r.id=u.role_id WHERE u.email='admin@example.com'").get()).toEqual({ title: "Super Admin" });
 });
+
+test("user_tags table correctly associates users with tags and enforces foreign key cascade", async () => {
+  database = new Database(":memory:");
+  await initializeDatabase(database);
+  const memberRole = database.query<{ id: string }, []>("SELECT id FROM roles WHERE title='member'").get()!;
+  const userId = generateId();
+  database.run("INSERT INTO users (id, email, password_hash, role_id) VALUES (?, ?, ?, ?)", [userId, "user-pref@example.com", "hash", memberRole.id]);
+
+  database.run("INSERT INTO user_tags (user_id, tag_id) VALUES (?, ?)", [userId, "tag-1"]);
+  database.run("INSERT INTO user_tags (user_id, tag_id) VALUES (?, ?)", [userId, "tag-2"]);
+  database.run("INSERT INTO user_tags (user_id, tag_id) VALUES (?, ?)", [userId, "tag-3"]);
+
+  const userTags = database.query<{ tag_id: string }, [string]>("SELECT tag_id FROM user_tags WHERE user_id = ? ORDER BY tag_id").all(userId);
+  expect(userTags).toEqual([{ tag_id: "tag-1" }, { tag_id: "tag-2" }, { tag_id: "tag-3" }]);
+
+  // Test cascade deletion when user is deleted
+  database.run("DELETE FROM users WHERE id = ?", [userId]);
+  const remaining = database.query<{ total: number }, [string]>("SELECT COUNT(*) total FROM user_tags WHERE user_id = ?").get(userId)!;
+  expect(remaining.total).toBe(0);
+});

@@ -5,12 +5,48 @@ import { createPermissionChecker } from "../src/modules/auth/middleware";
 import { initializeDatabase } from "../src/modules/auth/database";
 import { validateReportSql } from "../src/modules/admin/report";
 
-test("registration requires only a valid email and password", () => {
-  expect(normalizeRegistration({ email: " user@example.com ", password: "secret123", password_confirmation: "secret123" })).toEqual({
-    email: "user@example.com", password: "secret123", username: null, phone: null, firstName: null, lastName: null,
+test("registration requires valid email, password, and at least 3 preferred tags", () => {
+  expect(
+    normalizeRegistration({
+      email: " user@example.com ",
+      password: "secret123",
+      password_confirmation: "secret123",
+      tagIds: ["tag-1", "tag-2", "tag-3"],
+    }),
+  ).toEqual({
+    email: "user@example.com",
+    password: "secret123",
+    username: null,
+    phone: null,
+    firstName: null,
+    lastName: null,
+    tagIds: ["tag-1", "tag-2", "tag-3"],
   });
-  expect(normalizeRegistration({ email: "invalid", password: "secret123", password_confirmation: "secret123" })).toBeNull();
-  expect(normalizeRegistration({ email: "user@example.com", password: "", password_confirmation: "" })).toBeNull();
+  // Less than 3 tags should fail
+  expect(
+    normalizeRegistration({
+      email: "user@example.com",
+      password: "secret123",
+      password_confirmation: "secret123",
+      tagIds: ["tag-1", "tag-2"],
+    }),
+  ).toBeNull();
+  expect(
+    normalizeRegistration({
+      email: "invalid",
+      password: "secret123",
+      password_confirmation: "secret123",
+      tagIds: ["tag-1", "tag-2", "tag-3"],
+    }),
+  ).toBeNull();
+  expect(
+    normalizeRegistration({
+      email: "user@example.com",
+      password: "",
+      password_confirmation: "",
+      tagIds: ["tag-1", "tag-2", "tag-3"],
+    }),
+  ).toBeNull();
 });
 
 test("permission checker ignores soft-deleted permissions and can clear its cache", async () => {
