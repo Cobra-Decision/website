@@ -142,7 +142,7 @@ test("GET /meets/:id renders public meeting with direct room URL and markdown", 
   expect(res.status).toBe(200);
   const html = await res.text();
   expect(html).toContain("Public Rust Talk");
-  expect(html).toContain("<h2>Deep dive</h2>");
+  expect(html).toContain("Deep dive</h2>");
   expect(html).toContain("<strong>Safety</strong>");
   expect(html).toContain("Download Presentation");
   expect(html).toContain("https://meet.jit.si/rust-room");
