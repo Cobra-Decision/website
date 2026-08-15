@@ -1,5 +1,8 @@
 import type { Locale } from "../../lib/i18n/translations";
 import { t } from "../../lib/i18n/context";
+import { LanguageSwitch } from "../../ui/language-switch";
+import { TagSelector } from "../../ui/tag-selector";
+import type { Tag } from "../events/types";
 
 const Captcha = () => (
   <div class="rounded-box border border-base-300 bg-base-200 p-3">
@@ -23,7 +26,7 @@ const Field = ({
   <label class="form-control w-full">
     <span class="label">
       <span class="label-text font-medium">{label}</span>
-      {!required && <span class="label-text-alt">{optionalLabel ?? "Optional"}</span>}
+      {!required && <span class="label-text-alt opacity-70">{optionalLabel ?? "Optional"}</span>}
     </span>
     <input class="input input-bordered w-full focus:input-primary" name={name} type={type} required={required} autocomplete={name} />
   </label>
@@ -41,30 +44,17 @@ const AuthCard = ({
   locale?: Locale;
 }) => (
   <main class="grid min-h-screen place-items-center px-4 py-10">
-    <div class="card w-full max-w-lg border border-base-300 bg-base-100 shadow-2xl">
+    <div class="card w-full max-w-xl border border-base-300 bg-base-100 shadow-2xl">
       <div class="card-body gap-6 p-6 sm:p-10">
         <div class="flex items-start justify-between gap-4">
           <div>
             <a class="text-sm font-semibold text-primary hover:underline" href="/">
               {t("brand.name", locale)}
             </a>
-            <h1 class="mt-2 text-3xl font-bold">{title}</h1>
-            <p class="mt-2 text-base-content/60">{subtitle}</p>
+            <h1 class="mt-2 text-2xl sm:text-3xl font-bold">{title}</h1>
+            <p class="mt-1 text-sm text-base-content/60">{subtitle}</p>
           </div>
-          <div class="flex items-center gap-1 bg-base-200 rounded-lg p-1 text-xs">
-            <a
-              href="/locale/en"
-              class={`px-2 py-1 rounded transition-colors ${locale === "en" ? "bg-primary text-primary-content font-bold shadow-xs" : "hover:bg-base-300"}`}
-            >
-              EN
-            </a>
-            <a
-              href="/locale/fa"
-              class={`px-2 py-1 rounded transition-colors ${locale === "fa" ? "bg-primary text-primary-content font-bold shadow-xs" : "hover:bg-base-300"}`}
-            >
-              فا
-            </a>
-          </div>
+          <LanguageSwitch currentLocale={locale} size="xs" />
         </div>
         {children}
       </div>
@@ -93,7 +83,7 @@ export const Login = ({ locale = "en" }: { locale?: Locale }) => (
   </AuthCard>
 );
 
-export const Register = ({ locale = "en" }: { locale?: Locale }) => (
+export const Register = ({ tags, locale = "en" }: { tags: Tag[]; locale?: Locale }) => (
   <AuthCard title={t("auth.create_account", locale)} subtitle={t("auth.register_subtitle", locale)} locale={locale}>
     <form class="space-y-4" hx-post="/auth/register" hx-target="#auth-result" hx-swap="innerHTML">
       <div class="grid gap-4 sm:grid-cols-2">
@@ -101,13 +91,29 @@ export const Register = ({ locale = "en" }: { locale?: Locale }) => (
         <Field label={t("auth.password", locale)} name="password" type="password" required />
         <Field label={t("auth.confirm_password", locale)} name="password_confirmation" type="password" required />
       </div>
+
       <div class="divider text-xs uppercase text-base-content/50">{t("auth.profile_details", locale)}</div>
+
       <div class="grid gap-4 sm:grid-cols-2">
         <Field label={t("auth.username", locale)} name="username" optionalLabel={t("auth.optional", locale)} />
         <Field label={t("auth.phone", locale)} name="phone" optionalLabel={t("auth.optional", locale)} />
         <Field label={t("auth.first_name", locale)} name="first_name" optionalLabel={t("auth.optional", locale)} />
         <Field label={t("auth.last_name", locale)} name="last_name" optionalLabel={t("auth.optional", locale)} />
       </div>
+
+      <div class="divider text-xs uppercase text-base-content/50">{t("auth.preferred_tags", locale)}</div>
+
+      {/* Preferred Tags Selector with min 3 required */}
+      <TagSelector
+        tags={tags}
+        selectedTagIds={[]}
+        minRequired={3}
+        name="tagIds"
+        locale={locale}
+        title={t("auth.preferred_tags", locale)}
+        subtitle={t("auth.preferred_tags_desc", locale)}
+      />
+
       <Captcha />
       <div id="auth-result"></div>
       <button class="btn btn-primary w-full" type="submit">

@@ -169,6 +169,9 @@ export const translations = {
     "auth.create_account_link": "Create an account",
     "auth.already_registered": "Already registered?",
     "auth.sign_in_link": "Sign in",
+    "auth.preferred_tags": "Preferred Topics & Tags",
+    "auth.preferred_tags_desc": "Select at least 3 topics you are interested in:",
+    "auth.tags_min_required_error": "Please select at least 3 preferred tags.",
   },
   fa: {
     // Navigation & Common
@@ -338,6 +341,9 @@ export const translations = {
     "auth.create_account_link": "ثبت‌نام کنید",
     "auth.already_registered": "قبلاً ثبت‌نام کرده‌اید؟",
     "auth.sign_in_link": "وارد شوید",
+    "auth.preferred_tags": "موضوعات و برچسب‌های مورد علاقه",
+    "auth.preferred_tags_desc": "حداقل ۳ موضوع مورد علاقه خود را انتخاب نمایید:",
+    "auth.tags_min_required_error": "انتخاب حداقل ۳ موضوع مورد علاقه الزامی است.",
   },
 } as const;
 

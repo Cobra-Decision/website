@@ -10,6 +10,7 @@ import { refreshLandingCache } from "../../lib/cache";
 import { generateId } from "../../lib/id";
 import { getLocale } from "../../lib/i18n/context";
 import { normalizeRegistration } from "./service";
+import { getAllTags, setUserPreferredTags } from "../events/queries";
 import { Dashboard, Login, ProfileForm, Register, type Profile } from "./views";
 
 type Captcha = { middleware: MiddlewareHandler; challengeHandler: Handler };
@@ -66,9 +67,10 @@ export function createAuthRoutes(database: Database, captcha: Captcha, jwtSecret
       const authRedirect = await redirectAuthenticated(c);
       if (authRedirect) return authRedirect;
       const locale = getLocale(c);
+      const tags = getAllTags(database);
       return c.html(
         <Document title="CobraDecision" locale={locale}>
-          <Register locale={locale} />
+          <Register tags={tags} locale={locale} />
         </Document>
       );
     })
@@ -92,13 +94,26 @@ export function createAuthRoutes(database: Database, captcha: Captcha, jwtSecret
       return c.body(null);
     })
     .post("/register", captcha.middleware, async (c) => {
-      const input = normalizeRegistration(await c.req.parseBody());
-      if (!input) return c.html(<FormMessage message="A valid email and matching passwords are required." />, 400);
+      const body = await c.req.parseBody();
+      const input = normalizeRegistration(body);
+      if (!input) {
+        let tagIds: string[] = [];
+        if (Array.isArray(body.tagIds)) tagIds = body.tagIds.map(String);
+        else if (typeof body.tagIds === "string" && body.tagIds.trim()) tagIds = [body.tagIds.trim()];
+        if (tagIds.length < 3) {
+          return c.html(<FormMessage message="Please select at least 3 preferred tags." />, 400);
+        }
+        return c.html(<FormMessage message="A valid email and matching passwords are required." />, 400);
+      }
       const role = database.query<{ id: string }, []>("SELECT id FROM roles WHERE title = 'member' AND deleted_at IS NULL").get();
       if (!role) return c.html(<FormMessage message="Registration is unavailable." />, 500);
       try {
-        database.run(`INSERT INTO users (id, username, email, phone, password_hash, first_name, last_name, role_id)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, [generateId(), input.username, input.email, input.phone, await Bun.password.hash(input.password), input.firstName, input.lastName, role.id]);
+        const userId = generateId();
+        database.transaction(() => {
+          database.run(`INSERT INTO users (id, username, email, phone, password_hash, first_name, last_name, role_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, [userId, input.username, input.email, input.phone, Bun.password.hashSync(input.password), input.firstName, input.lastName, role.id]);
+          setUserPreferredTags(database, userId, input.tagIds);
+        })();
         refreshLandingCache(database);
         c.header("HX-Redirect", "/auth");
         return c.body(null);

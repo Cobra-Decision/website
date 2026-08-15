@@ -7,6 +7,8 @@ import { FormMessage } from "../../../ui/form-message";
 import { refreshLandingCache } from "../../../lib/cache";
 import type { Claims } from "../../auth/middleware";
 import type { Profile } from "../../auth/views";
+import { getAllTags, getUserPreferredTags, setUserPreferredTags } from "../../events/queries";
+import { getLocale } from "../../../lib/i18n/context";
 import { AccountPage } from "./views";
 
 const authGuard = (jwtSecret: string) => async (c: Context, next: Next) => {
@@ -42,9 +44,20 @@ export function createAccountRoutes(database: Database, jwtSecret = process.env.
     if (!user) return c.redirect("/auth");
 
     const from = c.req.query("from") === "admin" ? "admin" : "user";
+    const locale = getLocale(c);
+    const allTags = getAllTags(database);
+    const userTags = getUserPreferredTags(database, user.id!);
+    const userTagIds = userTags.map((t) => t.id);
+
     return c.html(
-      <Document title="Account Settings | CobraDecision">
-        <AccountPage user={user} from={from} />
+      <Document title="Account Settings | CobraDecision" locale={locale}>
+        <AccountPage
+          user={user}
+          from={from}
+          allTags={allTags}
+          userTagIds={userTagIds}
+          locale={locale}
+        />
       </Document>
     );
   });
@@ -71,21 +84,34 @@ export function createAccountRoutes(database: Database, jwtSecret = process.env.
       return c.html(<FormMessage message="Passwords do not match." />, 400);
     }
 
+    let tagIds: string[] = [];
+    if (Array.isArray(body.tagIds)) {
+      tagIds = body.tagIds.map(String).filter(Boolean);
+    } else if (typeof body.tagIds === "string" && body.tagIds.trim()) {
+      tagIds = [body.tagIds.trim()];
+    }
+
     try {
-      database.run(
-        `UPDATE users
-         SET email = ?, username = ?, phone = ?, first_name = ?, last_name = ?${password ? ", password_hash = ?" : ""}, updated_at = CURRENT_TIMESTAMP
-         WHERE id = ? AND deleted_at IS NULL`,
-        [
-          email,
-          username,
-          phone,
-          firstName,
-          lastName,
-          ...(password ? [await Bun.password.hash(password)] : []),
-          auth.sub,
-        ]
-      );
+      database.transaction(() => {
+        database.run(
+          `UPDATE users
+           SET email = ?, username = ?, phone = ?, first_name = ?, last_name = ?${password ? ", password_hash = ?" : ""}, updated_at = CURRENT_TIMESTAMP
+           WHERE id = ? AND deleted_at IS NULL`,
+          [
+            email,
+            username,
+            phone,
+            firstName,
+            lastName,
+            ...(password ? [Bun.password.hashSync(password)] : []),
+            auth.sub,
+          ]
+        );
+
+        if (body.tagIds !== undefined) {
+          setUserPreferredTags(database, auth.sub, tagIds);
+        }
+      })();
 
       refreshLandingCache(database);
       return c.html(<FormMessage type="success" message="Profile successfully updated." />);
