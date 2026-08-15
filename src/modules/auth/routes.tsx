@@ -94,7 +94,7 @@ export function createAuthRoutes(database: Database, captcha: Captcha, jwtSecret
       return c.body(null);
     })
     .post("/register", captcha.middleware, async (c) => {
-      const body = await c.req.parseBody();
+      const body = await c.req.parseBody({ all: true });
       const input = normalizeRegistration(body);
       if (!input) {
         let tagIds: string[] = [];

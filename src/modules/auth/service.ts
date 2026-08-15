@@ -8,12 +8,13 @@ export type Registration = {
   tagIds: string[];
 };
 
-const optional = (value: unknown) => String(value ?? "").trim() || null;
+const first = (value: unknown) => (Array.isArray(value) ? value[0] : value);
+const optional = (value: unknown) => String(first(value) ?? "").trim() || null;
 
 export function normalizeRegistration(form: Record<string, unknown>): Registration | null {
-  const email = String(form.email ?? "").trim().toLowerCase();
-  const password = String(form.password ?? "");
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !password || password !== String(form.password_confirmation ?? "")) return null;
+  const email = String(first(form.email) ?? "").trim().toLowerCase();
+  const password = String(first(form.password) ?? "");
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !password || password !== String(first(form.password_confirmation) ?? "")) return null;
 
   // Extract tagIds (support array from form or individual field)
   let tagIds: string[] = [];

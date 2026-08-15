@@ -67,14 +67,14 @@ export function createAccountRoutes(database: Database, jwtSecret = process.env.
     const user = loadUser(auth.sub);
     if (!user) return c.redirect("/auth");
 
-    const body = await c.req.parseBody();
-    const email = body.email !== undefined ? String(body.email ?? "").trim().toLowerCase() : user.email;
-    const username = body.username !== undefined ? (String(body.username ?? "").trim() || null) : user.username;
-    const phone = body.phone !== undefined ? (String(body.phone ?? "").trim() || null) : user.phone;
-    const firstName = body.first_name !== undefined ? (String(body.first_name ?? "").trim() || null) : user.first_name;
-    const lastName = body.last_name !== undefined ? (String(body.last_name ?? "").trim() || null) : user.last_name;
-    const password = String(body.password ?? "");
-    const passwordConfirmation = String(body.password_confirmation ?? "");
+    const body = await c.req.parseBody({ all: true });
+    const email = body.email !== undefined ? String(Array.isArray(body.email) ? body.email[0] : (body.email ?? "")).trim().toLowerCase() : user.email;
+    const username = body.username !== undefined ? (String(Array.isArray(body.username) ? body.username[0] : (body.username ?? "")).trim() || null) : user.username;
+    const phone = body.phone !== undefined ? (String(Array.isArray(body.phone) ? body.phone[0] : (body.phone ?? "")).trim() || null) : user.phone;
+    const firstName = body.first_name !== undefined ? (String(Array.isArray(body.first_name) ? body.first_name[0] : (body.first_name ?? "")).trim() || null) : user.first_name;
+    const lastName = body.last_name !== undefined ? (String(Array.isArray(body.last_name) ? body.last_name[0] : (body.last_name ?? "")).trim() || null) : user.last_name;
+    const password = String(Array.isArray(body.password) ? body.password[0] : (body.password ?? ""));
+    const passwordConfirmation = String(Array.isArray(body.password_confirmation) ? body.password_confirmation[0] : (body.password_confirmation ?? ""));
 
     if (!email || !email.includes("@")) {
       return c.html(<FormMessage message="A valid email is required." />, 400);
