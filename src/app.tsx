@@ -24,7 +24,15 @@ export function createApp({
   // Static Assets
   app.use("/app.css", serveStatic({ root: "./public" }));
   app.use("/favicon.svg", serveStatic({ path: "./public/favicon.svg" }));
+  app.use("/placeholder-meet.svg", serveStatic({ path: "./public/placeholder-meet.svg" }));
   app.use("/altcha.js", serveStatic({ path: "node_modules/altcha/dist/main/altcha.min.js" }));
+  app.use("/htmx.js", serveStatic({ path: "node_modules/htmx.org/dist/htmx.min.js" }));
+  app.use("/alpine.js", serveStatic({ path: "node_modules/alpinejs/dist/cdn.min.js" }));
+  app.use("/fonts/vazirmatn.css", serveStatic({ path: "node_modules/vazirmatn/Vazirmatn-Variable-font-face.css" }));
+  app.use("/fonts/webfonts/*", serveStatic({
+    root: "node_modules/vazirmatn",
+    rewriteRequestPath: (path) => path.replace(/^\/fonts/, ""),
+  }));
   app.use("/uploads/*", serveStatic({ root: "./public" }));
 
   // Locale Switcher Route

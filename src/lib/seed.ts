@@ -177,7 +177,7 @@ Check our [official documentation](https://bun.sh) before joining.`,
       accessStatus: "public" as const,
       fileUrl: "/uploads/bun_masterclass_slides.pdf",
       url: "https://meet.example.com/designing-with-bun",
-      image: "https://images.unsplash.com/photo-1499750310107-5fef28a66643?auto=format&fit=crop&w=800&q=80",
+      image: "/placeholder-meet.svg",
       tags: ["Engineering", "Architecture", "TypeScript"],
     },
     {
@@ -199,7 +199,7 @@ Practice giving **specific, actionable, and respectful** feedback in an open for
       accessStatus: "private" as const,
       fileUrl: "/uploads/product_critique_deck.pdf",
       url: "https://meet.example.com/product-critique",
-      image: "https://images.unsplash.com/photo-1556761175-b413da4baf72?auto=format&fit=crop&w=800&q=80",
+      image: "/placeholder-meet.svg",
       tags: ["Design", "Community"],
     },
     {
@@ -231,7 +231,7 @@ curl -sSL https://api.example.com/health | jq .status
       accessStatus: "public" as const,
       fileUrl: null,
       url: "https://meet.example.com/community-table",
-      image: "https://images.unsplash.com/photo-1517048676732-d65bc937f952?auto=format&fit=crop&w=800&q=80",
+      image: "/placeholder-meet.svg",
       tags: ["Community", "DevOps", "Career"],
     },
   ];

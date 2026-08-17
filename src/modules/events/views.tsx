@@ -250,7 +250,7 @@ export const MeetingDetailPage = ({
             <div class="overflow-hidden rounded-2xl border border-base-300 bg-base-200 shadow-md">
               <img
                 class="aspect-video w-full object-cover"
-                src={meet.image_url ?? "https://images.unsplash.com/photo-1543269865-cbf427effbad?auto=format&fit=crop&w=1200&q=80"}
+                src={meet.image_url ?? "/placeholder-meet.svg"}
                 alt={meet.title}
               />
             </div>

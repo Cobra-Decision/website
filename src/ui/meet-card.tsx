@@ -71,7 +71,7 @@ export const UnifiedMeetCard = ({
         <div class="relative aspect-video w-full overflow-hidden rounded-2xl bg-base-300">
           <img
             class="h-full w-full object-cover transition duration-500 group-hover:scale-105"
-            src={meet.image_url ?? "https://images.unsplash.com/photo-1543269865-cbf427effbad?auto=format&fit=crop&w=900&q=80"}
+            src={meet.image_url ?? "/placeholder-meet.svg"}
             alt={meet.title}
             loading="lazy"
           />
@@ -133,7 +133,7 @@ export const UnifiedMeetCard = ({
       <div class="relative aspect-video w-full overflow-hidden bg-base-300">
         <img
           class="h-full w-full object-cover transition duration-500 group-hover:scale-105"
-          src={meet.image_url ?? "https://images.unsplash.com/photo-1543269865-cbf427effbad?auto=format&fit=crop&w=800&q=80"}
+          src={meet.image_url ?? "/placeholder-meet.svg"}
           alt={meet.title}
           loading="lazy"
         />
