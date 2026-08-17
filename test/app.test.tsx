@@ -9,7 +9,8 @@ test("home renders landing navigation", async () => {
   expect(response.status).toBe(200);
   expect(html).toContain('href="/app.css"');
   expect(html).not.toContain("cdn.tailwindcss.com");
-  expect(html).toContain("alpinejs@3.x.x");
+  expect(html).toContain('src="/alpine.js"');
+  expect(html).not.toContain("cdn.jsdelivr.net");
   expect(html).toContain('href="/auth"');
   expect(html).toContain('href="#how-it-works"');
   expect(html).toContain('hx-post="/api/contact"');
