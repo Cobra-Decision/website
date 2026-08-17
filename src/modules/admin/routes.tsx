@@ -405,9 +405,9 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
 
     app.post(`/${resource}/bulk-confirm`, async (c) => {
       const locale = getLocale(c);
-      const body = await c.req.parseBody();
+      const body = await c.req.parseBody({ all: true });
       const rawIds = body["ids"] || body["ids[]"];
-      const ids = Array.isArray(rawIds) ? rawIds.map(String) : rawIds ? [String(rawIds)] : [];
+      const ids = (Array.isArray(rawIds) ? rawIds : rawIds ? [rawIds] : []).map(String).filter(Boolean);
       if (!ids.length) {
         return c.html(
           toast("admin.nothing_selected", "Select at least one record.", "warning"),
@@ -503,8 +503,9 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
     });
 
     app.post(`/${resource}/bulk-delete`, async (c) => {
-      const body = await c.req.parseBody();
-      const ids = (Array.isArray(body.ids) ? body.ids : [body.ids]).filter(Boolean).map(String);
+      const body = await c.req.parseBody({ all: true });
+      const rawIds = body["ids"] || body["ids[]"];
+      const ids = (Array.isArray(rawIds) ? rawIds : rawIds ? [rawIds] : []).map(String).filter(Boolean);
       if (!ids.length) return c.html(<><CrudTable resource={resource} columns={[...columns]} searchFields={[...config[resource].searchFields]} rows={rowsFor(resource)} />{toast("admin.nothing_selected", "Select at least one record.", "warning")}</>, 400);
       for (const id of ids) {
         if (!(resource === "roles" && db.query("SELECT 1 FROM roles WHERE id=? AND title='Super Admin'").get(id))) {
@@ -674,14 +675,6 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
         </select>
         <button class="btn btn-primary">Assign endpoint</button>
       </form>
-    )
-  );
-
-  app.get("/endpoints", (c) =>
-    page(
-      c,
-      "Endpoints",
-      <CrudTable resource="endpoints" columns={["title", "description"]} rows={db.query("SELECT id,title,description FROM endpoints WHERE deleted_at IS NULL ORDER BY title").all() as Row[]} />
     )
   );
 

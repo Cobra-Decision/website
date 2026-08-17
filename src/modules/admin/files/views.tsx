@@ -441,7 +441,6 @@ export function FileConfirmDeleteModal({ filename, locale = "en" }: { filename: 
             hx-delete={`/dashboard/admin/files/${encodeURIComponent(filename)}`}
             hx-target="#files-table"
             hx-swap="outerHTML"
-            onclick="this.closest('dialog').remove()"
           >
             {t("common.delete", locale)}
           </button>
@@ -480,7 +479,6 @@ export function FileBulkConfirmDeleteModal({ filenames, locale = "en" }: { filen
           <button
             type="submit"
             class="btn btn-error btn-sm"
-            onclick="this.closest('dialog').remove()"
           >
             {t("admin.delete_selected", locale)} ({filenames.length})
           </button>

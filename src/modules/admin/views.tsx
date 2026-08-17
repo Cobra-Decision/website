@@ -461,7 +461,6 @@ export function AdminConfirmDeleteModal({
             hx-delete={`/dashboard/admin/${resource}/${id}`}
             hx-target={`#${resource}-table`}
             hx-swap="outerHTML"
-            onclick="this.closest('dialog').remove()"
           >
             {t("common.delete", locale)}
           </button>
@@ -509,7 +508,6 @@ export function AdminBulkConfirmDeleteModal({
             <button
               type="submit"
               class="btn btn-error btn-sm"
-              onclick="this.closest('dialog').remove()"
             >
               {t("common.delete", locale)} ({items.length})
             </button>

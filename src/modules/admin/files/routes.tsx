@@ -129,16 +129,16 @@ export function createFileAdminRoutes(
 
   app.on(["GET", "POST"], "/bulk-confirm", async (c) => {
     const locale = getLocale(c);
-    let rawFilenames: string[] = [];
+    let rawFilenames: any[] = [];
     if (c.req.method === "POST") {
-      const body = await c.req.parseBody();
+      const body = await c.req.parseBody({ all: true });
       const raw = body["filenames"] || body["filenames[]"];
-      rawFilenames = Array.isArray(raw) ? raw.map(String) : raw ? [String(raw)] : [];
+      rawFilenames = Array.isArray(raw) ? raw : raw ? [raw] : [];
     } else {
       const queried = c.req.queries("filenames") ?? (c.req.query("filenames") ? [c.req.query("filenames")!] : []);
       rawFilenames = queried;
     }
-    const filenames = rawFilenames.map((f) => sanitizeFilename(f)).filter((f): f is string => Boolean(f));
+    const filenames = rawFilenames.map((f) => sanitizeFilename(String(f))).filter((f): f is string => Boolean(f));
 
     if (!filenames.length) {
       const files = await listFiles();
@@ -309,13 +309,14 @@ export function createFileAdminRoutes(
 
   app.post("/bulk-delete", async (c) => {
     const locale = getLocale(c);
-    const body = await c.req.parseBody();
-    const rawFilenames = Array.isArray(body.filenames)
-      ? body.filenames
-      : body.filenames
-      ? [body.filenames]
+    const body = await c.req.parseBody({ all: true });
+    const rawFilenames = body["filenames"] || body["filenames[]"];
+    const filenamesList = Array.isArray(rawFilenames)
+      ? rawFilenames
+      : rawFilenames
+      ? [rawFilenames]
       : [];
-    const filenames = rawFilenames
+    const filenames = filenamesList
       .map((f) => sanitizeFilename(String(f)))
       .filter((f): f is string => Boolean(f));
 
