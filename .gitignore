@@ -1,7 +1,9 @@
 node_modules/
-app.sqlite
+app.sqlite*
+data/
 .env
 public/uploads/
 log/
 *.log
+
 
