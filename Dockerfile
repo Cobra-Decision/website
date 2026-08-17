@@ -20,10 +20,11 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=3000
 
-# Copy node_modules and built assets from builder
-COPY --from=builder /app/package.json ./package.json
-COPY --from=builder /app/bun.lock ./bun.lock
-COPY --from=builder /app/node_modules ./node_modules
+# Install production dependencies only for smaller memory footprint and disk size
+COPY package.json bun.lock ./
+RUN bun install --production --frozen-lockfile
+
+# Copy source and built assets from builder
 COPY --from=builder /app/src ./src
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/tsconfig.json ./tsconfig.json
