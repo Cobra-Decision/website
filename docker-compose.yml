@@ -10,6 +10,7 @@ services:
     environment:
       - NODE_ENV=${NODE_ENV:-production}
       - PORT=3000
+      - DATABASE_PATH=/app/data/app.sqlite
       - JWT_SECRET=${JWT_SECRET}
       - ALTCHA_HMAC_SECRET=${ALTCHA_HMAC_SECRET}
       - SEED_ADMIN_EMAIL=${SEED_ADMIN_EMAIL}
@@ -27,8 +28,8 @@ services:
       - MEET_REMINDER_DAYS_BEFORE=${MEET_REMINDER_DAYS_BEFORE:-1}
       - BASE_URL=${BASE_URL:-http://localhost:3000}
     volumes:
-      # Persistent SQLite database file
-      - ./app.sqlite:/app/app.sqlite
+      # Persistent SQLite database directory (WAL creates .sqlite-shm and .sqlite-wal)
+      - ./data:/app/data
       # Persistent uploaded assets and materials
       - ./public/uploads:/app/public/uploads
       # Persistent log directory
