@@ -26,9 +26,18 @@ export class MailService {
     if (customProvider) {
       this.provider = customProvider;
     } else {
-      const smtp = new SmtpProvider();
-      this.provider = smtp.isAvailable() ? smtp : new FallbackProvider();
+      this.provider = this.createDefaultProvider();
     }
+  }
+
+  private createDefaultProvider(): EmailProvider {
+    const smtp = new SmtpProvider();
+    return smtp.isAvailable() ? smtp : new FallbackProvider();
+  }
+
+  public refreshProvider(): void {
+    const smtp = new SmtpProvider();
+    this.provider = smtp.isAvailable() ? smtp : new FallbackProvider();
   }
 
   public static getInstance(capacity = 100, customProvider?: EmailProvider): MailService {
@@ -47,6 +56,7 @@ export class MailService {
   }
 
   public getStats(): MailerStats {
+    this.refreshProvider();
     return {
       queued: this.queue.length,
       sent: this.totalSent,
@@ -67,6 +77,7 @@ export class MailService {
   }
 
   public async enqueueEmail(payload: EmailPayload): Promise<EmailMessage> {
+    this.refreshProvider();
     const message: EmailMessage = {
       id: generateId(),
       to: Array.isArray(payload.to) ? payload.to.join(", ") : payload.to,
