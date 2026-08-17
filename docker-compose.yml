@@ -3,7 +3,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: cobradecision-web
+    container_name: cobradecision-website
     restart: unless-stopped
     ports:
       - "${PORT:-3000}:3000"
