@@ -95,7 +95,7 @@ docker compose logs -f
 ```
 
 Persistent data is mounted automatically:
-- `./app.sqlite` → SQLite database file (WAL mode)
+- `./data` → SQLite database storage directory (holds `app.sqlite`, `app.sqlite-wal`, `app.sqlite-shm`)
 - `./public/uploads` → Uploaded meeting images and presentation documents
 - `./log` → Structured module event logs (`auth.log`, `email.log`, `meet.log`, `attendance.log`, `file.log`)
 
