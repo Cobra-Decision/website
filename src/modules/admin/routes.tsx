@@ -22,6 +22,7 @@ import { MailSchedulerView } from "./mail-scheduler-views";
 import type { EmailTemplateRow, ScheduledEmailRow } from "../mailer/database";
 import { getAllTags } from "../events/queries";
 import { logger } from "../../lib/logger";
+import { createDatabaseAdminRoutes } from "./database-routes";
 
 type AdminEnv = {
   Variables: {
@@ -73,6 +74,10 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
   // File Management Subroutes
   const fileRoutes = createFileAdminRoutes(db, page);
   app.route("/files", fileRoutes);
+
+  // Database Center & Management Subroutes
+  const databaseRoutes = createDatabaseAdminRoutes(db, page);
+  app.route("/", databaseRoutes);
 
   const config = {
     users: {

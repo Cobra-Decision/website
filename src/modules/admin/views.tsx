@@ -20,6 +20,10 @@ const mailCenterLinks = [
   ["Mail Management", "/dashboard/admin/mail-management"],
 ] as const;
 
+const databaseCenterLinks = [
+  ["Database Management", "/dashboard/admin/database"],
+] as const;
+
 const reportLinks = [
   ["SQL report", "/dashboard/admin/report"],
 ] as const;
@@ -39,6 +43,7 @@ export function AdminLayout({
 }) {
   const allowedManagement = managementLinks.filter(([, href]) => allowed.includes(href));
   const allowedMailCenter = mailCenterLinks.filter(([, href]) => allowed.includes(href));
+  const allowedDatabaseCenter = databaseCenterLinks.filter(([, href]) => allowed.includes(href));
   const allowedReports = reportLinks.filter(([, href]) => allowed.includes(href));
 
   return (
@@ -80,6 +85,19 @@ export function AdminLayout({
                   Mail Center
                 </li>
                 {allowedMailCenter.map(([label, href]) => (
+                  <li key={href}>
+                    <a href={href}>{label}</a>
+                  </li>
+                ))}
+              </>
+            )}
+
+            {allowedDatabaseCenter.length > 0 && (
+              <>
+                <li class="menu-title mt-4 text-xs font-bold uppercase tracking-wider text-base-content/50">
+                  Database Center
+                </li>
+                {allowedDatabaseCenter.map(([label, href]) => (
                   <li key={href}>
                     <a href={href}>{label}</a>
                   </li>
