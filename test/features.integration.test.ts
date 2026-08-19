@@ -7,6 +7,10 @@ import { initializeEventsDatabase } from "../src/modules/events/database";
 import { createMeet } from "../src/modules/events/queries";
 import { generateId } from "../src/lib/id";
 import { handleImageUpload, handlePresentationUpload } from "../src/modules/admin/upload";
+import { getLandingCache } from "../src/lib/cache";
+import { getUpcomingMeets, filterMeets } from "../src/modules/events/queries";
+import { runMigrations } from "../src/lib/database/migration";
+import { seedMeets, seedTags } from "../src/lib/database/seeding";
 
 let database: Database;
 let app: ReturnType<typeof createApp>;
@@ -290,4 +294,75 @@ test("POST /dashboard/admin/meets creates and updates meet with multiple tags", 
 
   const updatedMeetTags = database.query<{ tag_id: string }, [string]>("SELECT tag_id FROM meet_tags WHERE meet_id = ?").all(meet.id);
   expect(updatedMeetTags.map((t) => t.tag_id)).toEqual([tagA]);
+
+  // Verify landing cache was updated
+  const landing = getLandingCache();
+  expect(landing.meets.some((m) => m.id === meet.id)).toBe(true);
 });
+
+test("hydrateMeets batch queries correctly associate tags, attendee counts, and presenter", async () => {
+  const memberRole = database.query<{ id: string }, []>("SELECT id FROM roles WHERE title = 'member'").get()!;
+  const userA = generateId(), userB = generateId();
+  database.run("INSERT INTO users (id, email, password_hash, role_id) VALUES (?, 'a@test.com', 'hash', ?), (?, 'b@test.com', 'hash', ?)", [userA, memberRole.id, userB, memberRole.id]);
+
+  const tag1 = generateId(), tag2 = generateId();
+  database.run("INSERT INTO tags (id, title) VALUES (?, 'Node'), (?, 'Bun')", [tag1, tag2]);
+
+  const meet1 = createMeet(database, {
+    title: "Batch Meet 1",
+    topics: ["Node"],
+    scheduledDate: "2099-07-01",
+    scheduledTime: "10:00",
+    tagIds: [tag1],
+    presenterId: userA,
+  });
+
+  const meet2 = createMeet(database, {
+    title: "Batch Meet 2",
+    topics: ["Bun", "TypeScript"],
+    scheduledDate: "2099-07-02",
+    scheduledTime: "11:00",
+    tagIds: [tag1, tag2],
+    presenterId: userB,
+  });
+
+  database.run("INSERT INTO meet_attendees (meet_id, user_id) VALUES (?, ?), (?, ?), (?, ?)", [
+    meet1.id, userA,
+    meet2.id, userA,
+    meet2.id, userB,
+  ]);
+
+  const meets = getUpcomingMeets(database, 10);
+  const hydrated1 = meets.find((m) => m.id === meet1.id)!;
+  const hydrated2 = meets.find((m) => m.id === meet2.id)!;
+
+  expect(hydrated1).toBeDefined();
+  expect(hydrated1.presenter?.email).toBe("a@test.com");
+  expect(hydrated1.attendee_count).toBe(1);
+  expect(hydrated1.tags.map((t) => t.id)).toEqual([tag1]);
+
+  expect(hydrated2).toBeDefined();
+  expect(hydrated2.presenter?.email).toBe("b@test.com");
+  expect(hydrated2.attendee_count).toBe(2);
+  expect(hydrated2.tags.map((t) => t.id).sort()).toEqual([tag1, tag2].sort());
+});
+
+test("runMigrations applies performance index migration 004", async () => {
+  const memDb = new Database(":memory:");
+  const result = await runMigrations(memDb);
+  expect(result.currentVersion).toBe(4);
+
+  const indexNames = memDb
+    .query<{ name: string }, []>("SELECT name FROM sqlite_master WHERE type='index'")
+    .all()
+    .map((r) => r.name);
+
+  expect(indexNames).toContain("idx_meet_tags_tag_id");
+  expect(indexNames).toContain("idx_meet_attendees_user_id");
+  expect(indexNames).toContain("idx_user_tags_tag_id");
+  expect(indexNames).toContain("idx_meets_deleted_scheduled");
+  expect(indexNames).toContain("idx_users_email");
+  expect(indexNames).toContain("idx_users_deleted_at");
+  expect(indexNames).toContain("idx_scheduled_emails_status");
+});
+
