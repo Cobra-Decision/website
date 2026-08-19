@@ -9,7 +9,7 @@ test("detects RTL for Persian and LTR for English", () => {
 
 test("translates keys for English and Persian with fallback", () => {
   expect(t("brand.name", "en")).toBe("CobraDecision");
-  expect(t("brand.name", "fa")).toBe("کبرا دسیژن");
+  expect(t("brand.name", "fa")).toBe("تصمیم کبرا");
   expect(t("meet.status.upcoming", "en")).toBe("Upcoming");
   expect(t("meet.status.upcoming", "fa")).toBe("پیش‌رو");
   expect(t("meet.public", "fa")).toBe("عمومی");

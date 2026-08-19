@@ -186,7 +186,7 @@ export const translations = {
   },
   fa: {
     // Navigation & Common
-    "brand.name": "کبرا دسیژن",
+    "brand.name": "تصمیم کبرا",
     "nav.how_it_works": "نحوه کارکرد",
     "nav.meets": "جلسات",
     "nav.contact": "تماس با ما",
@@ -227,7 +227,7 @@ export const translations = {
     "stats.members": "اعضای جامعه",
     "stats.hours": "ساعت آموزش و گفتگوی مشترک",
     "stats.meets": "جلسات تخصصی برگزار شده",
-    "how.title_badge": "چرا کبرا دسیژن؟",
+    "how.title_badge": "چرا تصمیم کبرا؟",
     "how.heading": "روشی آرام‌تر و هدفمند برای تعامل پیرامون ایده‌ها.",
     "how.step1_title": "یک موضوع را انتخاب کنید",
     "how.step1_desc": "عناوین را بررسی کنید و به اتاق‌هایی بپیوندید که در آنها اثرگذار هستید.",
@@ -244,7 +244,7 @@ export const translations = {
     "footer.contact_title": "ارتباط با ما",
     "footer.contact_subtitle": "ایمیل خود را بگذارید تا با شما در ارتباط باشیم.",
     "footer.send": "ارسال",
-    "footer.copyright": "© ۲۰۲۶ کبرا دسیژن. طراحی شده برای گفتگوهای بهتر.",
+    "footer.copyright": "© ۲۰۲۶ تصمیم کبرا. طراحی شده برای گفتگوهای بهتر.",
 
     // Meetings & Details
     "meet.about": "درباره این جلسه",

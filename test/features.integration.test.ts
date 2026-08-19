@@ -199,7 +199,7 @@ test("GET /locale/:lang switches language cookie and redirects", async () => {
   const faHtml = await faLandingRes.text();
   expect(faHtml).toContain('lang="fa"');
   expect(faHtml).toContain('dir="rtl"');
-  expect(faHtml).toContain("کبرا دسیژن");
+  expect(faHtml).toContain("تصمیم کبرا");
 
   const faLoginRes = await app.request("/auth", {
     headers: { cookie: "locale=fa" },
