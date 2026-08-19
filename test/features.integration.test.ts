@@ -238,3 +238,56 @@ test("handleImageUpload and handlePresentationUpload validate file size and uplo
   expect(validDocRes.error).toBeUndefined();
   expect(validDocRes.url).toContain("/uploads/presentation_");
 });
+
+test("POST /dashboard/admin/meets creates and updates meet with multiple tags", async () => {
+  const superAdminRole = database.query<{ id: string }, []>("SELECT id FROM roles WHERE title = 'Super Admin'").get()!;
+  database.run("UPDATE users SET role_id = ? WHERE id = ?", [superAdminRole.id, memberId]);
+
+  const login = new FormData();
+  login.set("identifier", "dashboard_user@example.com");
+  login.set("password", "secret123");
+  const loginRes = await app.request("/auth/login", { method: "POST", body: login });
+  const adminCookie = loginRes.headers.get("set-cookie")!.split(";")[0];
+
+  const tagA = generateId(), tagB = generateId();
+  database.run("INSERT INTO tags (id, title) VALUES (?, 'Tag A'), (?, 'Tag B')", [tagA, tagB]);
+
+  const createForm = new FormData();
+  createForm.set("title", "Multi Tag Meet");
+  createForm.set("description", "Testing multiple tags");
+  createForm.set("scheduled_date", "2099-05-01");
+  createForm.set("scheduled_time", "19:00");
+  createForm.set("duration_minutes", "60");
+  createForm.append("tag_ids", tagA);
+  createForm.append("tag_ids", tagB);
+
+  const createRes = await app.request("/dashboard/admin/meets", {
+    method: "POST",
+    headers: { cookie: adminCookie },
+    body: createForm,
+  });
+  expect(createRes.status).toBe(200);
+
+  const meet = database.query<{ id: string }, [string]>("SELECT id FROM meets WHERE title = ?").get("Multi Tag Meet")!;
+  const meetTags = database.query<{ tag_id: string }, [string]>("SELECT tag_id FROM meet_tags WHERE meet_id = ? ORDER BY tag_id").all(meet.id);
+  expect(meetTags.map((t) => t.tag_id).sort()).toEqual([tagA, tagB].sort());
+
+  // Update meet to only have tagA
+  const updateForm = new FormData();
+  updateForm.set("title", "Multi Tag Meet Updated");
+  updateForm.set("description", "Testing single tag update");
+  updateForm.set("scheduled_date", "2099-05-01");
+  updateForm.set("scheduled_time", "19:00");
+  updateForm.set("duration_minutes", "60");
+  updateForm.append("tag_ids", tagA);
+
+  const updateRes = await app.request(`/dashboard/admin/meets/${meet.id}`, {
+    method: "POST",
+    headers: { cookie: adminCookie },
+    body: updateForm,
+  });
+  expect(updateRes.status).toBe(200);
+
+  const updatedMeetTags = database.query<{ tag_id: string }, [string]>("SELECT tag_id FROM meet_tags WHERE meet_id = ?").all(meet.id);
+  expect(updatedMeetTags.map((t) => t.tag_id)).toEqual([tagA]);
+});

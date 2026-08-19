@@ -143,6 +143,7 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
     const roles = db.query<{ id: string; title: string }, []>("SELECT id,title FROM roles WHERE deleted_at IS NULL ORDER BY title").all();
     const users = db.query<{ id: string; email: string }, []>("SELECT id,email FROM users WHERE deleted_at IS NULL ORDER BY email").all();
     const allTags = resource === "meets" ? db.query<{ id: string; title: string }, []>("SELECT id,title FROM tags WHERE deleted_at IS NULL ORDER BY title").all() : [];
+    const currentMeetTagIds = resource === "meets" && id ? db.query<{ tag_id: string }, [string]>("SELECT tag_id FROM meet_tags WHERE meet_id=?").all(id).map((r) => r.tag_id) : [];
     const endpoints = resource === "roles" ? db.query<{ id: string; title: string }, []>("SELECT id,title FROM endpoints WHERE deleted_at IS NULL ORDER BY title").all() : [];
     const mappings =
       resource === "roles" && id
@@ -258,28 +259,67 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
                   <input class="file-input file-input-bordered w-full" name="image_file" type="file" accept="image/png,image/jpeg,image/webp" />
                 </label>
 
-                {!id && (
-                  <>
-                    <label class="form-control sm:col-span-2">
-                      <span class="label-text font-medium">Initial Tags (optional)</span>
-                      <select class="select select-bordered w-full" name="initial_tag_id">
-                        <option value="">Select initial tag...</option>
-                        {allTags.map((tag) => (
-                          <option value={tag.id} key={tag.id}>{tag.title}</option>
-                        ))}
-                      </select>
-                    </label>
+                <div
+                  class="form-control sm:col-span-2 space-y-2"
+                  x-data={`{
+                    tagSearch: '',
+                    allTags: ${JSON.stringify(allTags.map((t) => ({ id: t.id, title: t.title })))},
+                    selectedTagIds: ${JSON.stringify(currentMeetTagIds)},
+                    get filteredTags() {
+                      if (!this.tagSearch.trim()) return this.allTags;
+                      const q = this.tagSearch.toLowerCase();
+                      return this.allTags.filter(t => t.title.toLowerCase().includes(q));
+                    },
+                    selectAllFilteredTags() {
+                      const ids = this.filteredTags.map(t => t.id);
+                      this.selectedTagIds = Array.from(new Set([...this.selectedTagIds, ...ids]));
+                    },
+                    clearSelectedTags() {
+                      this.selectedTagIds = [];
+                    }
+                  }`}
+                >
+                  <div class="flex items-center justify-between">
+                    <span class="label-text font-medium">
+                      Tags (<span x-text="selectedTagIds.length"></span> selected)
+                    </span>
+                    <div class="flex gap-1">
+                      <button type="button" class="btn btn-xs btn-ghost" x-on:click="selectAllFilteredTags()">Select All</button>
+                      <button type="button" class="btn btn-xs btn-ghost" x-on:click="clearSelectedTags()">Clear</button>
+                    </div>
+                  </div>
+                  <input
+                    type="text"
+                    placeholder="🔍 Search tags..."
+                    x-model="tagSearch"
+                    class="input input-bordered input-xs w-full"
+                  />
+                  <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-40 overflow-y-auto p-2 border border-base-300 rounded-lg bg-base-200/40">
+                    <template x-for="tag in filteredTags" x-bind:key="tag.id">
+                      <label class="cursor-pointer label justify-start gap-2 py-1 px-2 rounded hover:bg-base-200 bg-base-100 border border-base-300/50">
+                        <input
+                          type="checkbox"
+                          name="tag_ids"
+                          x-bind:value="tag.id"
+                          x-model="selectedTagIds"
+                          class="checkbox checkbox-primary checkbox-xs"
+                        />
+                        <span class="label-text text-xs truncate" x-text="tag.title"></span>
+                      </label>
+                    </template>
+                  </div>
+                </div>
 
-                    <label class="form-control sm:col-span-2">
-                      <span class="label-text font-medium">Initial Attendee (optional)</span>
-                      <select class="select select-bordered w-full" name="initial_user_id">
-                        <option value="">Select initial attendee...</option>
-                        {users.map((user) => (
-                          <option value={user.id} key={user.id}>{user.email}</option>
-                        ))}
-                      </select>
-                    </label>
-                  </>
+                {!id && (
+                  <label class="form-control sm:col-span-2">
+                    <span class="label-text font-medium">Initial Attendee (optional)</span>
+                    <select class="select select-bordered w-full" name="initial_user_id">
+                      <option value="">Select initial attendee...</option>
+                      {users.map((user) => (
+                        <option value={user.id} key={user.id}>{user.email}</option>
+                      ))}
+                    </select>
+                  </label>
                 )}
               </>
             )}
@@ -349,9 +389,18 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
     />
   );
 
-  const valuesFrom = (body: Record<string, string | File>) =>
+  const valuesFrom = (body: Record<string, any>) =>
     Object.fromEntries(
-      Object.entries(body).map(([key, value]) => [key, typeof value === "string" ? value : value instanceof File ? value.name : null])
+      Object.entries(body).map(([key, value]) => [
+        key,
+        Array.isArray(value)
+          ? value.map((v) => (typeof v === "string" ? v : v instanceof File ? v.name : null)).filter(Boolean).join(",")
+          : typeof value === "string"
+          ? value
+          : value instanceof File
+          ? value.name
+          : null,
+      ])
     ) as Row;
 
   const formFailure = (resource: keyof typeof config, message: string, values: Row, id?: string) => (
@@ -435,7 +484,7 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
     });
 
     app.post(`/${resource}`, async (c) => {
-      const body = await c.req.parseBody();
+      const body = await c.req.parseBody({ all: true });
       const submitted = valuesFrom(body);
 
       // Normalize numeric & date/time inputs to English digits
@@ -481,7 +530,14 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
           });
           db.run(`INSERT INTO meets (id,${meetFields.join(",")}) VALUES (?,${meetFields.map(() => "?").join(",")})`, [id, ...values, scheduledAtUtc]);
 
-          // Handle initial tag and attendee selection on meet creation
+          // Handle tag and attendee selection on meet creation
+          const rawTagIds = body.tag_ids || body["tag_ids[]"];
+          const tagIds = (Array.isArray(rawTagIds) ? rawTagIds : rawTagIds ? [rawTagIds] : []).map(String).map((t) => t.trim()).filter(Boolean);
+          for (const tagId of tagIds) {
+            if (validRelation("tags", tagId)) {
+              db.run("INSERT OR IGNORE INTO meet_tags (meet_id,tag_id) VALUES (?,?)", [id, tagId]);
+            }
+          }
           const initialTagId = String(body.initial_tag_id ?? "").trim();
           if (initialTagId && validRelation("tags", initialTagId)) {
             db.run("INSERT OR IGNORE INTO meet_tags (meet_id,tag_id) VALUES (?,?)", [id, initialTagId]);
@@ -531,7 +587,7 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
     });
 
     app.post(`/${resource}/:id`, async (c) => {
-      const body = await c.req.parseBody();
+      const body = await c.req.parseBody({ all: true });
       const submitted = valuesFrom(body);
       const id = c.req.param("id");
 
@@ -583,6 +639,17 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
             return String(val ?? "").trim() || null;
           });
           db.run(`UPDATE meets SET ${meetFields.map((field) => `${field}=?`).join(",")}, updated_at=CURRENT_TIMESTAMP WHERE id=?`, [...values, scheduledAtUtc, id]);
+
+          // Sync tags when editing meet
+          const rawTagIds = body.tag_ids || body["tag_ids[]"];
+          const tagIds = (Array.isArray(rawTagIds) ? rawTagIds : rawTagIds ? [rawTagIds] : []).map(String).map((t) => t.trim()).filter(Boolean);
+          db.run("DELETE FROM meet_tags WHERE meet_id=?", [id]);
+          for (const tagId of tagIds) {
+            if (validRelation("tags", tagId)) {
+              db.run("INSERT OR IGNORE INTO meet_tags (meet_id,tag_id) VALUES (?,?)", [id, tagId]);
+            }
+          }
+
           const adminAuth = c.get("auth") as { sub: string; role_id: string } | undefined;
           logger.meet("MEET_UPDATED", {
             actor: { userId: adminAuth?.sub, role: adminAuth?.role_id, ip: c.req.header("x-forwarded-for") ?? "local" },
