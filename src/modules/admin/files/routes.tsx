@@ -17,8 +17,13 @@ import { handleImageUpload, handlePresentationUpload } from "../upload";
 import { getLocale } from "../../../lib/i18n/context";
 import { logger } from "../../../lib/logger";
 
-const STORAGE_DIR = process.env.STORAGE_DIR ?? "./public/uploads";
-const ASSET_BASE_URL = (process.env.ASSET_BASE_URL ?? "/uploads").replace(/\/$/, "");
+export function getStorageDir(): string {
+  return process.env.STORAGE_DIR ?? "./public/uploads";
+}
+
+export function getAssetBaseUrl(): string {
+  return (process.env.ASSET_BASE_URL ?? "/uploads").replace(/\/$/, "");
+}
 
 export function sanitizeFilename(filename: string): string | null {
   if (!filename || typeof filename !== "string") return null;
@@ -41,14 +46,16 @@ function formatSize(bytes: number): string {
 }
 
 async function listFiles(): Promise<FileItem[]> {
+  const storageDir = getStorageDir();
+  const assetBaseUrl = getAssetBaseUrl();
   try {
-    await mkdir(STORAGE_DIR, { recursive: true });
-    const entries = await readdir(STORAGE_DIR);
+    await mkdir(storageDir, { recursive: true });
+    const entries = await readdir(storageDir);
     const files: FileItem[] = [];
 
     for (const entry of entries) {
       if (entry.startsWith(".")) continue;
-      const fullPath = join(STORAGE_DIR, entry);
+      const fullPath = join(storageDir, entry);
       const fileStat = await stat(fullPath);
       if (fileStat.isFile()) {
         const ext = extname(entry).toLowerCase();
@@ -59,7 +66,7 @@ async function listFiles(): Promise<FileItem[]> {
           sizeFormatted: formatSize(fileStat.size),
           isImage,
           modifiedAt: fileStat.mtime.toISOString().replace("T", " ").slice(0, 19),
-          url: `${ASSET_BASE_URL}/${entry}`,
+          url: `${assetBaseUrl}/${entry}`,
         });
       }
     }
@@ -169,39 +176,53 @@ export function createFileAdminRoutes(
       );
     }
 
-    const isImage = file.type.startsWith("image/");
-    const uploadRes = isImage
-      ? await handleImageUpload(file)
-      : await handlePresentationUpload(file);
-
-    const files = await listFiles();
-    if (uploadRes.error) {
-      logger.file("FILE_UPLOAD_FAILED", {
-        level: "ERROR",
-        actor: { ip: c.req.header("x-forwarded-for") ?? "local" },
-        data: { filename: file.name, size: file.size, mimeType: file.type },
-        error: uploadRes.error,
-      });
+    const sanitized = sanitizeFilename(file.name);
+    if (!sanitized) {
+      const files = await listFiles();
       return c.html(
         <>
           <FileGrid files={files} locale={locale} />
-          {toast(c, "admin.error", uploadRes.error, "error")}
+          {toast(c, "admin.error", "Invalid filename.", "error")}
         </>,
         400
       );
     }
 
-    logger.file("FILE_UPLOADED", {
-      actor: { ip: c.req.header("x-forwarded-for") ?? "local" },
-      data: { filename: file.name, url: uploadRes.url, size: file.size, mimeType: file.type },
-    });
+    try {
+      const storageDir = getStorageDir();
+      await mkdir(storageDir, { recursive: true });
+      const dest = join(storageDir, sanitized);
+      const buffer = await file.arrayBuffer();
+      await Bun.write(dest, buffer);
 
-    return c.html(
-      <>
-        <FileGrid files={files} locale={locale} />
-        {toast(c, "admin.created", "File uploaded successfully.")}
-      </>
-    );
+      logger.file("FILE_UPLOADED", {
+        actor: { ip: c.req.header("x-forwarded-for") ?? "local" },
+        data: { filename: sanitized, url: `${getAssetBaseUrl()}/${sanitized}`, size: file.size, mimeType: file.type },
+      });
+
+      const files = await listFiles();
+      return c.html(
+        <>
+          <FileGrid files={files} locale={locale} />
+          {toast(c, "admin.created", "File uploaded successfully.")}
+        </>
+      );
+    } catch (err) {
+      logger.file("FILE_UPLOAD_FAILED", {
+        level: "ERROR",
+        actor: { ip: c.req.header("x-forwarded-for") ?? "local" },
+        data: { filename: file.name, size: file.size, mimeType: file.type },
+        error: err,
+      });
+      const files = await listFiles();
+      return c.html(
+        <>
+          <FileGrid files={files} locale={locale} />
+          {toast(c, "admin.error", "Failed to save uploaded file.", "error")}
+        </>,
+        500
+      );
+    }
   });
 
   app.get("/rename-modal", (c) => {
@@ -230,8 +251,9 @@ export function createFileAdminRoutes(
     }
 
     try {
-      const oldPath = join(STORAGE_DIR, oldName);
-      const newPath = join(STORAGE_DIR, newName);
+      const storageDir = getStorageDir();
+      const oldPath = join(storageDir, oldName);
+      const newPath = join(storageDir, newName);
       await rename(oldPath, newPath);
       logger.file("FILE_RENAMED", {
         actor: { ip: c.req.header("x-forwarded-for") ?? "local" },
@@ -277,11 +299,12 @@ export function createFileAdminRoutes(
     }
 
     try {
-      const src = join(STORAGE_DIR, filename);
+      const storageDir = getStorageDir();
+      const src = join(storageDir, filename);
       const ext = extname(filename);
       const baseNoExt = basename(filename, ext);
       const duplicateName = `copy_${Date.now()}_${baseNoExt}${ext}`;
-      const dest = join(STORAGE_DIR, duplicateName);
+      const dest = join(storageDir, duplicateName);
 
       await copyFile(src, dest);
       logger.file("FILE_COPIED", {
@@ -331,9 +354,10 @@ export function createFileAdminRoutes(
       );
     }
 
+    const storageDir = getStorageDir();
     for (const filename of filenames) {
       try {
-        await unlink(join(STORAGE_DIR, filename));
+        await unlink(join(storageDir, filename));
         logger.file("FILE_DELETED", {
           actor: { ip: c.req.header("x-forwarded-for") ?? "local" },
           data: { filename, bulk: true },
@@ -373,7 +397,8 @@ export function createFileAdminRoutes(
     }
 
     try {
-      const target = join(STORAGE_DIR, filename);
+      const storageDir = getStorageDir();
+      const target = join(storageDir, filename);
       await unlink(target);
       logger.file("FILE_DELETED", {
         actor: { ip: c.req.header("x-forwarded-for") ?? "local" },

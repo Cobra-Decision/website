@@ -2,8 +2,14 @@ import { generateId } from "../../lib/id";
 import { mkdir } from "node:fs/promises";
 import { join, extname } from "node:path";
 
-const STORAGE_DIR = process.env.STORAGE_DIR ?? "./public/uploads";
-const ASSET_BASE_URL = process.env.ASSET_BASE_URL ?? "/uploads";
+export function getStorageDir(): string {
+  return process.env.STORAGE_DIR ?? "./public/uploads";
+}
+
+export function getAssetBaseUrl(): string {
+  return (process.env.ASSET_BASE_URL ?? "/uploads").replace(/\/$/, "");
+}
+
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
 const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB
 
@@ -28,15 +34,17 @@ export async function handleImageUpload(file: File | null | undefined): Promise<
   }
 
   try {
-    await mkdir(STORAGE_DIR, { recursive: true });
+    const storageDir = getStorageDir();
+    const assetBaseUrl = getAssetBaseUrl();
+    await mkdir(storageDir, { recursive: true });
     const ext = ALLOWED_IMAGE_TYPES[file.type];
     const filename = `meet_img_${generateId()}.${ext}`;
-    const destination = join(STORAGE_DIR, filename);
+    const destination = join(storageDir, filename);
 
     const buffer = await file.arrayBuffer();
     await Bun.write(destination, buffer);
 
-    const url = `${ASSET_BASE_URL.replace(/\/$/, "")}/${filename}`;
+    const url = `${assetBaseUrl}/${filename}`;
     return { url };
   } catch (error) {
     console.error("Upload error:", error);
@@ -54,16 +62,18 @@ export async function handlePresentationUpload(file: File | null | undefined): P
   }
 
   try {
-    await mkdir(STORAGE_DIR, { recursive: true });
+    const storageDir = getStorageDir();
+    const assetBaseUrl = getAssetBaseUrl();
+    await mkdir(storageDir, { recursive: true });
     const originalExt = extname(file.name).toLowerCase() || ".pdf";
     const cleanExt = originalExt.replace(/[^a-z0-9.]/gi, "") || ".pdf";
     const filename = `presentation_${generateId()}${cleanExt}`;
-    const destination = join(STORAGE_DIR, filename);
+    const destination = join(storageDir, filename);
 
     const buffer = await file.arrayBuffer();
     await Bun.write(destination, buffer);
 
-    const url = `${ASSET_BASE_URL.replace(/\/$/, "")}/${filename}`;
+    const url = `${assetBaseUrl}/${filename}`;
     return { url, name: file.name };
   } catch (error) {
     console.error("Presentation upload error:", error);
