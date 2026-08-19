@@ -1,6 +1,7 @@
 import type { LandingCache } from "../../lib/cache";
 import type { Locale } from "../../lib/i18n/translations";
 import { t, formatLocalizedNumber, isRtl } from "../../lib/i18n/context";
+import { SOCIAL_MEDIA_LIST } from "../../lib/social";
 import { LanguageSwitch } from "../../ui/language-switch";
 import { UnifiedMeetCard } from "../../ui/meet-card";
 import { Carousel } from "../../ui/carousel";
@@ -16,9 +17,12 @@ export const Landing = ({ data, locale = "en" }: { data: LandingCache; locale?: 
     <div class="overflow-x-hidden bg-base-100 min-h-screen">
       <header class="border-b border-base-200 bg-base-100 sticky top-0 z-30 backdrop-blur bg-base-100/90">
         <nav class="navbar mx-auto min-h-20 max-w-7xl px-5 sm:px-8">
-          <a class="flex-1 text-xl font-bold tracking-tight" href="/">
-            {t("brand.name", locale)}<span class="text-primary">.</span>
-          </a>
+          <div class="flex-1">
+            <a class="inline-flex items-center gap-3 text-xl font-bold tracking-tight" href="/">
+              <img src="/favicon.svg" alt="CobraDecision" class="h-8 w-auto" />
+              <span>{t("brand.name", locale)}<span class="text-primary">.</span></span>
+            </a>
+          </div>
           <div class="hidden gap-7 text-sm font-medium md:flex">
             <a class="link-hover" href="#how-it-works">{t("nav.how_it_works", locale)}</a>
             <a class="link-hover" href="#meets">{t("nav.meets", locale)}</a>
@@ -145,8 +149,9 @@ export const Landing = ({ data, locale = "en" }: { data: LandingCache; locale?: 
       <footer id="contact" class="bg-neutral text-neutral-content">
         <div class="mx-auto grid max-w-7xl gap-12 px-5 py-16 sm:px-8 lg:grid-cols-[1fr_auto_1.2fr]">
           <div>
-            <a class="text-2xl font-bold" href="/">
-              {t("brand.name", locale)}<span class="text-primary">.</span>
+            <a class="inline-flex items-center gap-3 text-2xl font-bold" href="/">
+              <img src="/favicon.svg" alt="CobraDecision" class="h-9 w-auto" />
+              <span>{t("brand.name", locale)}<span class="text-primary">.</span></span>
             </a>
             <p class="mt-4 max-w-xs leading-7 text-neutral-content/65">
               {t("footer.about", locale)}
@@ -155,10 +160,17 @@ export const Landing = ({ data, locale = "en" }: { data: LandingCache; locale?: 
           <div>
             <p class="font-semibold">{t("footer.find_us", locale)}</p>
             <div class="mt-4 grid gap-2 text-sm text-neutral-content/65">
-              <a class="link-hover" href="mailto:hello@meetspace.example">Email</a>
-              <a class="link-hover" href="#">Telegram</a>
-              <a class="link-hover" href="#">GitHub</a>
-              <a class="link-hover" href="#">LinkedIn</a>
+              {SOCIAL_MEDIA_LIST.map((item) => (
+                <a
+                  key={item.name}
+                  class="link-hover inline-flex items-center gap-2 transition-colors hover:text-primary"
+                  href={item.href}
+                  target={"target" in item ? item.target : undefined}
+                  rel={"rel" in item ? item.rel : undefined}
+                >
+                  {item.name}
+                </a>
+              ))}
             </div>
           </div>
           <form class="w-full max-w-md" hx-post="/api/contact" hx-target="#contact-result" hx-swap="outerHTML">
