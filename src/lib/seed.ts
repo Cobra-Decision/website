@@ -53,10 +53,19 @@ export async function seedSampleData(database: Database) {
     "/dashboard/admin/files/bulk-confirm",
     "/dashboard/admin/report",
     "/dashboard/admin/mailer",
+    "/dashboard/admin/mail-management",
     "/dashboard/admin/mailer/send",
     "/dashboard/admin/mailer/subscribers",
     "/dashboard/admin/mailer/test-modal",
     "/dashboard/admin/mailer/test-send",
+    "/dashboard/admin/mail-editor",
+    "/dashboard/admin/mail-editor/save",
+    "/dashboard/admin/mail-editor/delete",
+    "/dashboard/admin/mail-scheduler",
+    "/dashboard/admin/mail-scheduler/schedule",
+    "/dashboard/admin/mail-scheduler/repeat",
+    "/dashboard/admin/mail-scheduler/cancel",
+    "/dashboard/admin/mail-scheduler/delete",
   ];
 
   for (const endpoint of endpointsToRegister) {

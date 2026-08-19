@@ -12,7 +12,12 @@ const managementLinks = [
   ["Roles", "/dashboard/admin/roles"],
   ["Endpoints", "/dashboard/admin/endpoints"],
   ["File Management", "/dashboard/admin/files"],
-  ["Mail Management", "/dashboard/admin/mailer"],
+] as const;
+
+const mailCenterLinks = [
+  ["Mail Editor", "/dashboard/admin/mail-editor"],
+  ["Mail Scheduler", "/dashboard/admin/mail-scheduler"],
+  ["Mail Management", "/dashboard/admin/mail-management"],
 ] as const;
 
 const reportLinks = [
@@ -32,6 +37,10 @@ export function AdminLayout({
   user?: DashboardUser;
   locale?: Locale;
 }) {
+  const allowedManagement = managementLinks.filter(([, href]) => allowed.includes(href));
+  const allowedMailCenter = mailCenterLinks.filter(([, href]) => allowed.includes(href));
+  const allowedReports = reportLinks.filter(([, href]) => allowed.includes(href));
+
   return (
     <Layout title={`${title} | CobraDecision Admin`} locale={locale}>
       <div class="drawer lg:drawer-open min-h-screen bg-base-200">
@@ -52,27 +61,44 @@ export function AdminLayout({
         <aside class="drawer-side z-20">
           <label for="admin-drawer" class="drawer-overlay" aria-label="close sidebar" />
           <ul class="menu p-4 w-72 min-h-full bg-base-100 text-base-content border-e border-base-300 space-y-1">
-            <li class="menu-title text-xs font-bold uppercase tracking-wider text-base-content/50">
-              Management
-            </li>
-            {managementLinks
-              .filter(([, href]) => allowed.includes(href))
-              .map(([label, href]) => (
-                <li key={href}>
-                  <a href={href}>{label}</a>
+            {allowedManagement.length > 0 && (
+              <>
+                <li class="menu-title text-xs font-bold uppercase tracking-wider text-base-content/50">
+                  Management
                 </li>
-              ))}
+                {allowedManagement.map(([label, href]) => (
+                  <li key={href}>
+                    <a href={href}>{label}</a>
+                  </li>
+                ))}
+              </>
+            )}
 
-            <li class="menu-title mt-6 text-xs font-bold uppercase tracking-wider text-base-content/50">
-              Reports & Tools
-            </li>
-            {reportLinks
-              .filter(([, href]) => allowed.includes(href))
-              .map(([label, href]) => (
-                <li key={href}>
-                  <a href={href}>{label}</a>
+            {allowedMailCenter.length > 0 && (
+              <>
+                <li class="menu-title mt-4 text-xs font-bold uppercase tracking-wider text-base-content/50">
+                  Mail Center
                 </li>
-              ))}
+                {allowedMailCenter.map(([label, href]) => (
+                  <li key={href}>
+                    <a href={href}>{label}</a>
+                  </li>
+                ))}
+              </>
+            )}
+
+            {allowedReports.length > 0 && (
+              <>
+                <li class="menu-title mt-4 text-xs font-bold uppercase tracking-wider text-base-content/50">
+                  Reports & Tools
+                </li>
+                {allowedReports.map(([label, href]) => (
+                  <li key={href}>
+                    <a href={href}>{label}</a>
+                  </li>
+                ))}
+              </>
+            )}
           </ul>
         </aside>
       </div>
