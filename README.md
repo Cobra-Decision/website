@@ -16,10 +16,11 @@ bun install
 
 # 3. Verify System
 bun test
-bun run check
+bun run typecheck
 
 # 4. Seed Database (Optional)
 bun run seed
+# or: bun run seeding full
 
 # 5. Start Development Server
 bun run dev
@@ -179,29 +180,35 @@ The SQLite database file is located at `data/app.sqlite` by default (mounted to 
 ### Migrations
 
 ```bash
-# Check migration status
-bun run db:migrate status
-
 # Apply pending migrations
-bun run db:migrate
+bun run migration
+# alias: bun run migrate
+
+# Check migration status
+bun run migration status
 
 # Rollback / migrate to a specific version
-bun run db:migrate --to=2
+bun run migration --to=2
 ```
 
 ### Seeding
 
 ```bash
-# Run database seeder (initial admin, roles, dummy meets & users)
-bun run db:seed
+# Seed all
+bun run seeding full
+# alias: bun run seed full
+
+# Seed specific feature (e.g. users, roles, meets, mailer, tags)
+bun run seeding users
 ```
 
 ### Running CLI Inside Docker Container
 
 ```bash
 # Run migrations inside running container
-docker compose exec website bun run db:migrate
+docker compose exec website bun run migration
 
 # Run seeds inside running container
-docker compose exec website bun run db:seed
+docker compose exec website bun run seeding full
+docker compose exec website bun run seeding users
 ```
