@@ -169,3 +169,39 @@ sudo systemctl enable --now website
 bun test        # Runs unit and integration suites
 bun run check   # TypeScript static analysis
 ```
+
+---
+
+## 🗄️ Database Management & CLI
+
+The SQLite database file is located at `data/app.sqlite` by default (mounted to `/app/data/app.sqlite` in Docker).
+
+### Migrations
+
+```bash
+# Check migration status
+bun run db:migrate status
+
+# Apply pending migrations
+bun run db:migrate
+
+# Rollback / migrate to a specific version
+bun run db:migrate --to=2
+```
+
+### Seeding
+
+```bash
+# Run database seeder (initial admin, roles, dummy meets & users)
+bun run db:seed
+```
+
+### Running CLI Inside Docker Container
+
+```bash
+# Run migrations inside running container
+docker compose exec website bun run db:migrate
+
+# Run seeds inside running container
+docker compose exec website bun run db:seed
+```
