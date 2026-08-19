@@ -116,6 +116,17 @@ export function filterMeets(database: Database, params: {
   return hydrateMeets(database, meets);
 }
 
+function parseTopics(raw: string | null | undefined): string[] {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) return parsed.map(String);
+    return [String(parsed)];
+  } catch {
+    return raw.split(",").map((s) => s.trim()).filter(Boolean);
+  }
+}
+
 function hydrateMeets(database: Database, meets: Meet[]): MeetWithDetails[] {
   const attendees = database.query<{ user_id: string }, [string]>("SELECT user_id FROM meet_attendees WHERE meet_id = ?");
   const tags = database.query<Tag, [string]>(`SELECT t.* FROM tags t JOIN meet_tags mt ON mt.tag_id = t.id
@@ -130,7 +141,7 @@ function hydrateMeets(database: Database, meets: Meet[]): MeetWithDetails[] {
       status: meet.status ?? "upcoming",
       access_status: meet.access_status ?? "public",
       file_url: meet.file_url ?? null,
-      topics: JSON.parse(meet.topics ?? "[]") as string[],
+      topics: parseTopics(meet.topics),
       presenter: meet.presenter_id === null ? null : presenter.get(meet.presenter_id) ?? null,
       attendee_count: attendeeIds.length,
       attendee_ids: attendeeIds,
