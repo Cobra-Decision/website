@@ -128,24 +128,74 @@ function parseTopics(raw: string | null | undefined): string[] {
 }
 
 function hydrateMeets(database: Database, meets: Meet[]): MeetWithDetails[] {
-  const attendees = database.query<{ user_id: string }, [string]>("SELECT user_id FROM meet_attendees WHERE meet_id = ?");
-  const tags = database.query<Tag, [string]>(`SELECT t.* FROM tags t JOIN meet_tags mt ON mt.tag_id = t.id
-    WHERE mt.meet_id = ? AND t.deleted_at IS NULL ORDER BY t.title`);
-  const presenter = database.query<UserSummary, [string]>(`SELECT id, email, username, first_name, last_name FROM users
-    WHERE id = ? AND deleted_at IS NULL`);
+  if (!meets.length) return [];
+
+  const meetIds = meets.map((m) => m.id);
+  const placeholders = meetIds.map(() => "?").join(",");
+
+  const attendeesRows = database
+    .query<{ meet_id: string; user_id: string }, string[]>(
+      `SELECT meet_id, user_id FROM meet_attendees WHERE meet_id IN (${placeholders})`
+    )
+    .all(...meetIds);
+
+  const attendeesByMeet = new Map<string, string[]>();
+  for (const row of attendeesRows) {
+    let list = attendeesByMeet.get(row.meet_id);
+    if (!list) {
+      list = [];
+      attendeesByMeet.set(row.meet_id, list);
+    }
+    list.push(row.user_id);
+  }
+
+  const tagsRows = database
+    .query<Tag & { meet_id: string }, string[]>(
+      `SELECT t.*, mt.meet_id FROM tags t
+       JOIN meet_tags mt ON mt.tag_id = t.id
+       WHERE mt.meet_id IN (${placeholders}) AND t.deleted_at IS NULL
+       ORDER BY t.title ASC`
+    )
+    .all(...meetIds);
+
+  const tagsByMeet = new Map<string, Tag[]>();
+  for (const row of tagsRows) {
+    const { meet_id, ...tag } = row;
+    let list = tagsByMeet.get(meet_id);
+    if (!list) {
+      list = [];
+      tagsByMeet.set(meet_id, list);
+    }
+    list.push(tag as Tag);
+  }
+
+  const presenterIds = Array.from(new Set(meets.map((m) => m.presenter_id).filter(Boolean))) as string[];
+  const presenterMap = new Map<string, UserSummary>();
+  if (presenterIds.length > 0) {
+    const presenterPlaceholders = presenterIds.map(() => "?").join(",");
+    const presenters = database
+      .query<UserSummary, string[]>(
+        `SELECT id, email, username, first_name, last_name FROM users
+         WHERE id IN (${presenterPlaceholders}) AND deleted_at IS NULL`
+      )
+      .all(...presenterIds);
+    for (const p of presenters) {
+      presenterMap.set(p.id, p);
+    }
+  }
 
   return meets.map((meet) => {
-    const attendeeIds = attendees.all(meet.id).map(({ user_id }) => user_id);
+    const attendeeIds = attendeesByMeet.get(meet.id) ?? [];
     return {
       ...meet,
       status: meet.status ?? "upcoming",
       access_status: meet.access_status ?? "public",
       file_url: meet.file_url ?? null,
       topics: parseTopics(meet.topics),
-      presenter: meet.presenter_id === null ? null : presenter.get(meet.presenter_id) ?? null,
+      presenter: meet.presenter_id ? presenterMap.get(meet.presenter_id) ?? null : null,
       attendee_count: attendeeIds.length,
       attendee_ids: attendeeIds,
-      tags: tags.all(meet.id),
+      tags: tagsByMeet.get(meet.id) ?? [],
     };
   });
 }
