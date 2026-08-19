@@ -1,18 +1,18 @@
 import { createApp } from "./app";
 import { database } from "./lib/database";
-import { initializeDatabase } from "./modules/auth/database";
-import { createAltcha } from "./modules/auth/routes";
-import { initializeEventsDatabase } from "./modules/events/database";
-import { initializeLandingDatabase } from "./modules/landing/database";
+import { initializeDatabase as initAuthModule, createAltcha } from "./modules/auth";
+import { initializeEventsDatabase as initEventsModule } from "./modules/events";
+import { initializeLandingDatabase as initLandingModule } from "./modules/landing";
+import { initializeMailerDatabase as initMailerModule, startMailerScheduler } from "./modules/mailer";
 import { initCache } from "./lib/cache";
-import { startMailerScheduler } from "./modules/mailer/scheduler";
 
-await initializeDatabase(database, {
+await initAuthModule(database, {
   email: process.env.SEED_ADMIN_EMAIL,
   password: process.env.SEED_ADMIN_PASSWORD,
 });
-initializeEventsDatabase(database);
-initializeLandingDatabase(database);
+initEventsModule(database);
+initLandingModule(database);
+initMailerModule(database);
 initCache(database);
 startMailerScheduler(database);
 
