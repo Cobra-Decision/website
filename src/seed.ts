@@ -1,13 +1,7 @@
 import { database } from "./lib/database";
-import { seedSampleData } from "./lib/seed";
-import { initializeDatabase as initAuthModule } from "./modules/auth";
-import { initializeEventsDatabase as initEventsModule } from "./modules/events";
-import { initializeLandingDatabase as initLandingModule } from "./modules/landing";
-import { initializeMailerDatabase as initMailerModule } from "./modules/mailer";
+import { runMigrations } from "./lib/database/migration";
+import { seedFull } from "./lib/database/seeding";
 
-await initAuthModule(database, { email: process.env.SEED_ADMIN_EMAIL, password: process.env.SEED_ADMIN_PASSWORD });
-initEventsModule(database);
-initLandingModule(database);
-initMailerModule(database);
-await seedSampleData(database);
-console.log("CobraDecision database seeded.");
+await runMigrations(database);
+await seedFull(database);
+console.log("CobraDecision database migrated and seeded successfully.");
