@@ -2,7 +2,13 @@ import { Hono, type Context } from "hono";
 import type { Database } from "bun:sqlite";
 import { AdminLayout } from "./views";
 import { DatabaseManagementView, getDatabaseStats } from "./database-views";
-import { exportDatabaseAsSql, exportDatabaseAsJson, importDatabaseFromJson, importDatabaseFromSql } from "../../lib/backup/local";
+import {
+  exportDatabaseAsSql,
+  exportDatabaseAsJson,
+  importDatabaseFromJson,
+  importDatabaseFromSql,
+  importDatabaseFromSqlite,
+} from "../../lib/backup/local";
 import { executeBackup } from "../../lib/backup/scheduler";
 import { runMigrations } from "../../lib/database/migration";
 import { getLocale } from "../../lib/i18n/context";
@@ -20,7 +26,7 @@ export function createDatabaseAdminRoutes(
   const app = new Hono<AdminEnv>();
 
   // Database Management View
-  app.get("/dashboard/admin/database", (c) => {
+  app.get("/database", (c) => {
     const stats = getDatabaseStats(db);
     const locale = getLocale(c);
     return pageRenderer(
@@ -31,7 +37,7 @@ export function createDatabaseAdminRoutes(
   });
 
   // Export DB
-  app.get("/dashboard/admin/database/export", async (c) => {
+  app.get("/database/export", async (c) => {
     const format = c.req.query("format") ?? "sql";
     const dateStr = new Date().toISOString().split("T")[0];
 
@@ -67,7 +73,7 @@ export function createDatabaseAdminRoutes(
   });
 
   // Trigger Backup Now
-  app.post("/dashboard/admin/database/backup-now", async (c) => {
+  app.post("/database/backup-now", async (c) => {
     const result = await executeBackup(db);
     if (!result.success) {
       return c.html(
@@ -88,7 +94,7 @@ export function createDatabaseAdminRoutes(
   });
 
   // Run Pending Migrations
-  app.post("/dashboard/admin/database/migrate", async (c) => {
+  app.post("/database/migrate", async (c) => {
     try {
       const res = await runMigrations(db);
       return c.html(
@@ -108,7 +114,7 @@ export function createDatabaseAdminRoutes(
   });
 
   // Import DB
-  app.post("/dashboard/admin/database/import", async (c) => {
+  app.post("/database/import", async (c) => {
     try {
       const body = await c.req.parseBody();
       const file = body["backup_file"];
@@ -123,9 +129,9 @@ export function createDatabaseAdminRoutes(
 
       const fileObj = file as File;
       const fileName = fileObj.name.toLowerCase();
-      const content = await fileObj.text();
 
       if (fileName.endsWith(".json")) {
+        const content = await fileObj.text();
         const res = await importDatabaseFromJson(db, content);
         return c.html(
           <div class="alert alert-success text-sm">
@@ -135,16 +141,27 @@ export function createDatabaseAdminRoutes(
           </div>
         );
       } else if (fileName.endsWith(".sql")) {
+        const content = await fileObj.text();
         await importDatabaseFromSql(db, content);
         return c.html(
           <div class="alert alert-success text-sm">
             <span>✓ Successfully executed SQL dump and restored database.</span>
           </div>
         );
+      } else if (fileName.endsWith(".sqlite") || fileName.endsWith(".db") || fileName.endsWith(".sqlite3")) {
+        const arrayBuf = await fileObj.arrayBuffer();
+        const res = await importDatabaseFromSqlite(db, new Uint8Array(arrayBuf));
+        return c.html(
+          <div class="alert alert-success text-sm">
+            <span>
+              ✓ Successfully imported {res.totalRows} records across {res.tablesImported.length} tables from SQLite snapshot.
+            </span>
+          </div>
+        );
       } else {
         return c.html(
           <div class="alert alert-error text-sm">
-            <span>Unsupported file extension. Please provide a .sql or .json file.</span>
+            <span>Unsupported file extension. Please provide a .sql, .json, or .sqlite file.</span>
           </div>
         );
       }

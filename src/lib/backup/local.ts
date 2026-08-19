@@ -1,6 +1,6 @@
-import { mkdir } from "node:fs/promises";
+import { mkdir, unlink, stat } from "node:fs/promises";
 import { join } from "node:path";
-import type { Database } from "bun:sqlite";
+import { Database } from "bun:sqlite";
 
 export interface BackupOptions {
   localDir?: string;
@@ -58,6 +58,8 @@ export function exportDatabaseAsSql(db: Database): string {
           const v = row[k];
           if (v === null || v === undefined) return "NULL";
           if (typeof v === "number") return v;
+          if (typeof v === "bigint") return v.toString();
+          if (typeof v === "boolean") return v ? 1 : 0;
           return `'${String(v).replace(/'/g, "''")}'`;
         })
         .join(", ");
@@ -90,7 +92,10 @@ export function exportDatabaseAsJson(db: Database): string {
   return JSON.stringify(dump, null, 2);
 }
 
-export async function importDatabaseFromJson(db: Database, jsonString: string): Promise<{ tablesImported: string[]; totalRows: number }> {
+export async function importDatabaseFromJson(
+  db: Database,
+  jsonString: string
+): Promise<{ tablesImported: string[]; totalRows: number }> {
   const data = JSON.parse(jsonString);
   if (!data || !data.tables) {
     throw new Error("Invalid backup JSON format: missing 'tables' payload");
@@ -136,4 +141,69 @@ export async function importDatabaseFromSql(db: Database, sqlString: string): Pr
     db.run("PRAGMA foreign_keys = ON;");
     throw err;
   }
+}
+
+export async function importDatabaseFromSqlite(
+  db: Database,
+  sqliteBuffer: Uint8Array
+): Promise<{ tablesImported: string[]; totalRows: number }> {
+  const tempPath = join(
+    process.env.BACKUP_LOCAL_DIR ?? "./backups",
+    `temp-import-${Date.now()}-${Math.random().toString(36).slice(2, 7)}.sqlite`
+  );
+
+  await mkdir(process.env.BACKUP_LOCAL_DIR ?? "./backups", { recursive: true });
+  await Bun.write(tempPath, sqliteBuffer);
+
+  let tempDb: Database | null = null;
+  let totalRows = 0;
+  const tablesImported: string[] = [];
+
+  try {
+    tempDb = new Database(tempPath, { readonly: true });
+    const tables = tempDb
+      .query<{ name: string; sql: string }, []>(
+        "SELECT name, sql FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name ASC"
+      )
+      .all();
+
+    db.run("PRAGMA foreign_keys = OFF;");
+    db.run("BEGIN TRANSACTION;");
+
+    for (const table of tables) {
+      if (table.sql) {
+        const createSql = table.sql.replace(/^CREATE TABLE /i, "CREATE TABLE IF NOT EXISTS ");
+        db.run(createSql);
+      }
+
+      const rows = tempDb.query(`SELECT * FROM "${table.name}"`).all() as Record<string, any>[];
+      if (rows.length > 0) {
+        for (const row of rows) {
+          const keys = Object.keys(row);
+          const cols = keys.map((k) => `"${k}"`).join(", ");
+          const placeholders = keys.map(() => "?").join(", ");
+          const values = keys.map((k) => row[k]);
+          db.run(`INSERT OR REPLACE INTO "${table.name}" (${cols}) VALUES (${placeholders})`, values);
+          totalRows++;
+        }
+        tablesImported.push(table.name);
+      }
+    }
+
+    db.run("COMMIT;");
+    db.run("PRAGMA foreign_keys = ON;");
+  } catch (err) {
+    db.run("ROLLBACK;");
+    db.run("PRAGMA foreign_keys = ON;");
+    throw err;
+  } finally {
+    if (tempDb) {
+      tempDb.close();
+    }
+    try {
+      await unlink(tempPath);
+    } catch {}
+  }
+
+  return { tablesImported, totalRows };
 }

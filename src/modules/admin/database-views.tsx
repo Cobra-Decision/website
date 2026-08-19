@@ -236,7 +236,7 @@ export function DatabaseManagementView({
                 Import & Restore Database
               </h2>
               <p class="text-xs text-base-content/60 mt-1">
-                Restore schema & table data from a valid SQL or JSON backup file.
+                Restore schema & table data from a valid SQL, JSON, or SQLite backup file.
               </p>
             </div>
 
@@ -250,7 +250,7 @@ export function DatabaseManagementView({
                 <input
                   type="file"
                   name="backup_file"
-                  accept=".sql,.json"
+                  accept=".sql,.json,.sqlite,.db,.sqlite3"
                   required
                   class="file-input file-input-bordered file-input-sm w-full"
                 />
