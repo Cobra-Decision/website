@@ -4,6 +4,8 @@ import type { MiddlewareHandler } from "hono";
 import { createApp } from "../../src/app";
 import { initializeDatabase } from "../../src/modules/auth/database";
 import { initializeEventsDatabase } from "../../src/modules/events/database";
+import { initializeLandingDatabase } from "../../src/modules/landing/database";
+import { initializeMailerDatabase } from "../../src/modules/mailer/database";
 import { generateId } from "../../src/lib/id";
 import { seedSampleData } from "../../src/lib/seed";
 import { join } from "node:path";
@@ -20,6 +22,8 @@ beforeEach(async () => {
   database = new Database(":memory:");
   await initializeDatabase(database);
   initializeEventsDatabase(database);
+  initializeLandingDatabase(database);
+  initializeMailerDatabase(database);
   await seedSampleData(database);
 
   const passCaptcha: MiddlewareHandler = async (_, next) => next();
