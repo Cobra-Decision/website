@@ -1,15 +1,15 @@
-import type { EmailMessage, MailerStats } from "../mailer/types";
+import type { ScheduledEmailRow, EmailTemplateRow } from "../mailer/database";
 import type { Tag } from "../events/types";
 import { MailPlaceholdersToolbar } from "./mail-placeholders-component";
 
-export const MailerDashboardView = ({
-  stats,
-  buffer,
+export const MailSchedulerView = ({
+  scheduledList,
+  templates,
   tags,
   users,
 }: {
-  stats: MailerStats;
-  buffer: EmailMessage[];
+  scheduledList: ScheduledEmailRow[];
+  templates: EmailTemplateRow[];
   tags: Tag[];
   users: { id: string; email: string; first_name: string | null; last_name: string | null; username: string | null }[];
 }) => {
@@ -17,12 +17,16 @@ export const MailerDashboardView = ({
     <div
       class="space-y-8"
       x-data={`{
-        format: 'html',
         targetMode: 'all',
-        preview: false,
+        format: 'html',
+        selectedTemplateId: '',
+        title: '',
+        subject: '',
         body: '',
+        scheduledFor: '',
         tagSearch: '',
         userSearch: '',
+        templates: ${JSON.stringify(templates.map((t) => ({ id: t.id, title: t.title, subject: t.subject, format: t.format, value: t.value })))},
         allTags: ${JSON.stringify(tags.map((t) => ({ id: t.id, title: t.title })))},
         allUsers: ${JSON.stringify(
           users.map((u) => ({
@@ -33,6 +37,14 @@ export const MailerDashboardView = ({
         )},
         selectedTagIds: [],
         selectedUserIds: [],
+        loadTemplate(tplId) {
+          const t = this.templates.find(x => x.id === tplId);
+          if (!t) return;
+          this.title = 'Broadcast: ' + t.title;
+          this.subject = t.subject;
+          this.format = t.format;
+          this.body = t.value;
+        },
         get filteredTags() {
           if (!this.tagSearch.trim()) return this.allTags;
           const q = this.tagSearch.toLowerCase();
@@ -70,102 +82,38 @@ export const MailerDashboardView = ({
             textarea.focus();
             textarea.setSelectionRange(start + placeholder.length, start + placeholder.length);
           });
-        },
-        get interpolatedPreview() {
-          if (!this.body) return '<span class="text-gray-400 italic">Empty preview</span>';
-          let rendered = this.body
-            .replace(/\\{\\{\\s*name\\s*\\}\\}/gi, 'Sara Ahmadi')
-            .replace(/\\{\\{\\s*email\\s*\\}\\}/gi, 'sara@example.com')
-            .replace(/\\{\\{\\s*first_name\\s*\\}\\}/gi, 'Sara')
-            .replace(/\\{\\{\\s*last_name\\s*\\}\\}/gi, 'Ahmadi')
-            .replace(/\\{\\{\\s*username\\s*\\}\\}/gi, 'sara_dev')
-            .replace(/\\{\\{\\s*date\\s*\\}\\}/gi, new Date().toLocaleDateString())
-            .replace(/\\{\\{\\s*date_shamsi\\s*\\}\\}/gi, new Intl.DateTimeFormat('fa-IR', { year: 'numeric', month: 'long', day: 'numeric' }).format(new Date()))
-            .replace(/\\{\\{\\s*meet_title\\s*\\}\\}/gi, 'Distributed Systems with Bun & SQLite')
-            .replace(/\\{\\{\\s*meet_date\\s*\\}\\}/gi, '2026-08-25')
-            .replace(/\\{\\{\\s*meet_date_shamsi\\s*\\}\\}/gi, '۳ شهریور ۱۴۰۵')
-            .replace(/\\{\\{\\s*meet_time\\s*\\}\\}/gi, '18:00')
-            .replace(/\\{\\{\\s*meet_link\\s*\\}\\}/gi, window.location.origin + '/meets/sample-123')
-            .replace(/\\{\\{\\s*dashboard_url\\s*\\}\\}/gi, window.location.origin + '/dashboard/user')
-            .replace(/\\{\\{\\s*unsubscribe_url\\s*\\}\\}/gi, '#');
-
-          if (this.format === 'markdown') {
-            let html = rendered
-              .replace(/^### (.*$)/gim, '<h3 style="font-size:18px;font-weight:bold;margin:12px 0;">$1</h3>')
-              .replace(/^## (.*$)/gim, '<h2 style="font-size:20px;font-weight:bold;margin:16px 0;border-bottom:1px solid #eee;padding-bottom:4px;">$1</h2>')
-              .replace(/^# (.*$)/gim, '<h1 style="font-size:24px;font-weight:bold;margin:20px 0;border-bottom:1px solid #eee;padding-bottom:4px;">$1</h1>')
-              .replace(/\\*\\*(.*?)\\*\\*/gim, '<strong>$1</strong>')
-              .replace(/\\*(.*?)\\*/gim, '<em>$1</em>')
-              .replace(/\\[([^\\]]+)\\]\\(([^)]+)\\)/gim, '<a href="$2" style="color:#2563eb;text-decoration:none;">$1</a>')
-              .replace(/^\\s*-\\s+(.*$)/gim, '<li>$1</li>')
-              .replace(/\\n/g, '<br/>');
-            return '<div style="font-family:system-ui,sans-serif;line-height:1.6;color:#1e293b;padding:12px;">' + html + '</div>';
-          }
-          if (this.format === 'text') {
-            return '<pre style="white-space:pre-wrap;font-family:monospace;background:#f8fafc;padding:12px;border-radius:6px;">' + rendered + '</pre>';
-          }
-          return rendered;
         }
       }`}
     >
       {/* Header */}
       <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 class="text-2xl font-bold tracking-tight text-base-content sm:text-3xl">Mail Management</h1>
+          <h1 class="text-2xl font-bold tracking-tight text-base-content sm:text-3xl">Mail Scheduler</h1>
           <p class="text-sm text-base-content/60">
-            Inspect circular email buffer, monitor delivery stats, and compose batch or stack emails with attachments.
+            Schedule future automated batch emails to targeted audiences (All Users, Tag Followers, Domains, Specific Users).
           </p>
         </div>
         <button
-          hx-get="/dashboard/admin/mailer"
+          hx-get="/dashboard/admin/mail-scheduler"
           hx-target="main"
           hx-select="main > *"
           class="btn btn-sm btn-outline gap-2"
         >
-          ↻ Refresh Buffer
+          ↻ Refresh Queue
         </button>
       </div>
 
-      {/* Stats Cards */}
-      <div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <div class="stat rounded-2xl border border-base-300 bg-base-100 p-4 shadow-sm">
-          <div class="stat-title text-xs">Active Provider</div>
-          <div class="stat-value text-xl font-bold text-primary truncate">{stats.activeProvider}</div>
-          <div class="stat-desc">Configured engine</div>
-        </div>
-
-        <div class="stat rounded-2xl border border-base-300 bg-base-100 p-4 shadow-sm">
-          <div class="stat-title text-xs">Sent Emails</div>
-          <div class="stat-value text-xl font-bold text-success">{stats.sent}</div>
-          <div class="stat-desc">Total successful sends</div>
-        </div>
-
-        <div class="stat rounded-2xl border border-base-300 bg-base-100 p-4 shadow-sm">
-          <div class="stat-title text-xs">Failed Emails</div>
-          <div class="stat-value text-xl font-bold text-error">{stats.failed}</div>
-          <div class="stat-desc">Encountered errors</div>
-        </div>
-
-        <div class="stat rounded-2xl border border-base-300 bg-base-100 p-4 shadow-sm">
-          <div class="stat-title text-xs">Ring Buffer Capacity</div>
-          <div class="stat-value text-xl font-bold text-base-content">
-            {stats.bufferSize} / {stats.bufferCapacity}
-          </div>
-          <div class="stat-desc">Zero-leak circular slots</div>
-        </div>
-      </div>
-
-      {/* Batch / Stack Email Composer */}
+      {/* Schedule Creation Card */}
       <div class="card border border-base-300 bg-base-100 shadow-sm">
         <div class="card-body p-6 space-y-4">
           <div class="flex items-center justify-between border-b border-base-200 pb-3">
             <div>
-              <h2 class="text-lg font-bold text-base-content">Compose Batch / Stack Email</h2>
+              <h2 class="text-lg font-bold text-base-content">Create Scheduled Email</h2>
               <p class="text-xs text-base-content/60">
-                Send unified email to all users, specific tag followers, or domain matches with attachments.
+                Pick a template or craft a custom message and set delivery date and time.
               </p>
             </div>
-            {/* Format Style Selector */}
+
             <div class="join">
               <button
                 type="button"
@@ -195,18 +143,49 @@ export const MailerDashboardView = ({
           </div>
 
           <form
-            hx-post="/dashboard/admin/mailer/send"
-            hx-target="#composer-result"
-            hx-swap="innerHTML"
-            hx-encoding="multipart/form-data"
+            hx-post="/dashboard/admin/mail-scheduler/schedule"
+            hx-target="main"
+            hx-select="main > *"
             class="space-y-4"
           >
             <input type="hidden" name="format" x-bind:value="format" />
 
-            {/* Target Audience Select */}
+            {/* Template Selector & Title */}
             <div class="grid gap-4 sm:grid-cols-2">
-              <div class="form-control sm:col-span-2">
-                <label class="label"><span class="label-text font-semibold text-xs">Target Audience</span></label>
+              <div class="form-control">
+                <label class="label py-1"><span class="label-text font-semibold text-xs">Load Saved Template (Optional)</span></label>
+                <select
+                  class="select select-bordered select-sm w-full"
+                  name="templateId"
+                  x-model="selectedTemplateId"
+                  x-on:change="loadTemplate(selectedTemplateId)"
+                >
+                  <option value="">-- Custom Email / No Template --</option>
+                  {templates.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.title} ({t.format})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div class="form-control">
+                <label class="label py-1"><span class="label-text font-semibold text-xs">Campaign Title *</span></label>
+                <input
+                  type="text"
+                  name="title"
+                  required
+                  placeholder="e.g. September Community Meetup"
+                  x-model="title"
+                  class="input input-bordered input-sm w-full text-xs"
+                />
+              </div>
+            </div>
+
+            {/* Target Audience Mode */}
+            <div class="grid gap-4 sm:grid-cols-2">
+              <div class="form-control">
+                <label class="label py-1"><span class="label-text font-semibold text-xs">Target Audience *</span></label>
                 <select
                   class="select select-bordered select-sm w-full"
                   name="targetMode"
@@ -219,7 +198,18 @@ export const MailerDashboardView = ({
                 </select>
               </div>
 
-              {/* Tag selector with Search and Filter */}
+              <div class="form-control">
+                <label class="label py-1"><span class="label-text font-semibold text-xs">Schedule Date & Time *</span></label>
+                <input
+                  type="datetime-local"
+                  name="scheduledFor"
+                  required
+                  x-model="scheduledFor"
+                  class="input input-bordered input-sm w-full text-xs"
+                />
+              </div>
+
+              {/* Tag selector */}
               <div class="form-control sm:col-span-2 space-y-2" x-show="targetMode === 'tags'" x-cloak>
                 <div class="flex items-center justify-between">
                   <label class="label-text font-semibold text-xs">
@@ -254,16 +244,16 @@ export const MailerDashboardView = ({
 
               {/* Domain Input */}
               <div class="form-control sm:col-span-2" x-show="targetMode === 'domain'" x-cloak>
-                <label class="label"><span class="label-text font-semibold text-xs">Email Domain</span></label>
+                <label class="label py-1"><span class="label-text font-semibold text-xs">Email Domain Filter</span></label>
                 <input
                   type="text"
                   name="domain"
-                  placeholder="gmail.com or company.org"
-                  class="input input-bordered input-sm w-full"
+                  placeholder="e.g. gmail.com or company.org"
+                  class="input input-bordered input-sm w-full text-xs"
                 />
               </div>
 
-              {/* Selected Users with Search and Filter */}
+              {/* Selected Users */}
               <div class="form-control sm:col-span-2 space-y-2" x-show="targetMode === 'selected'" x-cloak>
                 <div class="flex items-center justify-between">
                   <label class="label-text font-semibold text-xs">
@@ -302,91 +292,50 @@ export const MailerDashboardView = ({
 
             {/* Subject */}
             <div class="form-control">
-              <label class="label"><span class="label-text font-semibold text-xs">Subject Line</span></label>
+              <label class="label py-1"><span class="label-text font-semibold text-xs">Subject Line *</span></label>
               <input
                 type="text"
                 name="subject"
                 required
                 placeholder="Important Announcement from CobraDecision"
-                class="input input-bordered input-sm w-full"
+                x-model="subject"
+                class="input input-bordered input-sm w-full text-xs"
               />
             </div>
 
-            {/* File Attachment Upload */}
-            <div class="form-control">
-              <label class="label">
-                <span class="label-text font-semibold text-xs">Attach Files (Optional)</span>
-                <span class="label-text-alt text-base-content/60 text-2xs">PDF, Images, Documents (max 25MB)</span>
-              </label>
-              <input
-                type="file"
-                name="attachment"
-                class="file-input file-input-bordered file-input-sm w-full"
-              />
-            </div>
-
-            {/* Email Body Editor & Live Tag Replacement */}
+            {/* Body Textarea */}
             <div class="form-control space-y-1">
-              <div class="flex flex-wrap items-center justify-between pb-1 gap-2">
-                <label class="label-text font-semibold text-xs">
-                  <span x-text="format === 'html' ? 'Email HTML Body' : format === 'markdown' ? 'Email Markdown Body' : 'Email Plain Text Body'"></span>
-                </label>
-                <button
-                  type="button"
-                  x-on:click="preview = !preview"
-                  class="btn btn-xs btn-ghost text-2xs"
-                >
-                  <span x-text="preview ? 'Hide Live Preview' : 'Show Live Preview'"></span>
-                </button>
-              </div>
-
-              {/* Shared Variables Toolbar */}
+              <label class="label py-1"><span class="label-text font-semibold text-xs">Email Message Body *</span></label>
               <MailPlaceholdersToolbar onInsertMethod="insertTag" />
-
               <textarea
                 x-ref="bodyTextarea"
                 name="body"
                 required
                 x-model="body"
-                rows={7}
-                placeholder={
-                  "Enter email content here...\n{{name}}, {{email}}, {{date}}, {{date_shamsi}} supported."
-                }
-                class="textarea textarea-bordered font-mono text-sm w-full"
+                rows={6}
+                placeholder="Compose scheduled email body. {{name}}, {{email}}, {{date}}, {{date_shamsi}} supported."
+                class="textarea textarea-bordered font-mono text-xs w-full leading-relaxed"
               ></textarea>
-
-              {/* Live Preview Pane with Tag Replacement */}
-              <div
-                x-show="preview"
-                x-cloak
-                class="mt-3 rounded-xl border border-base-300 bg-white p-4 text-black shadow-inner"
-              >
-                <div class="flex items-center justify-between border-b pb-1 mb-2">
-                  <span class="text-xs font-bold uppercase text-gray-400">Live Output Preview (Variables Interpolated)</span>
-                  <span class="badge badge-xs badge-ghost font-mono uppercase" x-text="format"></span>
-                </div>
-                <div x-html="interpolatedPreview" class="prose max-w-none"></div>
-              </div>
             </div>
-
-            <div id="composer-result"></div>
 
             <div class="flex justify-end">
               <button class="btn btn-primary btn-sm gap-2" type="submit">
                 <span class="htmx-indicator loading loading-spinner loading-xs"></span>
-                <span>Send Batch Emails</span>
+                <span>Schedule Broadcast</span>
               </button>
             </div>
           </form>
         </div>
       </div>
 
-      {/* Ring Buffer History Viewer */}
+      {/* Scheduled Tasks Queue Table */}
       <div class="card border border-base-300 bg-base-100 shadow-sm overflow-hidden">
         <div class="card-body p-6">
-          <h2 class="text-lg font-bold text-base-content">Recent Ring Buffer History ({buffer.length} items)</h2>
+          <h2 class="text-lg font-bold text-base-content">
+            Scheduled Queue ({scheduledList.length} jobs)
+          </h2>
           <p class="text-xs text-base-content/60 mb-4">
-            Recent emails captured in the in-memory circular buffer.
+            Review status of scheduled email jobs. The background scheduler evaluates and triggers tasks when time is reached.
           </p>
 
           <div class="overflow-x-auto">
@@ -394,56 +343,92 @@ export const MailerDashboardView = ({
               <thead>
                 <tr>
                   <th>Status</th>
-                  <th>Recipient</th>
-                  <th>Subject</th>
+                  <th>Title</th>
+                  <th>Audience</th>
                   <th>Format</th>
-                  <th>Provider</th>
-                  <th>Created At</th>
-                  <th>Sent / Error</th>
+                  <th>Scheduled For</th>
+                  <th>Sent Count</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {buffer.length === 0 ? (
+                {scheduledList.length === 0 ? (
                   <tr>
                     <td colSpan={7} class="text-center py-6 text-base-content/50">
-                      Ring buffer is currently empty.
+                      No scheduled email broadcasts in queue.
                     </td>
                   </tr>
                 ) : (
-                  buffer.map((msg) => (
-                    <tr key={msg.id}>
+                  scheduledList.map((job) => (
+                    <tr key={job.id}>
                       <td>
                         <span
                           class={`badge badge-sm ${
-                            msg.status === "sent"
+                            job.status === "sent"
                               ? "badge-success text-white"
-                              : msg.status === "failed"
+                              : job.status === "processing"
+                              ? "badge-info text-white"
+                              : job.status === "failed"
                               ? "badge-error text-white"
+                              : job.status === "cancelled"
+                              ? "badge-ghost"
                               : "badge-warning"
                           }`}
                         >
-                          {msg.status}
+                          {job.status}
                         </span>
                       </td>
-                      <td class="font-mono text-xs">{msg.to}</td>
-                      <td class="font-medium max-w-xs truncate">{msg.subject}</td>
-                      <td>
-                        <span class="badge badge-ghost badge-xs">{msg.format ?? "html"}</span>
+                      <td class="font-medium">
+                        <div>{job.title}</div>
+                        <div class="text-2xs text-base-content/60 truncate max-w-xs">{job.subject}</div>
                       </td>
-                      <td class="text-xs opacity-75">{msg.provider}</td>
-                      <td class="text-xs opacity-75">
-                        {new Date(msg.createdAt).toLocaleTimeString()}
+                      <td>
+                        <span class="badge badge-outline badge-xs uppercase font-mono">
+                          {job.target_mode}
+                        </span>
+                      </td>
+                      <td>
+                        <span class="badge badge-ghost badge-xs uppercase font-mono">{job.format}</span>
                       </td>
                       <td class="text-xs">
-                        {msg.status === "sent" && msg.sentAt ? (
-                          <span class="text-success">{new Date(msg.sentAt).toLocaleTimeString()}</span>
-                        ) : msg.status === "failed" ? (
-                          <span class="text-error truncate max-w-xs inline-block" title={msg.error}>
-                            {msg.error}
-                          </span>
-                        ) : (
-                          <span class="opacity-50">—</span>
-                        )}
+                        {new Date(job.scheduled_for).toLocaleString()}
+                      </td>
+                      <td class="text-xs font-bold text-center">
+                        {job.sent_count}
+                      </td>
+                      <td>
+                        <div class="flex items-center gap-1">
+                          {job.status === "pending" && (
+                            <form
+                              hx-post={`/dashboard/admin/mail-scheduler/cancel?id=${job.id}`}
+                              hx-target="main"
+                              hx-select="main > *"
+                            >
+                              <button type="submit" class="btn btn-xs btn-outline btn-warning">
+                                Cancel
+                              </button>
+                            </form>
+                          )}
+                          <form
+                            hx-post={`/dashboard/admin/mail-scheduler/repeat?id=${job.id}`}
+                            hx-target="main"
+                            hx-select="main > *"
+                          >
+                            <button type="submit" class="btn btn-xs btn-outline btn-info" title="Repeat this broadcast in queue">
+                              🔁 Repeat
+                            </button>
+                          </form>
+                          <form
+                            hx-post={`/dashboard/admin/mail-scheduler/delete?id=${job.id}`}
+                            hx-confirm="Are you sure you want to delete this scheduled job?"
+                            hx-target="main"
+                            hx-select="main > *"
+                          >
+                            <button type="submit" class="btn btn-xs btn-ghost text-error">
+                              ✕
+                            </button>
+                          </form>
+                        </div>
                       </td>
                     </tr>
                   ))

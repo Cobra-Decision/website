@@ -3,11 +3,16 @@ import { RingBuffer } from "./ring-buffer";
 import { FallbackProvider, SmtpProvider } from "./providers";
 import {
   renderAttendanceConfirmationTemplate,
+  renderAttendeesReminderTemplate,
   renderOtpEmailTemplate,
   renderTagReminderTemplate,
   renderWelcomeTemplate,
+  wrapEmailContainer,
+  interpolateVariables,
+  getShamsiToday,
   type MeetEmailData,
 } from "./templates";
+import { renderMarkdown } from "../../lib/markdown";
 import type { BatchFilterOptions, EmailMessage, EmailPayload, EmailProvider, MailerStats } from "./types";
 import { generateId } from "../../lib/id";
 import { logger } from "../../lib/logger";
@@ -16,6 +21,7 @@ export class MailService {
   private static instance: MailService | null = null;
   private ringBuffer: RingBuffer<EmailMessage>;
   private provider: EmailProvider;
+  private hasCustomProvider = false;
   private isProcessing = false;
   private queue: EmailMessage[] = [];
   private totalSent = 0;
@@ -25,6 +31,7 @@ export class MailService {
     this.ringBuffer = new RingBuffer<EmailMessage>(capacity);
     if (customProvider) {
       this.provider = customProvider;
+      this.hasCustomProvider = true;
     } else {
       this.provider = this.createDefaultProvider();
     }
@@ -36,6 +43,7 @@ export class MailService {
   }
 
   public refreshProvider(): void {
+    if (this.hasCustomProvider) return;
     const smtp = new SmtpProvider();
     this.provider = smtp.isAvailable() ? smtp : new FallbackProvider();
   }
@@ -70,6 +78,7 @@ export class MailService {
 
   public setProvider(provider: EmailProvider): void {
     this.provider = provider;
+    this.hasCustomProvider = true;
   }
 
   public getProvider(): EmailProvider {
@@ -139,22 +148,27 @@ export class MailService {
     }
   }
 
-  public async sendWelcomeEmail(user: { firstName?: string | null; username?: string | null; email: string }, baseUrl?: string) {
-    const { subject, html, text } = renderWelcomeTemplate(user, baseUrl);
+  public async sendWelcomeEmail(
+    user: { firstName?: string | null; username?: string | null; email: string },
+    baseUrl?: string,
+    database?: Database
+  ) {
+    const { subject, html, text } = renderWelcomeTemplate(user, baseUrl, database);
     return this.enqueueEmail({ to: user.email, subject, html, text });
   }
 
-  public async sendOtpEmail(email: string, otp: string) {
-    const { subject, html, text } = renderOtpEmailTemplate(otp);
+  public async sendOtpEmail(email: string, otp: string, database?: Database) {
+    const { subject, html, text } = renderOtpEmailTemplate(otp, database);
     return this.enqueueEmail({ to: email, subject, html, text });
   }
 
   public async sendMeetAttendanceEmail(
     meet: MeetEmailData,
     user: { firstName?: string | null; username?: string | null; email: string },
-    baseUrl?: string
+    baseUrl?: string,
+    database?: Database
   ) {
-    const { subject, html, text } = renderAttendanceConfirmationTemplate(meet, user, baseUrl);
+    const { subject, html, text } = renderAttendanceConfirmationTemplate(meet, user, baseUrl, database);
     return this.enqueueEmail({ to: user.email, subject, html, text });
   }
 
@@ -223,10 +237,66 @@ export class MailService {
       };
 
       for (const user of matchingUsers) {
-        const { subject, html, text } = renderTagReminderTemplate(meetData, user, tagTitles, baseUrl);
+        const { subject, html, text } = renderTagReminderTemplate(meetData, user, tagTitles, baseUrl, database);
         await this.enqueueEmail({ to: user.email, subject, html, text });
         count++;
       }
+    }
+    return count;
+  }
+
+  public async sendMeetAttendeesReminder(
+    database: Database,
+    meetId: string,
+    baseUrl = process.env.BASE_URL ?? "http://localhost:3000"
+  ): Promise<number> {
+    const meet = database
+      .query<{
+        id: string;
+        title: string;
+        scheduled_date: string;
+        scheduled_time: string;
+        duration_minutes: number;
+        status: string;
+        access_status: string;
+        presenter_first_name: string | null;
+        presenter_last_name: string | null;
+      }, [string]>(
+        `SELECT m.id, m.title, m.scheduled_date, m.scheduled_time, m.duration_minutes, m.status, m.access_status,
+                u.first_name as presenter_first_name, u.last_name as presenter_last_name
+         FROM meets m
+         LEFT JOIN users u ON u.id = m.presenter_id
+         WHERE m.id = ? AND m.deleted_at IS NULL`
+      )
+      .get(meetId);
+
+    if (!meet) return 0;
+
+    const attendees = database
+      .query<{ email: string; first_name: string | null; username: string | null }, [string]>(
+        `SELECT DISTINCT u.email, u.first_name, u.username
+         FROM users u
+         JOIN meet_attendees ma ON ma.user_id = u.id
+         WHERE ma.meet_id = ? AND u.deleted_at IS NULL`
+      )
+      .all(meetId);
+
+    const meetData: MeetEmailData = {
+      id: meet.id,
+      title: meet.title,
+      scheduledDate: meet.scheduled_date,
+      scheduledTime: meet.scheduled_time,
+      durationMinutes: meet.duration_minutes,
+      presenterName: [meet.presenter_first_name, meet.presenter_last_name].filter(Boolean).join(" ") || undefined,
+      status: meet.status,
+      accessStatus: meet.access_status,
+    };
+
+    let count = 0;
+    for (const attendee of attendees) {
+      const { subject, html, text } = renderAttendeesReminderTemplate(meetData, attendee, baseUrl, database);
+      await this.enqueueEmail({ to: attendee.email, subject, html, text });
+      count++;
     }
     return count;
   }
@@ -236,50 +306,171 @@ export class MailService {
     filter: BatchFilterOptions,
     subject: string,
     body: string,
-    format: "html" | "text" = "html",
+    format: "html" | "markdown" | "text" = "html",
     attachments?: import("./types").EmailAttachment[]
   ): Promise<number> {
-    let emails: string[] = [];
+    let users: { email: string; first_name: string | null; last_name: string | null; username: string | null }[] = [];
 
     if (filter.mode === "selected" && filter.userIds?.length) {
       const ph = filter.userIds.map(() => "?").join(",");
-      emails = database
-        .query<{ email: string }, any[]>(`SELECT email FROM users WHERE id IN (${ph}) AND deleted_at IS NULL`)
-        .all(...filter.userIds)
-        .map((r) => r.email);
+      users = database
+        .query<
+          { email: string; first_name: string | null; last_name: string | null; username: string | null },
+          any[]
+        >(`SELECT email, first_name, last_name, username FROM users WHERE id IN (${ph}) AND deleted_at IS NULL`)
+        .all(...filter.userIds);
     } else if (filter.mode === "domain" && filter.domain) {
       const dom = filter.domain.startsWith("@") ? `%${filter.domain}` : `%@${filter.domain}`;
-      emails = database
-        .query<{ email: string }, [string]>(`SELECT email FROM users WHERE email LIKE ? AND deleted_at IS NULL`)
-        .all(dom)
-        .map((r) => r.email);
+      users = database
+        .query<
+          { email: string; first_name: string | null; last_name: string | null; username: string | null },
+          [string]
+        >(`SELECT email, first_name, last_name, username FROM users WHERE email LIKE ? AND deleted_at IS NULL`)
+        .all(dom);
     } else if (filter.mode === "tags" && filter.tagIds?.length) {
       const ph = filter.tagIds.map(() => "?").join(",");
-      emails = database
-        .query<{ email: string }, any[]>(
-          `SELECT DISTINCT u.email FROM users u JOIN user_tags ut ON ut.user_id = u.id WHERE ut.tag_id IN (${ph}) AND u.deleted_at IS NULL`
+      users = database
+        .query<
+          { email: string; first_name: string | null; last_name: string | null; username: string | null },
+          any[]
+        >(
+          `SELECT DISTINCT u.email, u.first_name, u.last_name, u.username
+           FROM users u
+           JOIN user_tags ut ON ut.user_id = u.id
+           WHERE ut.tag_id IN (${ph}) AND u.deleted_at IS NULL`
         )
-        .all(...filter.tagIds)
-        .map((r) => r.email);
+        .all(...filter.tagIds);
     } else {
       // all active users
-      emails = database
-        .query<{ email: string }, []>(`SELECT email FROM users WHERE deleted_at IS NULL`)
-        .all()
-        .map((r) => r.email);
+      users = database
+        .query<
+          { email: string; first_name: string | null; last_name: string | null; username: string | null },
+          []
+        >(`SELECT email, first_name, last_name, username FROM users WHERE deleted_at IS NULL`)
+        .all();
     }
 
-    for (const to of emails) {
-      const payload: EmailPayload = {
-        to,
-        subject,
-        ...(format === "html" ? { html: body, text: body.replace(/<[^>]*>?/gm, "") } : { text: body }),
-        ...(attachments && attachments.length ? { attachments } : {}),
-      };
-      await this.enqueueEmail(payload);
+    // Process batch in chunks to avoid large memory spikes
+    const CHUNK_SIZE = 50;
+    for (let i = 0; i < users.length; i += CHUNK_SIZE) {
+      const chunk = users.slice(i, i + CHUNK_SIZE);
+      for (const u of chunk) {
+        const name = [u.first_name, u.last_name].filter(Boolean).join(" ") || u.username || u.email;
+        const vars = {
+          name,
+          email: u.email,
+          first_name: u.first_name || "",
+          last_name: u.last_name || "",
+          username: u.username || "",
+          date: new Date().toLocaleDateString(),
+          date_shamsi: getShamsiToday(),
+        };
+
+        const interpolatedSubject = interpolateVariables(subject, vars);
+        const interpolatedBody = interpolateVariables(body, vars);
+
+        let finalHtml: string | undefined;
+        let finalText: string | undefined;
+
+        if (format === "markdown") {
+          finalHtml = wrapEmailContainer(renderMarkdown(interpolatedBody));
+          finalText = interpolatedBody;
+        } else if (format === "text") {
+          finalHtml = wrapEmailContainer(`<pre style="white-space: pre-wrap; font-family: inherit;">${interpolatedBody}</pre>`);
+          finalText = interpolatedBody;
+        } else {
+          finalHtml = wrapEmailContainer(interpolatedBody);
+          finalText = interpolatedBody.replace(/<[^>]*>?/gm, "").trim();
+        }
+
+        const payload: EmailPayload = {
+          to: u.email,
+          subject: interpolatedSubject,
+          html: finalHtml,
+          text: finalText,
+          ...(attachments && attachments.length ? { attachments } : {}),
+        };
+        await this.enqueueEmail(payload);
+      }
     }
 
-    return emails.length;
+    return users.length;
+  }
+
+  /**
+   * Process all pending scheduled emails whose target execution time has arrived.
+   */
+  public async processScheduledEmails(database: Database): Promise<number> {
+    const nowIso = new Date().toISOString();
+    const pendingJobs = database
+      .query<
+        {
+          id: string;
+          title: string;
+          subject: string;
+          format: "html" | "markdown" | "text";
+          body: string;
+          target_mode: "all" | "tags" | "domain" | "selected";
+          target_payload: string;
+          scheduled_for: string;
+        },
+        [string]
+      >(
+        `SELECT id, title, subject, format, body, target_mode, target_payload, scheduled_for
+         FROM scheduled_emails
+         WHERE status = 'pending' AND scheduled_for <= ? AND deleted_at IS NULL
+         ORDER BY scheduled_for ASC`
+      )
+      .all(nowIso);
+
+    let processedCount = 0;
+    for (const job of pendingJobs) {
+      // Mark processing atomically
+      database.run(
+        "UPDATE scheduled_emails SET status = 'processing', updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+        [job.id]
+      );
+
+      try {
+        let filter: BatchFilterOptions = { mode: job.target_mode };
+        if (job.target_payload) {
+          try {
+            const parsed = JSON.parse(job.target_payload);
+            if (job.target_mode === "tags" && Array.isArray(parsed.tagIds)) {
+              filter.tagIds = parsed.tagIds;
+            } else if (job.target_mode === "selected" && Array.isArray(parsed.userIds)) {
+              filter.userIds = parsed.userIds;
+            } else if (job.target_mode === "domain" && parsed.domain) {
+              filter.domain = parsed.domain;
+            }
+          } catch {
+            // Raw string domain fallback
+            if (job.target_mode === "domain") filter.domain = job.target_payload;
+          }
+        }
+
+        const count = await this.sendBatchEmails(
+          database,
+          filter,
+          job.subject,
+          job.body,
+          job.format
+        );
+
+        database.run(
+          "UPDATE scheduled_emails SET status = 'sent', sent_count = ?, error = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+          [count, job.id]
+        );
+        processedCount++;
+      } catch (err: any) {
+        database.run(
+          "UPDATE scheduled_emails SET status = 'failed', error = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+          [err?.message || String(err), job.id]
+        );
+      }
+    }
+
+    return processedCount;
   }
 }
 

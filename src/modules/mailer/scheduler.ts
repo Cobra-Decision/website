@@ -4,23 +4,33 @@ import { mailService } from "./service";
 let timer: NodeJS.Timeout | null = null;
 
 /**
- * Starts background scheduler for checking and sending favorite tag meeting reminders.
- * Checks hourly by default (or every checkIntervalMs).
+ * Starts background scheduler for checking and sending favorite tag meeting reminders
+ * and pending scheduled email jobs.
+ * Checks every intervalMs (default: 60s).
  */
-export function startMailerScheduler(database: Database, checkIntervalMs = 60 * 60 * 1000) {
+export function startMailerScheduler(
+  database: Database,
+  checkIntervalMs = Number(process.env.MAILER_SCHEDULER_INTERVAL_MS ?? 60000)
+) {
   if (timer) clearInterval(timer);
 
-  // Run on startup
-  mailService.sendFavoriteTagMeetReminders(database).catch((err) => {
-    console.error("[Mailer Scheduler] Error checking reminders on startup:", err);
-  });
+  const runSchedulerTick = async () => {
+    try {
+      await mailService.sendFavoriteTagMeetReminders(database);
+      await mailService.processScheduledEmails(database);
+    } catch (err) {
+      console.error("[Mailer Scheduler] Error executing scheduler tick:", err);
+    }
+  };
 
-  // Schedule periodic checks
-  timer = setInterval(() => {
-    mailService.sendFavoriteTagMeetReminders(database).catch((err) => {
-      console.error("[Mailer Scheduler] Error checking reminders:", err);
-    });
-  }, checkIntervalMs);
+  // Run on startup
+  runSchedulerTick();
+
+  // Schedule periodic checks with unref() so event loop does not hang on exit/tests
+  timer = setInterval(runSchedulerTick, checkIntervalMs);
+  if (timer && typeof timer.unref === "function") {
+    timer.unref();
+  }
 
   return timer;
 }
