@@ -3,7 +3,6 @@ app.sqlite*
 data/
 .env
 public/uploads/
+backups/
 log/
 *.log
-
-
