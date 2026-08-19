@@ -528,24 +528,28 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
             if (field === "description") return String(val ?? "");
             return String(val ?? "").trim() || null;
           });
-          db.run(`INSERT INTO meets (id,${meetFields.join(",")}) VALUES (?,${meetFields.map(() => "?").join(",")})`, [id, ...values, scheduledAtUtc]);
 
-          // Handle tag and attendee selection on meet creation
           const rawTagIds = body.tag_ids || body["tag_ids[]"];
           const tagIds = (Array.isArray(rawTagIds) ? rawTagIds : rawTagIds ? [rawTagIds] : []).map(String).map((t) => t.trim()).filter(Boolean);
-          for (const tagId of tagIds) {
-            if (validRelation("tags", tagId)) {
-              db.run("INSERT OR IGNORE INTO meet_tags (meet_id,tag_id) VALUES (?,?)", [id, tagId]);
-            }
-          }
           const initialTagId = String(body.initial_tag_id ?? "").trim();
-          if (initialTagId && validRelation("tags", initialTagId)) {
-            db.run("INSERT OR IGNORE INTO meet_tags (meet_id,tag_id) VALUES (?,?)", [id, initialTagId]);
+          if (initialTagId && !tagIds.includes(initialTagId)) {
+            tagIds.push(initialTagId);
           }
           const initialUserId = String(body.initial_user_id ?? "").trim();
-          if (initialUserId && validRelation("users", initialUserId)) {
-            db.run("INSERT OR IGNORE INTO meet_attendees (meet_id,user_id) VALUES (?,?)", [id, initialUserId]);
-          }
+
+          db.transaction(() => {
+            db.run(`INSERT INTO meets (id,${meetFields.join(",")}) VALUES (?,${meetFields.map(() => "?").join(",")})`, [id, ...values, scheduledAtUtc]);
+            for (const tagId of tagIds) {
+              if (validRelation("tags", tagId)) {
+                db.run("INSERT OR IGNORE INTO meet_tags (meet_id,tag_id) VALUES (?,?)", [id, tagId]);
+              }
+            }
+            if (initialUserId && validRelation("users", initialUserId)) {
+              db.run("INSERT OR IGNORE INTO meet_attendees (meet_id,user_id) VALUES (?,?)", [id, initialUserId]);
+            }
+          })();
+
+          refreshLandingCache(db);
 
           const adminAuth = c.get("auth") as { sub: string; role_id: string } | undefined;
           logger.meet("MEET_CREATED", {
@@ -575,6 +579,7 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
         if (!(resource === "roles" && db.query("SELECT 1 FROM roles WHERE id=? AND title='Super Admin'").get(id))) {
           db.run(`UPDATE ${table} SET deleted_at=CURRENT_TIMESTAMP, updated_at=CURRENT_TIMESTAMP WHERE id=?`, [id]);
           if (resource === "meets") {
+            refreshLandingCache(db);
             const adminAuth = c.get("auth") as { sub: string; role_id: string } | undefined;
             logger.meet("MEET_DELETED", {
               actor: { userId: adminAuth?.sub, role: adminAuth?.role_id, ip: c.req.header("x-forwarded-for") ?? "local" },
@@ -638,17 +643,22 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
             if (field === "description") return String(val ?? "");
             return String(val ?? "").trim() || null;
           });
-          db.run(`UPDATE meets SET ${meetFields.map((field) => `${field}=?`).join(",")}, updated_at=CURRENT_TIMESTAMP WHERE id=?`, [...values, scheduledAtUtc, id]);
 
           // Sync tags when editing meet
           const rawTagIds = body.tag_ids || body["tag_ids[]"];
           const tagIds = (Array.isArray(rawTagIds) ? rawTagIds : rawTagIds ? [rawTagIds] : []).map(String).map((t) => t.trim()).filter(Boolean);
-          db.run("DELETE FROM meet_tags WHERE meet_id=?", [id]);
-          for (const tagId of tagIds) {
-            if (validRelation("tags", tagId)) {
-              db.run("INSERT OR IGNORE INTO meet_tags (meet_id,tag_id) VALUES (?,?)", [id, tagId]);
+
+          db.transaction(() => {
+            db.run(`UPDATE meets SET ${meetFields.map((field) => `${field}=?`).join(",")}, updated_at=CURRENT_TIMESTAMP WHERE id=?`, [...values, scheduledAtUtc, id]);
+            db.run("DELETE FROM meet_tags WHERE meet_id=?", [id]);
+            for (const tagId of tagIds) {
+              if (validRelation("tags", tagId)) {
+                db.run("INSERT OR IGNORE INTO meet_tags (meet_id,tag_id) VALUES (?,?)", [id, tagId]);
+              }
             }
-          }
+          })();
+
+          refreshLandingCache(db);
 
           const adminAuth = c.get("auth") as { sub: string; role_id: string } | undefined;
           logger.meet("MEET_UPDATED", {
@@ -674,6 +684,7 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
       if (resource === "roles" && db.query("SELECT 1 FROM roles WHERE id=? AND title='Super Admin'").get(id)) return c.html(toast("admin.super_admin_protected", "Protected"), 403);
       db.run(`UPDATE ${table} SET deleted_at=CURRENT_TIMESTAMP, updated_at=CURRENT_TIMESTAMP WHERE id=?`, [id]);
       if (resource === "meets") {
+        refreshLandingCache(db);
         const adminAuth = c.get("auth") as { sub: string; role_id: string } | undefined;
         logger.meet("MEET_DELETED", {
           actor: { userId: adminAuth?.sub, role: adminAuth?.role_id, ip: c.req.header("x-forwarded-for") ?? "local" },
