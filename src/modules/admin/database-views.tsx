@@ -155,12 +155,12 @@ export function DatabaseManagementView({
               <div class="font-semibold text-base-content">CLI Commands for VPS / Host:</div>
               <div class="font-mono text-xs bg-base-300 p-2.5 rounded text-base-content select-all space-y-1">
                 <div># Local / Host execution</div>
-                <div>bun run db:migrate</div>
-                <div>bun run db:migrate status</div>
-                <div>bun run db:seed</div>
+                <div>bun run migration</div>
+                <div>bun run migration status</div>
+                <div>bun run seeding full</div>
                 <div class="pt-1 text-base-content/60"># Docker container execution</div>
-                <div>docker compose exec website bun run db:migrate</div>
-                <div>docker compose exec website bun run db:seed</div>
+                <div>docker compose exec website bun run migration</div>
+                <div>docker compose exec website bun run seeding full</div>
               </div>
             </div>
             <div class="bg-base-200/50 rounded-lg p-4 text-sm space-y-2">
