@@ -13,7 +13,7 @@ function printReport(title: string, data: { currentVersion: number; appliedCount
   if (data.appliedCount !== undefined) {
     console.log(` Migrations Run:   ${data.appliedCount}`);
   }
-  console.log(` Database:         ${process.env.DATABASE_PATH ?? "app.sqlite"}`);
+  console.log(` Database:         ${process.env.DATABASE_PATH ?? "data/app.sqlite"}`);
   console.log(`========================================\n`);
 }
 

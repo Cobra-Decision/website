@@ -22,7 +22,7 @@ function printSeedReport(featureTarget: string, report: SeedReport) {
   console.log(` 🌱 Database Seeding Report: [${featureTarget.toUpperCase()}]`);
   console.log(`========================================`);
   console.log(` Target Feature:   ${featureTarget}`);
-  console.log(` Database:         ${process.env.DATABASE_PATH ?? "app.sqlite"}`);
+  console.log(` Database:         ${process.env.DATABASE_PATH ?? "data/app.sqlite"}`);
   console.log(`----------------------------------------`);
   console.log(` Feature       | Table             | Created | Updated | Skipped`);
   console.log(`---------------+-------------------+---------+---------+--------`);

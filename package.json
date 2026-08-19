@@ -7,8 +7,10 @@
     "dev": "bun run build:css && bun --watch src/index.tsx",
     "start": "bun run build:css && bun src/index.tsx",
     "migration": "bun src/cli/migration.ts",
+    "db:migrate": "bun src/cli/migration.ts",
     "seeding": "bun src/cli/seed.ts",
     "seed": "bun src/cli/seed.ts",
+    "db:seed": "bun src/cli/seed.ts",
     "test": "bun test",
     "check": "bunx tsc --noEmit"
   },

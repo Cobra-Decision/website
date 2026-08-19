@@ -35,7 +35,7 @@ export function getDatabaseStats(db: Database): DatabaseStats {
     }
   });
 
-  const dbPath = process.env.DATABASE_PATH ?? "app.sqlite";
+  const dbPath = process.env.DATABASE_PATH ?? "data/app.sqlite";
   let sizeStr = "Unknown";
   try {
     const file = Bun.file(dbPath);
@@ -152,12 +152,15 @@ export function DatabaseManagementView({
           </h2>
           <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
             <div class="bg-base-200/50 rounded-lg p-4 text-sm space-y-2">
-              <div class="font-semibold text-base-content">CLI Commands for VPS:</div>
-              <div class="font-mono text-xs bg-base-300 p-2.5 rounded text-base-content select-all">
-                bun run migration<br />
-                bun run migration status<br />
-                bun run seed full<br />
-                bun run seed users
+              <div class="font-semibold text-base-content">CLI Commands for VPS / Host:</div>
+              <div class="font-mono text-xs bg-base-300 p-2.5 rounded text-base-content select-all space-y-1">
+                <div># Local / Host execution</div>
+                <div>bun run db:migrate</div>
+                <div>bun run db:migrate status</div>
+                <div>bun run db:seed</div>
+                <div class="pt-1 text-base-content/60"># Docker container execution</div>
+                <div>docker compose exec website bun run db:migrate</div>
+                <div>docker compose exec website bun run db:seed</div>
               </div>
             </div>
             <div class="bg-base-200/50 rounded-lg p-4 text-sm space-y-2">

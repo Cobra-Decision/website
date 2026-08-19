@@ -52,7 +52,7 @@ export function createDatabaseAdminRoutes(
     }
 
     if (format === "sqlite") {
-      const dbPath = process.env.DATABASE_PATH ?? "app.sqlite";
+      const dbPath = process.env.DATABASE_PATH ?? "data/app.sqlite";
       const file = Bun.file(dbPath);
       return new Response(file, {
         headers: {

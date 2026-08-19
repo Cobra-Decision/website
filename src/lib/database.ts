@@ -1,6 +1,6 @@
 import { Database } from "bun:sqlite";
 
-export const database = new Database(process.env.DATABASE_PATH ?? "app.sqlite");
+export const database = new Database(process.env.DATABASE_PATH ?? "data/app.sqlite");
 
 // Memory and performance pragmas
 database.run("PRAGMA journal_mode = WAL;");
