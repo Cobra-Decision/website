@@ -206,6 +206,19 @@ export const migrations: MigrationStep[] = [
       `);
     },
   },
+  {
+    version: 4,
+    name: "004_performance_indexes",
+    up: (db: Database) => {
+      db.run("CREATE INDEX IF NOT EXISTS idx_meet_tags_tag_id ON meet_tags(tag_id);");
+      db.run("CREATE INDEX IF NOT EXISTS idx_meet_attendees_user_id ON meet_attendees(user_id);");
+      db.run("CREATE INDEX IF NOT EXISTS idx_user_tags_tag_id ON user_tags(tag_id);");
+      db.run("CREATE INDEX IF NOT EXISTS idx_meets_deleted_scheduled ON meets(deleted_at, scheduled_date, scheduled_time);");
+      db.run("CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);");
+      db.run("CREATE INDEX IF NOT EXISTS idx_users_deleted_at ON users(deleted_at);");
+      db.run("CREATE INDEX IF NOT EXISTS idx_scheduled_emails_status ON scheduled_emails(status, scheduled_for);");
+    },
+  },
 ];
 
 export function ensureMigrationTable(db: Database) {

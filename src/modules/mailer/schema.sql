@@ -31,3 +31,5 @@ CREATE TABLE IF NOT EXISTS scheduled_emails (
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   deleted_at DATETIME
 );
+
+CREATE INDEX IF NOT EXISTS idx_scheduled_emails_status ON scheduled_emails(status, scheduled_for);

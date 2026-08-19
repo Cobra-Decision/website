@@ -1,6 +1,7 @@
 import type { Database } from "bun:sqlite";
 import { generateId } from "../id";
 import { createMeet, toggleAttendance } from "../../modules/events/queries";
+import { refreshLandingCache } from "../cache";
 
 export interface SeedReportItem {
   feature: string;
@@ -349,7 +350,8 @@ export async function seedMeets(db: Database, report: SeedReport = {}): Promise<
       addReport(report, "meets", "meets", 0, 1, 0);
     }
 
-    for (const tagId of tagIds(sample.tags)) {
+    const currentTagIds = tagIds(sample.tags);
+    for (const tagId of currentTagIds) {
       const exists = db.query("SELECT 1 FROM meet_tags WHERE meet_id = ? AND tag_id = ?").get(meet.id, tagId);
       if (!exists) {
         db.run("INSERT OR IGNORE INTO meet_tags (meet_id, tag_id) VALUES (?, ?)", [meet.id, tagId]);
@@ -379,6 +381,8 @@ export async function seedMeets(db: Database, report: SeedReport = {}): Promise<
       }
     }
   }
+
+  refreshLandingCache(db);
 
   return report;
 }
