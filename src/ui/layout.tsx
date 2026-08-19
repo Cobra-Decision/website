@@ -22,7 +22,9 @@ export const Layout = ({
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <title>{title ?? "CobraDecision"}</title>
+        <link rel="icon" href="/favicon.png" type="image/png" />
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+        <link rel="apple-touch-icon" href="/favicon.png" />
         <link href="/app.css" rel="stylesheet" />
         <link href="/fonts/vazirmatn.css" rel="stylesheet" />
         <script src="/htmx.js" />

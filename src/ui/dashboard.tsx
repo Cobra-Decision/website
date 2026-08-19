@@ -108,8 +108,9 @@ export const DashboardNavbar = ({
       ☰
     </label>
     <div class="flex-1">
-      <a class="text-xl font-bold tracking-tight" href={brandHref}>
-        {t("brand.name", locale)}<span class="text-primary">.</span>
+      <a class="inline-flex items-center gap-2.5 text-xl font-bold tracking-tight" href={brandHref}>
+        <img src="/favicon.svg" alt="CobraDecision" class="h-7 w-auto" />
+        <span>{t("brand.name", locale)}<span class="text-primary">.</span></span>
       </a>
     </div>
     <div class="flex items-center gap-3">

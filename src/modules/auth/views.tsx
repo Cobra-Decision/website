@@ -49,8 +49,9 @@ const AuthCard = ({
       <div class="card-body gap-6 p-6 sm:p-10">
         <div class="flex items-start justify-between gap-4">
           <div>
-            <a class="text-sm font-semibold text-primary hover:underline" href="/">
-              {t("brand.name", locale)}
+            <a class="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline" href="/">
+              <img src="/favicon.svg" alt="CobraDecision" class="h-5 w-auto" />
+              <span>{t("brand.name", locale)}</span>
             </a>
             <h1 class="mt-2 text-2xl sm:text-3xl font-bold">{title}</h1>
             <p class="mt-1 text-sm text-base-content/60">{subtitle}</p>
