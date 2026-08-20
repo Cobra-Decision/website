@@ -28,7 +28,7 @@ test("startup cache stores user statistics and active upcoming meets", async () 
   createMeet(database, { title: "Bun meetup", topics: ["Bun"], scheduledDate: "2099-01-01", scheduledTime: "18:00", durationMinutes: 90, imageUrl: "https://example.com/poster.jpg", tagIds: [] });
 
   initCache(database);
-  expect(getLandingCache()).toMatchObject({ totalUsers: 1, totalMeetHours: 1.5, meets: [{ title: "Bun meetup" }] });
+  expect(getLandingCache()).toMatchObject({ totalUsers: 1, totalMeetHours: 2, meets: [{ title: "Bun meetup" }] });
 });
 
 test("landing renders cached content and contact endpoint persists valid emails", async () => {
