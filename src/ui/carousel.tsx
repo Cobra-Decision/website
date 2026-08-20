@@ -1,6 +1,7 @@
 import type { Child } from "hono/jsx";
 import type { Locale } from "../lib/i18n/translations";
 import { isRtl } from "../lib/i18n/context";
+import { ChevronLeftIcon, ChevronRightIcon } from "./icons";
 
 export const Carousel = ({
   children,
@@ -50,7 +51,7 @@ export const Carousel = ({
             aria-label="Previous"
             x-on:click="scrollPrev()"
           >
-            {rtl ? "→" : "←"}
+            {rtl ? <ChevronRightIcon class="h-4 w-4" /> : <ChevronLeftIcon class="h-4 w-4" />}
           </button>
           <button
             type="button"
@@ -58,7 +59,7 @@ export const Carousel = ({
             aria-label="Next"
             x-on:click="scrollNext()"
           >
-            {rtl ? "←" : "→"}
+            {rtl ? <ChevronLeftIcon class="h-4 w-4" /> : <ChevronRightIcon class="h-4 w-4" />}
           </button>
         </div>
       )}

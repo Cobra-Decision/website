@@ -1,6 +1,7 @@
 import type { Locale } from "../lib/i18n/translations";
 import { t, isRtl } from "../lib/i18n/context";
 import { LanguageSwitch } from "./language-switch";
+import { MenuIcon, CopyIcon, CheckIcon } from "./icons";
 
 export type DashboardUser = {
   name: string;
@@ -105,7 +106,7 @@ export const DashboardNavbar = ({
 }) => (
   <header class="navbar min-h-16 border-b border-base-300 bg-base-100 px-4 shadow-sm sm:px-8">
     <label for={drawerId} class="btn btn-square btn-ghost lg:hidden" aria-label="Toggle navigation drawer">
-      ☰
+      <MenuIcon class="h-5 w-5" />
     </label>
     <div class="flex-1">
       <a class="inline-flex items-center gap-2.5 text-xl font-bold tracking-tight" href={brandHref}>
@@ -176,7 +177,7 @@ export const MeetingLinkGenerator = ({
         class="text-xs font-semibold text-success flex items-center gap-1"
         style="display: none;"
       >
-        ✓ Copied to clipboard!
+        <CheckIcon class="h-3.5 w-3.5" /> Copied to clipboard!
       </span>
       <span x-show="!copied" class="text-xs text-base-content/50">
         Copy this tracking URL to share on chosen platform
@@ -184,9 +185,10 @@ export const MeetingLinkGenerator = ({
 
       <button
         type="button"
-        class="btn btn-primary btn-sm"
+        class="btn btn-primary btn-sm gap-1.5"
         x-on:click="navigator.clipboard.writeText(generatedUrl); copied = true; setTimeout(() => copied = false, 2500)"
       >
+        <CopyIcon class="h-3.5 w-3.5" />
         Copy Link
       </button>
     </div>

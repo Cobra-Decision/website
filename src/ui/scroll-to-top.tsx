@@ -1,5 +1,6 @@
 import type { Locale } from "../lib/i18n/translations";
 import { isRtl } from "../lib/i18n/context";
+import { ChevronUpIcon } from "./icons";
 
 export const ScrollToTop = ({ locale = "en" }: { locale?: Locale }) => {
   const rtl = isRtl(locale);
@@ -38,16 +39,7 @@ export const ScrollToTop = ({ locale = "en" }: { locale?: Locale }) => {
         title={ariaLabel}
         class="group flex h-11 w-11 items-center justify-center rounded-full border border-base-content/15 bg-base-100/40 text-base-content/70 shadow-lg backdrop-blur-md transition-all hover:border-primary/40 hover:bg-base-100/80 hover:text-primary hover:shadow-primary/10 active:scale-95 focus:outline-hidden"
       >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke-width="2.5"
-          stroke="currentColor"
-          class="h-5 w-5 transition-transform duration-200 group-hover:-translate-y-0.5"
-        >
-          <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 15.75l7.5-7.5 7.5 7.5" />
-        </svg>
+        <ChevronUpIcon class="h-5 w-5 transition-transform duration-200 group-hover:-translate-y-0.5" strokeWidth={2.5} />
       </button>
     </div>
   );

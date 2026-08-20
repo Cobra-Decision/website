@@ -1,3 +1,13 @@
+import {
+  BoldIcon,
+  ItalicIcon,
+  HeadingIcon,
+  ListIcon,
+  ListOrderedIcon,
+  CodeIcon,
+  LinkIcon,
+} from "./icons";
+
 export function MarkdownEditor({
   name = "description",
   value = "",
@@ -157,52 +167,52 @@ export function MarkdownEditor({
         <div class="flex items-center gap-1">
           <button
             type="button"
-            class="btn btn-ghost btn-xs font-bold"
+            class="btn btn-ghost btn-xs p-1"
             title="Bold"
             x-on:click="insertText('**', '**')"
           >
-            B
+            <BoldIcon class="h-3.5 w-3.5" />
           </button>
           <button
             type="button"
-            class="btn btn-ghost btn-xs italic font-serif"
+            class="btn btn-ghost btn-xs p-1"
             title="Italic"
             x-on:click="insertText('*', '*')"
           >
-            I
+            <ItalicIcon class="h-3.5 w-3.5" />
           </button>
           <button
             type="button"
-            class="btn btn-ghost btn-xs font-mono"
+            class="btn btn-ghost btn-xs p-1"
             title="Heading"
             x-on:click="insertText('### ', '')"
           >
-            H
+            <HeadingIcon class="h-3.5 w-3.5" />
           </button>
           <div class="divider divider-horizontal mx-0.5 my-1"></div>
           <button
             type="button"
-            class="btn btn-ghost btn-xs"
+            class="btn btn-ghost btn-xs p-1"
             title="Bullet List"
             x-on:click="insertText('- ', '')"
           >
-            • List
+            <ListIcon class="h-3.5 w-3.5" />
           </button>
           <button
             type="button"
-            class="btn btn-ghost btn-xs"
+            class="btn btn-ghost btn-xs p-1"
             title="Numbered List"
             x-on:click="insertText('1. ', '')"
           >
-            1. List
+            <ListOrderedIcon class="h-3.5 w-3.5" />
           </button>
           <button
             type="button"
-            class="btn btn-ghost btn-xs font-mono"
+            class="btn btn-ghost btn-xs p-1"
             title="Code block"
             x-on:click="insertText('```\n', '\n```')"
           >
-            &lt;/&gt;
+            <CodeIcon class="h-3.5 w-3.5" />
           </button>
           <button
             type="button"
@@ -210,9 +220,7 @@ export function MarkdownEditor({
             title="Link"
             x-on:click="insertText('[', '](https://)')"
           >
-            <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-            </svg>
+            <LinkIcon class="h-3.5 w-3.5" />
             Link
           </button>
         </div>

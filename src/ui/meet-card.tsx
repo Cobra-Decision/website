@@ -3,6 +3,7 @@ import type { Locale } from "../lib/i18n/translations";
 import { t, formatLocalizedNumber } from "../lib/i18n/context";
 import { formatLocalizedDate, formatLocalizedTime } from "../modules/events/datetime";
 import { TagBadge } from "./tag-badge";
+import { LockIcon } from "./icons";
 
 /**
  * Extracts clean plaintext excerpt from markdown content for previews.
@@ -94,9 +95,7 @@ export const UnifiedMeetCard = ({
             </span>
             {meet.access_status === "private" && (
               <span class="badge badge-warning badge-xs gap-1">
-                <svg class="h-2.5 w-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                </svg>
+                <LockIcon class="h-2.5 w-2.5" />
                 {t("meet.private", locale)}
               </span>
             )}
@@ -166,9 +165,7 @@ export const UnifiedMeetCard = ({
             </span>
             {meet.access_status === "private" && (
               <span class="badge badge-warning badge-xs gap-1">
-                <svg class="h-2.5 w-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                </svg>
+                <LockIcon class="h-2.5 w-2.5" />
                 {t("meet.private", locale)}
               </span>
             )}

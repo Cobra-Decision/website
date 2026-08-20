@@ -1,3 +1,16 @@
+import {
+  RotateCcwIcon,
+  RotateCwIcon,
+  FlipHorizontalIcon,
+  FlipVerticalIcon,
+  ZoomInIcon,
+  ZoomOutIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  ChevronUpIcon,
+  ChevronDownIcon,
+} from "./icons";
+
 export function ImageCropEditor() {
   return (
     <div
@@ -208,10 +221,18 @@ export function ImageCropEditor() {
           <div class="flex flex-wrap items-center justify-between gap-2 border-b border-base-300 pb-3">
             <span class="text-xs font-bold text-primary">Crop & Adjust Position</span>
             <div class="flex items-center gap-1">
-              <button type="button" class="btn btn-xs btn-outline" x-on:click="rotate(-90)" title="Rotate Left">↺ 90°</button>
-              <button type="button" class="btn btn-xs btn-outline" x-on:click="rotate(90)" title="Rotate Right">↻ 90°</button>
-              <button type="button" class="btn btn-xs btn-outline" x-on:click="toggleFlipH()" title="Flip Horizontal">⇄</button>
-              <button type="button" class="btn btn-xs btn-outline" x-on:click="toggleFlipV()" title="Flip Vertical">⇅</button>
+              <button type="button" class="btn btn-xs btn-outline gap-1" x-on:click="rotate(-90)" title="Rotate Left">
+                <RotateCcwIcon class="h-3.5 w-3.5" /> 90°
+              </button>
+              <button type="button" class="btn btn-xs btn-outline gap-1" x-on:click="rotate(90)" title="Rotate Right">
+                <RotateCwIcon class="h-3.5 w-3.5" /> 90°
+              </button>
+              <button type="button" class="btn btn-xs btn-outline p-1.5" x-on:click="toggleFlipH()" title="Flip Horizontal">
+                <FlipHorizontalIcon class="h-3.5 w-3.5" />
+              </button>
+              <button type="button" class="btn btn-xs btn-outline p-1.5" x-on:click="toggleFlipV()" title="Flip Vertical">
+                <FlipVerticalIcon class="h-3.5 w-3.5" />
+              </button>
               <button type="button" class="btn btn-xs btn-ghost text-error" x-on:click="resetTransform()">Reset</button>
             </div>
           </div>
@@ -232,9 +253,13 @@ export function ImageCropEditor() {
 
             <div class="flex items-center gap-2">
               <span class="font-medium text-base-content/70">Zoom:</span>
-              <button type="button" class="btn btn-xs btn-outline px-2" x-on:click="stepZoom(-1)" title="Zoom Out">-</button>
+              <button type="button" class="btn btn-xs btn-outline p-1" x-on:click="stepZoom(-1)" title="Zoom Out">
+                <ZoomOutIcon class="h-3.5 w-3.5" />
+              </button>
               <input type="range" min="0" max="100" step="1" x-model="zoom" x-on:input="zoom = Number($event.target.value)" class="range range-primary range-xs flex-1" />
-              <button type="button" class="btn btn-xs btn-outline px-2" x-on:click="stepZoom(1)" title="Zoom In">+</button>
+              <button type="button" class="btn btn-xs btn-outline p-1" x-on:click="stepZoom(1)" title="Zoom In">
+                <ZoomInIcon class="h-3.5 w-3.5" />
+              </button>
               <span class="text-xs w-8 text-right" x-text="(Number(zoom) || 0) + '%'"></span>
             </div>
           </div>
@@ -253,10 +278,18 @@ export function ImageCropEditor() {
 
             {/* Direction Arrows */}
             <div class="flex items-center gap-1 self-end sm:self-auto" dir="ltr">
-              <button type="button" class="btn btn-xs btn-outline w-7 h-7 p-0 text-sm font-bold" x-on:click="move(5, 0)" title="Move Left">←</button>
-              <button type="button" class="btn btn-xs btn-outline w-7 h-7 p-0 text-sm font-bold" x-on:click="move(0, 5)" title="Move Up">↑</button>
-              <button type="button" class="btn btn-xs btn-outline w-7 h-7 p-0 text-sm font-bold" x-on:click="move(0, -5)" title="Move Down">↓</button>
-              <button type="button" class="btn btn-xs btn-outline w-7 h-7 p-0 text-sm font-bold" x-on:click="move(-5, 0)" title="Move Right">→</button>
+              <button type="button" class="btn btn-xs btn-outline w-7 h-7 p-0 flex items-center justify-center" x-on:click="move(5, 0)" title="Move Left">
+                <ChevronLeftIcon class="h-3.5 w-3.5" />
+              </button>
+              <button type="button" class="btn btn-xs btn-outline w-7 h-7 p-0 flex items-center justify-center" x-on:click="move(0, 5)" title="Move Up">
+                <ChevronUpIcon class="h-3.5 w-3.5" />
+              </button>
+              <button type="button" class="btn btn-xs btn-outline w-7 h-7 p-0 flex items-center justify-center" x-on:click="move(0, -5)" title="Move Down">
+                <ChevronDownIcon class="h-3.5 w-3.5" />
+              </button>
+              <button type="button" class="btn btn-xs btn-outline w-7 h-7 p-0 flex items-center justify-center" x-on:click="move(-5, 0)" title="Move Right">
+                <ChevronRightIcon class="h-3.5 w-3.5" />
+              </button>
             </div>
           </div>
 
