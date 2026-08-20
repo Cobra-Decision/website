@@ -3,6 +3,13 @@ import daisyui from "daisyui";
 /** @type {import('tailwindcss').Config} */
 export default {
   content: ["./src/**/*.{tsx,ts}"],
+  theme: {
+    extend: {
+      fontFamily: {
+        vazir: ["Vazirmatn", "sans-serif"],
+      },
+    },
+  },
   plugins: [daisyui],
   daisyui: {
     themes: [

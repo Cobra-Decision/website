@@ -14,7 +14,7 @@ export const Layout = ({
   locale?: Locale;
 }) => {
   const dir = isRtl(locale) ? "rtl" : "ltr";
-  const fontClass = isRtl(locale) ? "font-['Vazirmatn',sans-serif]" : "font-sans";
+  const fontClass = isRtl(locale) ? "font-vazir" : "font-sans";
 
   return (
     <html lang={locale} dir={dir} data-theme="dark" class={`scroll-smooth ${fontClass}`}>
@@ -22,11 +22,9 @@ export const Layout = ({
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <title>{title ?? "CobraDecision"}</title>
-        <link rel="icon" href="/favicon.png" type="image/png" />
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-        <link rel="apple-touch-icon" href="/favicon.png" />
         <link href="/app.css" rel="stylesheet" />
-        <link href="/fonts/vazirmatn.css" rel="stylesheet" />
+        <link href="/vazirmatn.css" rel="stylesheet" />
         <script src="/htmx.js" />
         <script async defer src="/altcha.js" type="module" />
         <script defer src="/alpine.js" />
