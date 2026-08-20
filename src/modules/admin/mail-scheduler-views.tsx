@@ -222,7 +222,7 @@ export const MailSchedulerView = ({
                 </div>
                 <input
                   type="text"
-                  placeholder="🔍 Search tags..."
+                  placeholder="Search tags..."
                   x-model="tagSearch"
                   class="input input-bordered input-xs w-full"
                 />
@@ -266,7 +266,7 @@ export const MailSchedulerView = ({
                 </div>
                 <input
                   type="text"
-                  placeholder="🔍 Search users by name or email..."
+                  placeholder="Search users by name or email..."
                   x-model="userSearch"
                   class="input input-bordered input-xs w-full"
                 />
@@ -415,7 +415,7 @@ export const MailSchedulerView = ({
                             hx-select="main > *"
                           >
                             <button type="submit" class="btn btn-xs btn-outline btn-info" title="Repeat this broadcast in queue">
-                              🔁 Repeat
+                              Repeat
                             </button>
                           </form>
                           <form

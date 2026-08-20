@@ -21,7 +21,7 @@ export class FallbackProvider implements EmailProvider {
     const attachInfo = message.attachments?.length ? ` | Attachments: ${message.attachments.map((a) => a.filename).join(", ")}` : "";
     const logEntry = `[${timestamp}] [MAIL-FALLBACK] To: ${message.to} | Subject: ${message.subject}${attachInfo}\n${content}\n---\n`;
 
-    console.log(`📨 [Email Sent] To: ${message.to} | Subject: ${message.subject}${attachInfo}`);
+    console.log(`[Email Sent] To: ${message.to} | Subject: ${message.subject}${attachInfo}`);
 
     try {
       mkdirSync(dirname(this.logPath), { recursive: true });

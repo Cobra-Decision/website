@@ -232,7 +232,7 @@ export const MailerDashboardView = ({
                 </div>
                 <input
                   type="text"
-                  placeholder="🔍 Search tags..."
+                  placeholder="Search tags..."
                   x-model="tagSearch"
                   class="input input-bordered input-xs w-full"
                 />
@@ -276,7 +276,7 @@ export const MailerDashboardView = ({
                 </div>
                 <input
                   type="text"
-                  placeholder="🔍 Search users by name or email..."
+                  placeholder="Search users by name or email..."
                   x-model="userSearch"
                   class="input input-bordered input-xs w-full"
                 />

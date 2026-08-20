@@ -6,7 +6,7 @@ const command = args[0] || "up";
 
 function printReport(title: string, data: { currentVersion: number; appliedCount?: number }) {
   console.log(`\n========================================`);
-  console.log(` 🚀 Database Migration Engine Report`);
+  console.log(` Database Migration Engine Report`);
   console.log(`========================================`);
   console.log(` Status:           ${title}`);
   console.log(` Current Version:  v${data.currentVersion} / v${Math.max(...migrations.map((m) => m.version), 0)}`);

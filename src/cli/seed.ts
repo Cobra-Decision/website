@@ -19,7 +19,7 @@ const feature = (args[0] || "full").toLowerCase().trim();
 
 function printSeedReport(featureTarget: string, report: SeedReport) {
   console.log(`\n========================================`);
-  console.log(` 🌱 Database Seeding Report: [${featureTarget.toUpperCase()}]`);
+  console.log(` Database Seeding Report: [${featureTarget.toUpperCase()}]`);
   console.log(`========================================`);
   console.log(` Target Feature:   ${featureTarget}`);
   console.log(` Database:         ${process.env.DATABASE_PATH ?? "data/app.sqlite"}`);

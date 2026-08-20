@@ -188,13 +188,13 @@ export function renderWelcomeTemplate(
     const subject = "Welcome to CobraDecision | خوش آمدید";
 
     const faContent = `
-      <h2>خوش آمدید ${name}! 🎉</h2>
+      <h2>خوش آمدید ${name}!</h2>
       <p>حساب کاربری شما در کبرا دسیژن با موفقیت ایجاد شد. اکنون می‌توانید در رویدادها و گفتگوهای فنی جامعه مهندسی شرکت کنید.</p>
       <a href="${dashboardUrl}" class="btn">ورود به داشبورد</a>
     `;
 
     const enContent = `
-      <h2>Welcome, ${name}! 🎉</h2>
+      <h2>Welcome, ${name}!</h2>
       <p>Your CobraDecision account is ready. Discover and participate in community tech sessions.</p>
       <a href="${dashboardUrl}" class="btn">Go to Dashboard</a>
     `;
@@ -261,25 +261,25 @@ export function renderAttendanceConfirmationTemplate(
     const subject = `ثبت‌نام در جلسه: ${meet.title} | RSVP Confirmed: ${meet.title}`;
 
     const faContent = `
-      <h2>تبریک ${name} عزیز! حضور شما ثبت شد ✨</h2>
+      <h2>تبریک ${name} عزیز! حضور شما ثبت شد</h2>
       <p>مشخصات جلسه:</p>
       <div class="card">
-        <div><strong>📌 عنوان:</strong> ${meet.title}</div>
-        <div><strong>📅 تاریخ:</strong> ${meetDateShamsi} (${meet.scheduledDate}) | <strong>⏰ زمان:</strong> ${meet.scheduledTime} (${meet.durationMinutes} دقیقه)</div>
-        ${meet.presenterName ? `<div><strong>🎤 ارائه‌دهنده:</strong> ${meet.presenterName}</div>` : ""}
-        <div><strong>🔒 نوع دسترسی:</strong> ${meet.accessStatus === "public" ? "عمومی" : "خصوصی"}</div>
+        <div><strong>عنوان:</strong> ${meet.title}</div>
+        <div><strong>تاریخ:</strong> ${meetDateShamsi} (${meet.scheduledDate}) | <strong>زمان:</strong> ${meet.scheduledTime} (${meet.durationMinutes} دقیقه)</div>
+        ${meet.presenterName ? `<div><strong>ارائه‌دهنده:</strong> ${meet.presenterName}</div>` : ""}
+        <div><strong>نوع دسترسی:</strong> ${meet.accessStatus === "public" ? "عمومی" : "خصوصی"}</div>
       </div>
       <p style="text-align:center;"><a href="${meetLink}" class="btn">مشاهده صفحه جلسه و ورود</a></p>
     `;
 
     const enContent = `
-      <h2>Congratulations ${name}! You're In! ✨</h2>
+      <h2>Congratulations ${name}! You're In!</h2>
       <p>Meeting details:</p>
       <div class="card">
-        <div><strong>📌 Title:</strong> ${meet.title}</div>
-        <div><strong>📅 Date:</strong> ${meet.scheduledDate} | <strong>⏰ Time:</strong> ${meet.scheduledTime} (${meet.durationMinutes} mins)</div>
-        ${meet.presenterName ? `<div><strong>🎤 Presenter:</strong> ${meet.presenterName}</div>` : ""}
-        <div><strong>🔒 Access:</strong> ${meet.accessStatus}</div>
+        <div><strong>Title:</strong> ${meet.title}</div>
+        <div><strong>Date:</strong> ${meet.scheduledDate} | <strong>Time:</strong> ${meet.scheduledTime} (${meet.durationMinutes} mins)</div>
+        ${meet.presenterName ? `<div><strong>Presenter:</strong> ${meet.presenterName}</div>` : ""}
+        <div><strong>Access:</strong> ${meet.accessStatus}</div>
       </div>
       <p style="text-align:center;"><a href="${meetLink}" class="btn">View Meeting Page</a></p>
     `;
@@ -320,23 +320,23 @@ export function renderAttendeesReminderTemplate(
     const subject = `یادآوری رویداد: ${meet.title} | Event Reminder: ${meet.title}`;
 
     const faContent = `
-      <h2>سلام ${name} عزیز 👋</h2>
+      <h2>سلام ${name} عزیز</h2>
       <p>جلسه‌ای که در آن ثبت‌نام کرده‌اید به زودی آغاز می‌شود:</p>
       <div class="card">
-        <div><strong>📌 عنوان:</strong> ${meet.title}</div>
-        <div><strong>📅 تاریخ:</strong> ${meetDateShamsi} (${meet.scheduledDate}) | <strong>⏰ زمان:</strong> ${meet.scheduledTime} (${meet.durationMinutes} دقیقه)</div>
-        ${meet.presenterName ? `<div><strong>🎤 ارائه‌دهنده:</strong> ${meet.presenterName}</div>` : ""}
+        <div><strong>عنوان:</strong> ${meet.title}</div>
+        <div><strong>تاریخ:</strong> ${meetDateShamsi} (${meet.scheduledDate}) | <strong>زمان:</strong> ${meet.scheduledTime} (${meet.durationMinutes} دقیقه)</div>
+        ${meet.presenterName ? `<div><strong>ارائه‌دهنده:</strong> ${meet.presenterName}</div>` : ""}
       </div>
       <p style="text-align:center;"><a href="${meetLink}" class="btn" style="background:#2563eb;">ورود به اتاق جلسه</a></p>
     `;
 
     const enContent = `
-      <h2>Hello ${name} 👋</h2>
+      <h2>Hello ${name}</h2>
       <p>A meeting you registered for is starting soon:</p>
       <div class="card">
-        <div><strong>📌 Title:</strong> ${meet.title}</div>
-        <div><strong>📅 Date:</strong> ${meet.scheduledDate} | <strong>⏰ Time:</strong> ${meet.scheduledTime} (${meet.durationMinutes} mins)</div>
-        ${meet.presenterName ? `<div><strong>🎤 Presenter:</strong> ${meet.presenterName}</div>` : ""}
+        <div><strong>Title:</strong> ${meet.title}</div>
+        <div><strong>Date:</strong> ${meet.scheduledDate} | <strong>Time:</strong> ${meet.scheduledTime} (${meet.durationMinutes} mins)</div>
+        ${meet.presenterName ? `<div><strong>Presenter:</strong> ${meet.presenterName}</div>` : ""}
       </div>
       <p style="text-align:center;"><a href="${meetLink}" class="btn" style="background:#2563eb;">Join Meeting</a></p>
     `;
@@ -372,21 +372,21 @@ export function renderTagReminderTemplate(
     const subject = `یادآوری: جلسه مرتبط با علایق شما (${meet.title})`;
 
     const faContent = `
-      <h2>سلام ${name} عزیز 🔔</h2>
+      <h2>سلام ${name} عزیز</h2>
       <p>جلسه جدیدی مرتبط با تگ‌های مورد علاقه شما (<strong>${matchedTags.join("، ")}</strong>) فردا برگزار می‌شود:</p>
       <div class="card">
         <div style="font-weight:bold;color:#4338ca;">${meet.title}</div>
-        <div>📅 ${meet.scheduledDate} | ⏰ ${meet.scheduledTime}</div>
+        <div>${meet.scheduledDate} | ${meet.scheduledTime}</div>
       </div>
       <p style="text-align:center;"><a href="${meetLink}" class="btn" style="background:#4338ca;">مشاهده جزئیات و ثبت‌نام</a></p>
     `;
 
     const enContent = `
-      <h2>Hi ${name} 🔔</h2>
+      <h2>Hi ${name}</h2>
       <p>An upcoming meeting matches your preferred tags (<strong>${matchedTags.join(", ")}</strong>):</p>
       <div class="card">
         <div style="font-weight:bold;color:#4338ca;">${meet.title}</div>
-        <div>📅 ${meet.scheduledDate} | ⏰ ${meet.scheduledTime}</div>
+        <div>${meet.scheduledDate} | ${meet.scheduledTime}</div>
       </div>
       <p style="text-align:center;"><a href="${meetLink}" class="btn" style="background:#4338ca;">View & RSVP</a></p>
     `;

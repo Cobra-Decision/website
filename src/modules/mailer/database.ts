@@ -45,7 +45,7 @@ export const PREBUILT_EMAIL_TEMPLATES = [
   </div>
   <div style="padding: 24px; color: #1e293b;">
     <div dir="rtl" style="text-align: right; margin-bottom: 20px;">
-      <h2 style="color: #1e293b; margin-top: 0;">خوش آمدید {{name}}! 🎉</h2>
+      <h2 style="color: #1e293b; margin-top: 0;">خوش آمدید {{name}}!</h2>
       <p>حساب کاربری شما در تصمیم کبرا با موفقیت فعال شد. اکنون می‌توانید در رویدادها و گفتگوهای فنی جامعه شرکت کنید.</p>
       <p style="text-align: center; margin: 24px 0;">
         <a href="{{dashboard_url}}" style="background: #2563eb; color: #ffffff; padding: 10px 24px; border-radius: 6px; text-decoration: none; font-weight: 600; display: inline-block;">ورود به داشبورد</a>
@@ -53,7 +53,7 @@ export const PREBUILT_EMAIL_TEMPLATES = [
     </div>
     <hr style="border: none; border-top: 1px dashed #cbd5e1; margin: 24px 0;" />
     <div dir="ltr" style="text-align: left;">
-      <h2 style="color: #1e293b; margin-top: 0;">Welcome, {{name}}! 🎉</h2>
+      <h2 style="color: #1e293b; margin-top: 0;">Welcome, {{name}}!</h2>
       <p>Your CobraDecision account is ready. Discover and participate in upcoming community tech sessions.</p>
       <p style="text-align: center; margin: 24px 0;">
         <a href="{{dashboard_url}}" style="background: #2563eb; color: #ffffff; padding: 10px 24px; border-radius: 6px; text-decoration: none; font-weight: 600; display: inline-block;">Go to Dashboard</a>
@@ -103,12 +103,12 @@ export const PREBUILT_EMAIL_TEMPLATES = [
   </div>
   <div style="padding: 24px; color: #1e293b;">
     <div dir="rtl" style="text-align: right; margin-bottom: 20px;">
-      <h2 style="margin-top: 0;">تبریک {{name}} عزیز! حضور شما ثبت شد ✨</h2>
+      <h2 style="margin-top: 0;">تبریک {{name}} عزیز! حضور شما ثبت شد</h2>
       <p>مشخصات جلسه:</p>
       <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin: 16px 0; font-size: 14px; line-height: 1.8;">
-        <div><strong>📌 عنوان:</strong> {{meet_title}}</div>
-        <div><strong>📅 تاریخ:</strong> {{meet_date_shamsi}} ({{meet_date}}) | <strong>⏰ زمان:</strong> {{meet_time}} ({{meet_duration}} دقیقه)</div>
-        <div><strong>🎤 ارائه‌دهنده:</strong> {{presenter_name}}</div>
+        <div><strong>عنوان:</strong> {{meet_title}}</div>
+        <div><strong>تاریخ:</strong> {{meet_date_shamsi}} ({{meet_date}}) | <strong>زمان:</strong> {{meet_time}} ({{meet_duration}} دقیقه)</div>
+        <div><strong>ارائه‌دهنده:</strong> {{presenter_name}}</div>
       </div>
       <p style="text-align: center; margin: 24px 0;">
         <a href="{{meet_link}}" style="background: #2563eb; color: #ffffff; padding: 10px 24px; border-radius: 6px; text-decoration: none; font-weight: 600; display: inline-block;">مشاهده صفحه جلسه و ورود</a>
@@ -116,12 +116,12 @@ export const PREBUILT_EMAIL_TEMPLATES = [
     </div>
     <hr style="border: none; border-top: 1px dashed #cbd5e1; margin: 24px 0;" />
     <div dir="ltr" style="text-align: left;">
-      <h2 style="margin-top: 0;">Congratulations {{name}}! You're In! ✨</h2>
+      <h2 style="margin-top: 0;">Congratulations {{name}}! You're In!</h2>
       <p>Meeting details:</p>
       <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin: 16px 0; font-size: 14px; line-height: 1.8;">
-        <div><strong>📌 Title:</strong> {{meet_title}}</div>
-        <div><strong>📅 Date:</strong> {{meet_date}} | <strong>⏰ Time:</strong> {{meet_time}} ({{meet_duration}} mins)</div>
-        <div><strong>🎤 Presenter:</strong> {{presenter_name}}</div>
+        <div><strong>Title:</strong> {{meet_title}}</div>
+        <div><strong>Date:</strong> {{meet_date}} | <strong>Time:</strong> {{meet_time}} ({{meet_duration}} mins)</div>
+        <div><strong>Presenter:</strong> {{presenter_name}}</div>
       </div>
       <p style="text-align: center; margin: 24px 0;">
         <a href="{{meet_link}}" style="background: #2563eb; color: #ffffff; padding: 10px 24px; border-radius: 6px; text-decoration: none; font-weight: 600; display: inline-block;">View Meeting Page</a>
@@ -141,11 +141,11 @@ export const PREBUILT_EMAIL_TEMPLATES = [
   </div>
   <div style="padding: 24px; color: #1e293b;">
     <div dir="rtl" style="text-align: right; margin-bottom: 20px;">
-      <h2 style="margin-top: 0;">سلام {{name}} عزیز 🔔</h2>
+      <h2 style="margin-top: 0;">سلام {{name}} عزیز</h2>
       <p>جلسه جدیدی مرتبط با تگ‌های مورد علاقه شما (<strong>{{tags}}</strong>) به زودی برگزار می‌شود:</p>
       <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin: 16px 0;">
         <div style="font-weight: bold; color: #2563eb; font-size: 16px; margin-bottom: 6px;">{{meet_title}}</div>
-        <div>📅 {{meet_date}} | ⏰ {{meet_time}}</div>
+        <div>{{meet_date}} | {{meet_time}}</div>
       </div>
       <p style="text-align: center; margin: 24px 0;">
         <a href="{{meet_link}}" style="background: #2563eb; color: #ffffff; padding: 10px 24px; border-radius: 6px; text-decoration: none; font-weight: 600; display: inline-block;">مشاهده جزئیات و ثبت‌نام</a>
@@ -153,11 +153,11 @@ export const PREBUILT_EMAIL_TEMPLATES = [
     </div>
     <hr style="border: none; border-top: 1px dashed #cbd5e1; margin: 24px 0;" />
     <div dir="ltr" style="text-align: left;">
-      <h2 style="margin-top: 0;">Hi {{name}} 🔔</h2>
+      <h2 style="margin-top: 0;">Hi {{name}}</h2>
       <p>An upcoming meeting matches your preferred tags (<strong>{{tags}}</strong>):</p>
       <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin: 16px 0;">
         <div style="font-weight: bold; color: #2563eb; font-size: 16px; margin-bottom: 6px;">{{meet_title}}</div>
-        <div>📅 {{meet_date}} | ⏰ {{meet_time}}</div>
+        <div>{{meet_date}} | {{meet_time}}</div>
       </div>
       <p style="text-align: center; margin: 24px 0;">
         <a href="{{meet_link}}" style="background: #2563eb; color: #ffffff; padding: 10px 24px; border-radius: 6px; text-decoration: none; font-weight: 600; display: inline-block;">View & RSVP</a>
@@ -177,12 +177,12 @@ export const PREBUILT_EMAIL_TEMPLATES = [
   </div>
   <div style="padding: 24px; color: #1e293b;">
     <div dir="rtl" style="text-align: right; margin-bottom: 20px;">
-      <h2 style="margin-top: 0;">سلام {{name}} عزیز 👋</h2>
+      <h2 style="margin-top: 0;">سلام {{name}} عزیز</h2>
       <p>جلسه‌ای که در آن ثبت‌نام کرده‌اید به زودی برگزار می‌شود:</p>
       <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin: 16px 0; font-size: 14px; line-height: 1.8;">
-        <div><strong>📌 عنوان:</strong> {{meet_title}}</div>
-        <div><strong>📅 تاریخ:</strong> {{meet_date_shamsi}} ({{meet_date}}) | <strong>⏰ زمان:</strong> {{meet_time}}</div>
-        <div><strong>🎤 ارائه‌دهنده:</strong> {{presenter_name}}</div>
+        <div><strong>عنوان:</strong> {{meet_title}}</div>
+        <div><strong>تاریخ:</strong> {{meet_date_shamsi}} ({{meet_date}}) | <strong>زمان:</strong> {{meet_time}}</div>
+        <div><strong>ارائه‌دهنده:</strong> {{presenter_name}}</div>
       </div>
       <p style="text-align: center; margin: 24px 0;">
         <a href="{{meet_link}}" style="background: #2563eb; color: #ffffff; padding: 10px 24px; border-radius: 6px; text-decoration: none; font-weight: 600; display: inline-block;">ورود به اتاق جلسه</a>
@@ -190,12 +190,12 @@ export const PREBUILT_EMAIL_TEMPLATES = [
     </div>
     <hr style="border: none; border-top: 1px dashed #cbd5e1; margin: 24px 0;" />
     <div dir="ltr" style="text-align: left;">
-      <h2 style="margin-top: 0;">Hello {{name}} 👋</h2>
+      <h2 style="margin-top: 0;">Hello {{name}}</h2>
       <p>A meeting you registered for is happening soon:</p>
       <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin: 16px 0; font-size: 14px; line-height: 1.8;">
-        <div><strong>📌 Title:</strong> {{meet_title}}</div>
-        <div><strong>📅 Date:</strong> {{meet_date}} | <strong>⏰ Time:</strong> {{meet_time}}</div>
-        <div><strong>🎤 Presenter:</strong> {{presenter_name}}</div>
+        <div><strong>Title:</strong> {{meet_title}}</div>
+        <div><strong>Date:</strong> {{meet_date}} | <strong>Time:</strong> {{meet_time}}</div>
+        <div><strong>Presenter:</strong> {{presenter_name}}</div>
       </div>
       <p style="text-align: center; margin: 24px 0;">
         <a href="{{meet_link}}" style="background: #2563eb; color: #ffffff; padding: 10px 24px; border-radius: 6px; text-decoration: none; font-weight: 600; display: inline-block;">Join Meeting</a>
@@ -209,25 +209,25 @@ export const PREBUILT_EMAIL_TEMPLATES = [
     subject: "اطلاعیه جامعه مهندسی: {{subject_topic}} | Community Update",
     format: "markdown" as const,
     description: "Bilingual markdown starter announcement template for community newsletters",
-    value: `### سلام {{name}} عزیز 👋
+    value: `### سلام {{name}} عزیز
 
 خوشحالیم که آخرین اخبار و رویدادهای پیش‌روی **تصمیم کبرا** را با شما به اشتراک می‌گذاریم.
 
-- 🚀 **جلسات و کارگاه‌های تخصصی جدید**: گفتگوهای زنده معماری و نرم‌افزار.
-- 💡 **ارتباط با جامعه متخصصان**: تبادل نظر با مهندسان و ارائه‌دهندگان برتر.
-- 📅 **تاریخ انتشار**: {{date_shamsi}}
+- **جلسات و کارگاه‌های تخصصی جدید**: گفتگوهای زنده معماری و نرم‌افزار.
+- **ارتباط با جامعه متخصصان**: تبادل نظر با مهندسان و ارائه‌دهندگان برتر.
+- **تاریخ انتشار**: {{date_shamsi}}
 
 برای مشاهده برنامه کامل رویدادها به [داشبورد کاربری]({{dashboard_url}}) مراجعه نمایید.
 
 ---
 
-### Hello {{name}} 👋
+### Hello {{name}}
 
 We are excited to share recent updates and upcoming engineering sessions at **CobraDecision**.
 
-- 🚀 **Interactive Tech Sessions**: Explore upcoming live workshops.
-- 💡 **Community Highlights**: Connect with top presenters and engineers.
-- 📅 **Published on**: {{date}}
+- **Interactive Tech Sessions**: Explore upcoming live workshops.
+- **Community Highlights**: Connect with top presenters and engineers.
+- **Published on**: {{date}}
 
 Visit your [Member Dashboard]({{dashboard_url}}) to view the schedule.
 
