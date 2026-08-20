@@ -247,9 +247,13 @@ export const MeetingDetailPage = ({
               )}
             </div>
 
-            <div class="overflow-hidden rounded-2xl border border-base-300 bg-base-200 shadow-md">
+            <div class="relative aspect-video w-full overflow-hidden rounded-2xl border border-base-300 bg-base-200 shadow-md">
+              <div
+                class="absolute inset-0 bg-cover bg-center blur-lg opacity-50 scale-110"
+                style={`background-image: url('${meet.image_url ?? "/placeholder-meet.svg"}')`}
+              />
               <img
-                class="aspect-video w-full object-cover"
+                class="relative z-10 h-full w-full object-contain"
                 src={meet.image_url ?? "/placeholder-meet.svg"}
                 alt={meet.title}
               />

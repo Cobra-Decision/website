@@ -69,16 +69,20 @@ export const UnifiedMeetCard = ({
     return (
       <article class={containerClasses} id={`meet-card-featured-${meet.id}`}>
         <div class="relative aspect-video w-full overflow-hidden rounded-2xl bg-base-300">
+          <div
+            class="absolute inset-0 bg-cover bg-center blur-md opacity-50 scale-110"
+            style={`background-image: url('${meet.image_url ?? "/placeholder-meet.svg"}')`}
+          />
           <img
-            class="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+            class="relative z-10 h-full w-full object-contain transition duration-500 group-hover:scale-105"
             src={meet.image_url ?? "/placeholder-meet.svg"}
             alt={meet.title}
             loading="lazy"
           />
-          <div class="badge absolute start-3 top-3 border-0 bg-base-100/90 text-xs font-medium text-base-content backdrop-blur-sm">
+          <div class="badge absolute start-3 top-3 border-0 bg-base-100/90 text-xs font-medium text-base-content backdrop-blur-sm z-20">
             {t("hero.up_next", locale)} · {formattedDate}
           </div>
-          <div class="badge absolute end-3 top-3 border-0 p-0 text-xs font-medium">
+          <div class="badge absolute end-3 top-3 border-0 p-0 text-xs font-medium z-20">
             <span class={`badge ${statusBadgeColor} badge-sm`}>{statusLabel}</span>
           </div>
         </div>
@@ -131,16 +135,20 @@ export const UnifiedMeetCard = ({
   return (
     <article class={containerClasses} id={`meet-card-${meet.id}`}>
       <div class="relative aspect-video w-full overflow-hidden bg-base-300">
+        <div
+          class="absolute inset-0 bg-cover bg-center blur-md opacity-50 scale-110"
+          style={`background-image: url('${meet.image_url ?? "/placeholder-meet.svg"}')`}
+        />
         <img
-          class="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+          class="relative z-10 h-full w-full object-contain transition duration-500 group-hover:scale-105"
           src={meet.image_url ?? "/placeholder-meet.svg"}
           alt={meet.title}
           loading="lazy"
         />
-        <div class="badge absolute start-3 top-3 border-0 bg-base-100/90 text-xs font-medium text-base-content backdrop-blur-sm">
+        <div class="badge absolute start-3 top-3 border-0 bg-base-100/90 text-xs font-medium text-base-content backdrop-blur-sm z-20">
           {formattedDate}
         </div>
-        <div class="badge absolute end-3 top-3 border-0 p-0 text-xs font-medium">
+        <div class="badge absolute end-3 top-3 border-0 p-0 text-xs font-medium z-20">
           <span class={`badge ${statusBadgeColor} badge-sm`}>{statusLabel}</span>
         </div>
       </div>
