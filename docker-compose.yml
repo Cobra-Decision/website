@@ -18,6 +18,7 @@ services:
       - STORAGE_DIR=/app/public/uploads
       - ASSET_BASE_URL=/uploads
       - LOG_DIR=/app/log
+      - BACKUP_LOCAL_DIR=/app/backups
       - GMAIL_USER=${GMAIL_USER}
       - GMAIL_APP_PASSWORD=${GMAIL_APP_PASSWORD}
       - SMTP_HOST=${SMTP_HOST:-smtp.gmail.com}
@@ -34,6 +35,8 @@ services:
       - ./public/uploads:/app/public/uploads
       # Persistent log directory
       - ./log:/app/log
+      # Persistent backup directory
+      - ./backups:/app/backups
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:3000/ || exit 1"]
       interval: 30s

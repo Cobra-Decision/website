@@ -29,9 +29,9 @@ COPY --from=builder /app/src ./src
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/tsconfig.json ./tsconfig.json
 
-# Create uploads, logs, and data directories
-RUN mkdir -p /app/public/uploads /app/log /app/data
-VOLUME ["/app/public/uploads", "/app/log", "/app/data"]
+# Create uploads, logs, backups, and data directories
+RUN mkdir -p /app/public/uploads /app/log /app/data /app/backups
+VOLUME ["/app/public/uploads", "/app/log", "/app/data", "/app/backups"]
 
 EXPOSE 3000
 
