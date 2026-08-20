@@ -112,6 +112,71 @@ export const DynamicCtaButton = ({
   );
 };
 
+function getYouTubeEmbedUrl(url: string): string | null {
+  if (!url) return null;
+  const ytMatch = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|v\/|shorts\/)|youtu\.be\/)([\w-]{11})/i);
+  return ytMatch ? `https://www.youtube-nocookie.com/embed/${ytMatch[1]}` : null;
+}
+
+export const MeetingVideoSection = ({
+  videoUrl,
+  title,
+  locale = "en",
+}: {
+  videoUrl: string;
+  title: string;
+  locale?: Locale;
+}) => {
+  const embedUrl = getYouTubeEmbedUrl(videoUrl);
+
+  return (
+    <section class="space-y-3 rounded-2xl border border-primary/30 bg-base-100 p-6 shadow-sm">
+      <div class="flex items-center justify-between gap-2 border-b border-base-200 pb-3">
+        <div class="flex items-center gap-2">
+          <svg class="h-5 w-5 text-primary shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+          </svg>
+          <div>
+            <h3 class="text-lg font-bold text-base-content">{t("meet.recording_title", locale)}</h3>
+            <p class="text-xs text-base-content/60">{t("meet.recording_desc", locale)}</p>
+          </div>
+        </div>
+        <a
+          href={videoUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          class="btn btn-xs btn-outline btn-primary"
+        >
+          {t("meet.watch_recording", locale)} ↗
+        </a>
+      </div>
+
+      <div class="overflow-hidden rounded-xl bg-black shadow-inner">
+        {embedUrl ? (
+          <div class="relative aspect-video w-full">
+            <iframe
+              class="absolute inset-0 h-full w-full border-0"
+              src={embedUrl}
+              title={title}
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowFullScreen
+            />
+          </div>
+        ) : (
+          <video
+            class="aspect-video w-full"
+            controls
+            preload="metadata"
+            src={videoUrl}
+          >
+            Your browser does not support the video tag.
+          </video>
+        )}
+      </div>
+    </section>
+  );
+};
+
 export const MeetAccessBanner = ({
   meet,
   isAuthenticated = false,
@@ -123,6 +188,11 @@ export const MeetAccessBanner = ({
   isAttending?: boolean;
   locale?: Locale;
 }) => {
+  // If completed, live room is not accessible
+  if (meet.status === "completed") {
+    return null;
+  }
+
   const isPublic = meet.access_status === "public";
   const canAccessMeetUrl = Boolean(meet.meet_url && (isPublic || isAttending));
 
@@ -149,7 +219,12 @@ export const MeetAccessBanner = ({
         <div class="rounded-2xl border border-warning/30 bg-warning/5 p-6 text-center sm:text-start sm:flex sm:items-center sm:justify-between shadow-sm transition-all">
           <div class="space-y-1">
             <div class="flex items-center gap-2">
-              <span class="badge badge-warning badge-sm">🔒 {t("meet.private", locale)}</span>
+              <span class="badge badge-warning badge-sm gap-1">
+                <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+                {t("meet.private", locale)}
+              </span>
               <h3 class="text-base font-bold text-base-content">{t("meet.private_notice_title", locale)}</h3>
             </div>
             <p class="text-xs text-base-content/70">
@@ -282,7 +357,9 @@ export const MeetingDetailPage = ({
               <div class="rounded-2xl border border-secondary/30 bg-secondary/5 p-6 sm:flex sm:items-center sm:justify-between shadow-sm">
                 <div class="space-y-1">
                   <div class="flex items-center gap-2">
-                    <span class="text-xl">📄</span>
+                    <svg class="h-5 w-5 text-secondary shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
                     <h3 class="text-lg font-bold text-base-content">{t("meet.presentation_title", locale)}</h3>
                   </div>
                   <p class="text-sm text-base-content/70">
@@ -296,10 +373,21 @@ export const MeetingDetailPage = ({
                   rel="noopener noreferrer"
                   download
                 >
-                  <span>📥</span>
+                  <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
                   {t("meet.download_presentation", locale)}
                 </a>
               </div>
+            )}
+
+            {/* Video / Recording Embed Section */}
+            {meet.video_url && (
+              <MeetingVideoSection
+                videoUrl={meet.video_url}
+                title={meet.title}
+                locale={locale}
+              />
             )}
 
             {/* Room URL Access Banner */}

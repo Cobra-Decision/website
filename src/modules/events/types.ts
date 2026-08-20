@@ -20,6 +20,7 @@ export type Meet = {
   scheduled_time: string;
   duration_minutes: number;
   meet_url: string | null;
+  video_url: string | null;
   file_url: string | null;
   image_url: string | null;
   status: MeetStatus;
@@ -55,6 +56,7 @@ export type CreateMeetInput = {
   scheduledTime: string;
   durationMinutes?: number;
   meetUrl?: string | null;
+  videoUrl?: string | null;
   fileUrl?: string | null;
   imageUrl?: string | null;
   status?: MeetStatus;

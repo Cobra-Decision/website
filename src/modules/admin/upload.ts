@@ -12,6 +12,7 @@ export function getAssetBaseUrl(): string {
 
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
 const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB
+const MAX_VIDEO_SIZE = 100 * 1024 * 1024; // 100MB
 
 const ALLOWED_IMAGE_TYPES: Record<string, string> = {
   "image/png": "png",
@@ -19,6 +20,46 @@ const ALLOWED_IMAGE_TYPES: Record<string, string> = {
   "image/jpg": "jpg",
   "image/webp": "webp",
 };
+
+const ALLOWED_VIDEO_TYPES: Record<string, string> = {
+  "video/mp4": "mp4",
+  "video/webm": "webm",
+  "video/ogg": "ogv",
+  "video/quicktime": "mov",
+};
+
+export async function handleVideoUpload(file: File | null | undefined): Promise<{ url?: string; error?: string; name?: string }> {
+  if (!file || typeof file === "string" || !(file instanceof File) || file.size === 0) {
+    return {};
+  }
+
+  if (!ALLOWED_VIDEO_TYPES[file.type] && !file.name.match(/\.(mp4|webm|ogv|mov)$/i)) {
+    return { error: "Invalid video format. Allowed: MP4, WebM, OGG, MOV." };
+  }
+
+  if (file.size > MAX_VIDEO_SIZE) {
+    return { error: "Video file size exceeds maximum limit of 100 MB." };
+  }
+
+  try {
+    const storageDir = getStorageDir();
+    const assetBaseUrl = getAssetBaseUrl();
+    await mkdir(storageDir, { recursive: true });
+    const originalExt = extname(file.name).toLowerCase() || ".mp4";
+    const cleanExt = originalExt.replace(/[^a-z0-9.]/gi, "") || ".mp4";
+    const filename = `meet_video_${generateId()}${cleanExt}`;
+    const destination = join(storageDir, filename);
+
+    const buffer = await file.arrayBuffer();
+    await Bun.write(destination, buffer);
+
+    const url = `${assetBaseUrl}/${filename}`;
+    return { url, name: file.name };
+  } catch (error) {
+    console.error("Video upload error:", error);
+    return { error: "Failed to upload video file to disk." };
+  }
+}
 
 export async function handleImageUpload(file: File | null | undefined): Promise<{ url?: string; error?: string }> {
   if (!file || typeof file === "string" || !(file instanceof File) || file.size === 0) {

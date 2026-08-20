@@ -6,19 +6,21 @@ import { generateId } from "../../lib/id";
 
 export function createMeet(database: Database, data: CreateMeetInput): Meet {
   const id = data.id ?? generateId();
-  const insert = database.query(`INSERT INTO meets (id, title, description, topics, scheduled_at_utc, scheduled_date, scheduled_time, duration_minutes, meet_url, file_url, image_url, status, access_status, presenter_id)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING *`);
+  const normalizedTopics = normalizeTopics(data.topics);
+  const insert = database.query(`INSERT INTO meets (id, title, description, topics, scheduled_at_utc, scheduled_date, scheduled_time, duration_minutes, meet_url, video_url, file_url, image_url, status, access_status, presenter_id)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING *`);
   const meet = database.transaction(() => {
     const row = insert.get(
       id,
       data.title,
       data.description ?? "",
-      JSON.stringify(data.topics),
+      JSON.stringify(normalizedTopics),
       toUtcIso(data.scheduledDate, data.scheduledTime),
       data.scheduledDate,
       data.scheduledTime,
       data.durationMinutes ?? 60,
       data.meetUrl ?? null,
+      data.videoUrl ?? null,
       data.fileUrl ?? null,
       data.imageUrl ?? null,
       data.status ?? "upcoming",
@@ -116,15 +118,28 @@ export function filterMeets(database: Database, params: {
   return hydrateMeets(database, meets);
 }
 
-function parseTopics(raw: string | null | undefined): string[] {
+export function normalizeTopics(raw: string | string[] | null | undefined): string[] {
   if (!raw) return [];
-  try {
-    const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed)) return parsed.map(String);
-    return [String(parsed)];
-  } catch {
-    return raw.split(",").map((s) => s.trim()).filter(Boolean);
+  if (Array.isArray(raw)) {
+    return raw.map((item) => String(item).replace(/[\[\]'"]/g, "").trim()).filter(Boolean);
   }
+  const str = String(raw).trim();
+  if (!str) return [];
+  try {
+    const parsed = JSON.parse(str);
+    if (Array.isArray(parsed)) {
+      return parsed.map((item) => String(item).replace(/[\[\]'"]/g, "").trim()).filter(Boolean);
+    }
+  } catch {}
+  return str
+    .replace(/[\[\]'"]/g, "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+export function parseTopics(raw: string | null | undefined): string[] {
+  return normalizeTopics(raw);
 }
 
 function hydrateMeets(database: Database, meets: Meet[]): MeetWithDetails[] {
@@ -191,6 +206,7 @@ function hydrateMeets(database: Database, meets: Meet[]): MeetWithDetails[] {
       status: meet.status ?? "upcoming",
       access_status: meet.access_status ?? "public",
       file_url: meet.file_url ?? null,
+      video_url: meet.video_url ?? null,
       topics: parseTopics(meet.topics),
       presenter: meet.presenter_id ? presenterMap.get(meet.presenter_id) ?? null : null,
       attendee_count: attendeeIds.length,

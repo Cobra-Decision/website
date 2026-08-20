@@ -2,7 +2,7 @@ import { afterEach, beforeEach, expect, test } from "bun:test";
 import { Database } from "bun:sqlite";
 import { initializeDatabase } from "../src/modules/auth/database";
 import { initializeEventsDatabase } from "../src/modules/events/database";
-import { createMeet, filterMeets, getUpcomingMeets, recordMeetVisit, toggleAttendance, getUserPreferredTags, setUserPreferredTags } from "../src/modules/events/queries";
+import { createMeet, filterMeets, getUpcomingMeets, recordMeetVisit, toggleAttendance, getUserPreferredTags, setUserPreferredTags, normalizeTopics, parseTopics } from "../src/modules/events/queries";
 import { formatTehran, toUtcIso } from "../src/modules/events/datetime";
 import { generateId } from "../src/lib/id";
 
@@ -25,7 +25,16 @@ test("stores Tehran schedule input as UTC and renders Persian date", () => {
   expect(formatTehran("2026-08-14T08:30:00.000Z").date).toContain("۱۴۰۵");
 });
 
-test("createMeet stores status, access_status, file_url, JSON topics and creates active tag mappings", () => {
+test("normalizeTopics and parseTopics clean quotes, brackets and whitespace", () => {
+  expect(normalizeTopics('["Career", "DevOps", "Open discussion"]')).toEqual(["Career", "DevOps", "Open discussion"]);
+  expect(normalizeTopics("Career, DevOps, Open discussion")).toEqual(["Career", "DevOps", "Open discussion"]);
+  expect(normalizeTopics("Career,DevOps,OpenDiscussion")).toEqual(["Career", "DevOps", "OpenDiscussion"]);
+  expect(normalizeTopics(["'Career'", '"DevOps"'])).toEqual(["Career", "DevOps"]);
+  expect(normalizeTopics("")).toEqual([]);
+  expect(normalizeTopics(null)).toEqual([]);
+});
+
+test("createMeet stores status, access_status, file_url, video_url, JSON topics and creates active tag mappings", () => {
   const tag1 = generateId();
   const tag2 = generateId();
   database.run("INSERT INTO tags (id, title) VALUES (?, ?), (?, ?)", [tag1, "TypeScript", tag2, "Bun"]);
@@ -38,6 +47,7 @@ test("createMeet stores status, access_status, file_url, JSON topics and creates
     scheduledTime: "19:00",
     durationMinutes: 90,
     meetUrl: "https://example.com",
+    videoUrl: "https://youtube.com/watch?v=12345678901",
     fileUrl: "/uploads/presentation_1.pdf",
     status: "live",
     accessStatus: "private",
@@ -45,11 +55,12 @@ test("createMeet stores status, access_status, file_url, JSON topics and creates
     presenterId: userId,
     tagIds: tags.map(({ id }) => id),
   });
-  expect(database.query("SELECT topics, duration_minutes, status, access_status, file_url FROM meets WHERE id = ?").get(meet.id)).toEqual({
+  expect(database.query("SELECT topics, duration_minutes, status, access_status, video_url, file_url FROM meets WHERE id = ?").get(meet.id)).toEqual({
     topics: '["TypeScript","Web Architecture"]',
     duration_minutes: 90,
     status: "live",
     access_status: "private",
+    video_url: "https://youtube.com/watch?v=12345678901",
     file_url: "/uploads/presentation_1.pdf",
   });
   expect(database.query("SELECT COUNT(*) total FROM meet_tags WHERE meet_id = ?").get(meet.id)).toEqual({ total: 2 });

@@ -219,6 +219,16 @@ export const migrations: MigrationStep[] = [
       db.run("CREATE INDEX IF NOT EXISTS idx_scheduled_emails_status ON scheduled_emails(status, scheduled_for);");
     },
   },
+  {
+    version: 5,
+    name: "005_add_video_url_to_meets",
+    up: (db: Database) => {
+      const columns = db.query<{ name: string }, []>("PRAGMA table_info(meets)").all();
+      if (!columns.some((c) => c.name === "video_url")) {
+        db.run("ALTER TABLE meets ADD COLUMN video_url TEXT;");
+      }
+    },
+  },
 ];
 
 export function ensureMigrationTable(db: Database) {

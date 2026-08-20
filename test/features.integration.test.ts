@@ -158,6 +158,29 @@ test("GET /meets/:id renders public meeting with direct room URL and markdown", 
   expect(html).toContain("https://meet.jit.si/rust-room");
 });
 
+test("GET /meets/:id for completed meeting shows video recording and hides live room URL", async () => {
+  const meet = createMeet(database, {
+    title: "Completed Docker Workshop",
+    description: "Recorded presentation",
+    topics: ["Docker", "DevOps"],
+    scheduledDate: "2099-01-01",
+    scheduledTime: "18:00",
+    meetUrl: "https://meet.jit.si/docker-room",
+    videoUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+    accessStatus: "public",
+    status: "completed",
+    tagIds: [],
+  });
+
+  const res = await app.request(`/meets/${meet.id}`);
+  expect(res.status).toBe(200);
+  const html = await res.text();
+  expect(html).toContain("Completed Docker Workshop");
+  expect(html).toContain("youtube-nocookie.com/embed/dQw4w9WgXcQ");
+  expect(html).toContain("Meeting Recording");
+  expect(html).not.toContain("https://meet.jit.si/docker-room");
+});
+
 test("GET /meets/:id hides private meeting room URL for non-attendees and shows when attending", async () => {
   const meet = createMeet(database, {
     title: "Private Exec Sync",
@@ -347,10 +370,10 @@ test("hydrateMeets batch queries correctly associate tags, attendee counts, and 
   expect(hydrated2.tags.map((t) => t.id).sort()).toEqual([tag1, tag2].sort());
 });
 
-test("runMigrations applies performance index migration 004", async () => {
+test("runMigrations applies performance index migration 004 and video_url migration 005", async () => {
   const memDb = new Database(":memory:");
   const result = await runMigrations(memDb);
-  expect(result.currentVersion).toBe(4);
+  expect(result.currentVersion).toBe(5);
 
   const indexNames = memDb
     .query<{ name: string }, []>("SELECT name FROM sqlite_master WHERE type='index'")
@@ -364,5 +387,11 @@ test("runMigrations applies performance index migration 004", async () => {
   expect(indexNames).toContain("idx_users_email");
   expect(indexNames).toContain("idx_users_deleted_at");
   expect(indexNames).toContain("idx_scheduled_emails_status");
+
+  const meetColumns = memDb
+    .query<{ name: string }, []>("PRAGMA table_info(meets)")
+    .all()
+    .map((c) => c.name);
+  expect(meetColumns).toContain("video_url");
 });
 

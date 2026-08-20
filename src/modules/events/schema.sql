@@ -26,6 +26,7 @@ CREATE TABLE IF NOT EXISTS meets (
   scheduled_time TIME NOT NULL,
   duration_minutes INTEGER NOT NULL DEFAULT 60,
   meet_url TEXT,
+  video_url TEXT,
   file_url TEXT,
   image_url TEXT,
   status TEXT NOT NULL DEFAULT 'upcoming' CHECK (status IN ('upcoming', 'live', 'completed')),

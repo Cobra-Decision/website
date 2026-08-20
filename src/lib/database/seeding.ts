@@ -314,6 +314,7 @@ export async function seedMeets(db: Database, report: SeedReport = {}): Promise<
       status: "completed" as const,
       accessStatus: "public" as const,
       fileUrl: null,
+      videoUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
       url: "https://meet.example.com/community-table",
       image: "/placeholder-meet.svg",
       tags: ["Community", "DevOps", "Career"],
@@ -332,6 +333,7 @@ export async function seedMeets(db: Database, report: SeedReport = {}): Promise<
         scheduledTime: sample.time,
         durationMinutes: sample.duration,
         meetUrl: sample.url,
+        videoUrl: (sample as any).videoUrl ?? null,
         fileUrl: sample.fileUrl,
         status: sample.status,
         accessStatus: sample.accessStatus,
@@ -344,8 +346,8 @@ export async function seedMeets(db: Database, report: SeedReport = {}): Promise<
       addReport(report, "meets", "meets", 1, 0, 0);
     } else {
       db.run(
-        "UPDATE meets SET description=?, meet_url=?, file_url=?, status=?, access_status=?, updated_at=CURRENT_TIMESTAMP WHERE id=?",
-        [sample.description, sample.url, sample.fileUrl, sample.status, sample.accessStatus, meet.id]
+        "UPDATE meets SET description=?, meet_url=?, video_url=?, file_url=?, status=?, access_status=?, updated_at=CURRENT_TIMESTAMP WHERE id=?",
+        [sample.description, sample.url, (sample as any).videoUrl ?? null, sample.fileUrl, sample.status, sample.accessStatus, meet.id]
       );
       addReport(report, "meets", "meets", 0, 1, 0);
     }

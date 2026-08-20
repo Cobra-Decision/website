@@ -104,6 +104,9 @@ export const translations = {
     "meet.presentation_title": "Presentation & Materials",
     "meet.presentation_desc": "Review presentation slides or reading materials prepared for this meeting.",
     "meet.download_presentation": "Download Presentation / Materials",
+    "meet.recording_title": "Meeting Recording",
+    "meet.recording_desc": "Watch the recorded video presentation for this session.",
+    "meet.watch_recording": "Watch Video Recording",
 
     // Dashboard
     "dashboard.all_title": "All Meetings",
@@ -287,6 +290,9 @@ export const translations = {
     "meet.presentation_title": "فایل ارائه و محتوای آموزشی",
     "meet.presentation_desc": "اسلایدها و منابع آماده شده برای این جلسه را قبل از شروع مطالعه نمایید.",
     "meet.download_presentation": "دانلود فایل ارائه / محتوای جلسه",
+    "meet.recording_title": "ویدیو و ضبط جلسه",
+    "meet.recording_desc": "ویدیوی ضبط‌شده این جلسه را به صورت آنلاین تماشا یا دریافت کنید.",
+    "meet.watch_recording": "تماشای ویدیو ضبط‌شده",
 
     // Dashboard
     "dashboard.all_title": "همه جلسات",

@@ -239,6 +239,7 @@ curl -sSL https://api.example.com/health | jq .status
       status: "completed" as const,
       accessStatus: "public" as const,
       fileUrl: null,
+      videoUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
       url: "https://meet.example.com/community-table",
       image: "/placeholder-meet.svg",
       tags: ["Community", "DevOps", "Career"],
@@ -257,6 +258,7 @@ curl -sSL https://api.example.com/health | jq .status
         scheduledTime: sample.time,
         durationMinutes: sample.duration,
         meetUrl: sample.url,
+        videoUrl: (sample as any).videoUrl ?? null,
         fileUrl: sample.fileUrl,
         status: sample.status,
         accessStatus: sample.accessStatus,
@@ -265,8 +267,8 @@ curl -sSL https://api.example.com/health | jq .status
         tagIds: tagIds(sample.tags),
       });
     database.run(
-      "UPDATE meets SET description=?, meet_url=?, file_url=?, status=?, access_status=?, updated_at=CURRENT_TIMESTAMP WHERE id=?",
-      [sample.description, sample.url, sample.fileUrl, sample.status, sample.accessStatus, meet.id]
+      "UPDATE meets SET description=?, meet_url=?, video_url=?, file_url=?, status=?, access_status=?, updated_at=CURRENT_TIMESTAMP WHERE id=?",
+      [sample.description, sample.url, (sample as any).videoUrl ?? null, sample.fileUrl, sample.status, sample.accessStatus, meet.id]
     );
     for (const tagId of tagIds(sample.tags)) {
       database.run("INSERT OR IGNORE INTO meet_tags (meet_id, tag_id) VALUES (?, ?)", [meet.id, tagId]);

@@ -9,7 +9,7 @@ import { getErrorMessage, refreshLandingCache, refreshErrorCache } from "../../l
 import { validateReportSql } from "./report";
 import { SchemaTable } from "./report-views";
 import { generateId } from "../../lib/id";
-import { handleImageUpload, handlePresentationUpload } from "./upload";
+import { handleImageUpload, handlePresentationUpload, handleVideoUpload } from "./upload";
 import { createFileAdminRoutes } from "./files/routes";
 import { MeetingLinkGenerator } from "../../ui/dashboard";
 import { MarkdownEditor } from "../../ui/markdown-editor";
@@ -20,7 +20,7 @@ import { MailerDashboardView } from "./mailer-views";
 import { MailEditorView } from "./mail-editor-views";
 import { MailSchedulerView } from "./mail-scheduler-views";
 import type { EmailTemplateRow, ScheduledEmailRow } from "../mailer/database";
-import { getAllTags } from "../events/queries";
+import { getAllTags, normalizeTopics, parseTopics } from "../events/queries";
 import { logger } from "../../lib/logger";
 import { createDatabaseAdminRoutes } from "./database-routes";
 import { ImageCropEditor } from "../../ui/image-crop-editor";
@@ -89,9 +89,9 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
     },
     meets: {
       table: "meets",
-      columns: ["id", "title", "status", "access_status", "description", "topics", "scheduled_date", "scheduled_time", "duration_minutes", "meet_url", "file_url", "image_url", "presenter_id", "created_at", "updated_at"],
+      columns: ["id", "title", "status", "access_status", "description", "topics", "scheduled_date", "scheduled_time", "duration_minutes", "meet_url", "video_url", "file_url", "image_url", "presenter_id", "created_at", "updated_at"],
       searchFields: ["id", "title", "status", "access_status", "description", "topics", "scheduled_date", "presenter_id"],
-      fields: ["title", "description", "topics", "scheduled_date", "scheduled_time", "duration_minutes", "meet_url", "file_url", "image_url", "status", "access_status", "presenter_id"],
+      fields: ["title", "description", "topics", "scheduled_date", "scheduled_time", "duration_minutes", "meet_url", "video_url", "file_url", "image_url", "status", "access_status", "presenter_id"],
     },
     tags: {
       table: "tags",
@@ -170,6 +170,14 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
         <div class="sm:col-span-2">
           <MarkdownEditor name="description" value={String(values[field] ?? "")} />
         </div>
+      ) : field === "topics" && resource === "meets" ? (
+        <input
+          class="input input-bordered w-full"
+          name={field}
+          type="text"
+          value={Array.isArray(values[field]) ? (values[field] as string[]).join(", ") : parseTopics(values[field] as string).join(", ")}
+          placeholder="Career, DevOps, Open discussion"
+        />
       ) : field === "status" && resource === "meets" ? (
         <select class="select select-bordered w-full" name={field} value={String(values[field] ?? "upcoming")}>
           <option value="upcoming" selected={String(values[field] ?? "upcoming") === "upcoming"}>
@@ -215,7 +223,7 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
           name={field}
           type={inputType(field)}
           value={field === "password" ? "" : String(values[field] ?? "")}
-          placeholder={field === "image_url" ? "URL (https://...) or path (/uploads/...)" : field === "file_url" ? "URL or OS file path" : ""}
+          placeholder={field === "image_url" ? "URL (https://...) or path (/uploads/...)" : field === "video_url" ? "YouTube link or /uploads/... video path" : field === "file_url" ? "URL or OS file path" : ""}
           required={field === "title" || field === "email" || field === "scheduled_date" || field === "scheduled_time" || (!id && field === "password")}
         />
       );
@@ -255,6 +263,16 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
                   )}
                 </label>
 
+                <label class="form-control sm:col-span-2">
+                  <span class="label-text font-medium">Or Upload Video Recording (MP4, WebM, MOV - max 100MB)</span>
+                  <input class="file-input file-input-bordered w-full" name="video_file" type="file" accept="video/mp4,video/webm,video/quicktime,video/ogg" />
+                  {values.video_url && (
+                    <span class="mt-1 text-xs text-primary">
+                      Current video attached: <a href={String(values.video_url)} target="_blank" class="underline">{String(values.video_url)}</a>
+                    </span>
+                  )}
+                </label>
+
                 <ImageCropEditor />
 
                 <div
@@ -288,7 +306,7 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
                   </div>
                   <input
                     type="text"
-                    placeholder="🔍 Search tags..."
+                    placeholder="Search tags..."
                     x-model="tagSearch"
                     class="input input-bordered input-xs w-full"
                   />
@@ -506,6 +524,11 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
           if (uploadDoc.error) return failForm(c, resource, uploadDoc.error, submitted);
           if (uploadDoc.url) submitted.file_url = uploadDoc.url;
         }
+        if (body.video_file instanceof File && body.video_file.size > 0) {
+          const uploadVid = await handleVideoUpload(body.video_file);
+          if (uploadVid.error) return failForm(c, resource, uploadVid.error, submitted);
+          if (uploadVid.url) submitted.video_url = uploadVid.url;
+        }
       }
 
       try {
@@ -517,9 +540,11 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
           db.run(`INSERT INTO users (id,${editable.join(",")},password_hash) VALUES (?,${editable.map(() => "?").join(",")},?)`, [id, ...values, await Bun.password.hash(password)]);
         } else if (resource === "meets") {
           const scheduledAtUtc = submitted.scheduled_date && submitted.scheduled_time ? toUtcIso(String(submitted.scheduled_date), String(submitted.scheduled_time)) : null;
+          const normalizedTopics = normalizeTopics(submitted.topics ? String(submitted.topics) : null);
           const meetFields = [...fields, "scheduled_at_utc"];
           const values = fields.map((field) => {
             const val = submitted[field];
+            if (field === "topics") return JSON.stringify(normalizedTopics);
             if (field === "status") return String(val ?? "upcoming") || "upcoming";
             if (field === "access_status") return String(val ?? "public") || "public";
             if (field === "duration_minutes") return Number(toEnglishDigits(val ?? 60)) || 60;
@@ -606,7 +631,7 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
       if (error) return failForm(c, resource, error, submitted, id);
 
       if (resource === "meets") {
-        const existingMeet = db.query<{ image_url: string | null; file_url: string | null }, [string]>("SELECT image_url, file_url FROM meets WHERE id=?").get(id);
+        const existingMeet = db.query<{ image_url: string | null; file_url: string | null; video_url: string | null }, [string]>("SELECT image_url, file_url, video_url FROM meets WHERE id=?").get(id);
         if (body.image_file instanceof File && body.image_file.size > 0) {
           const uploadResult = await handleImageUpload(body.image_file);
           if (uploadResult.error) return failForm(c, resource, uploadResult.error, submitted, id);
@@ -622,6 +647,14 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
         } else if (submitted.file_url === undefined || submitted.file_url === null) {
           submitted.file_url = existingMeet?.file_url ?? null;
         }
+
+        if (body.video_file instanceof File && body.video_file.size > 0) {
+          const uploadVid = await handleVideoUpload(body.video_file);
+          if (uploadVid.error) return failForm(c, resource, uploadVid.error, submitted, id);
+          if (uploadVid.url) submitted.video_url = uploadVid.url;
+        } else if (submitted.video_url === undefined || submitted.video_url === null) {
+          submitted.video_url = existingMeet?.video_url ?? null;
+        }
       }
 
       try {
@@ -632,9 +665,11 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
           db.run(`UPDATE users SET ${editable.map((field) => `${field}=?`).join(",")}${password ? ",password_hash=?" : ""},updated_at=CURRENT_TIMESTAMP WHERE id=?`, [...values, ...(password ? [await Bun.password.hash(password)] : []), id]);
         } else if (resource === "meets") {
           const scheduledAtUtc = submitted.scheduled_date && submitted.scheduled_time ? toUtcIso(String(submitted.scheduled_date), String(submitted.scheduled_time)) : null;
+          const normalizedTopics = normalizeTopics(submitted.topics ? String(submitted.topics) : null);
           const meetFields = [...fields, "scheduled_at_utc"];
           const values = fields.map((field) => {
             const val = submitted[field];
+            if (field === "topics") return JSON.stringify(normalizedTopics);
             if (field === "status") return String(val ?? "upcoming") || "upcoming";
             if (field === "access_status") return String(val ?? "public") || "public";
             if (field === "duration_minutes") return Number(toEnglishDigits(val ?? 60)) || 60;
