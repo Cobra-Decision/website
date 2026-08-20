@@ -1,6 +1,26 @@
 import { expect, test } from "bun:test";
 import { app } from "../src/index";
 import { getCache, setCache } from "../src/lib/cache";
+import { buildMeetingAttributionUrl, MeetingLinkGenerator } from "../src/ui/dashboard";
+
+test("buildMeetingAttributionUrl constructs correct url with platform query", () => {
+  const url = buildMeetingAttributionUrl("https://example.com", "meet-123", "youtube");
+  expect(url).toBe("https://example.com/meets/meet-123?platform=youtube");
+
+  const urlTrailingSlash = buildMeetingAttributionUrl("https://example.com/", "meet-456", "telegram");
+  expect(urlTrailingSlash).toBe("https://example.com/meets/meet-456?platform=telegram");
+});
+
+test("MeetingLinkGenerator component renders meetId, default platform and copy trigger", async () => {
+  const component = <MeetingLinkGenerator meetId="test-meet-id" />;
+  const html = component.toString();
+
+  expect(html).toContain("test-meet-id");
+  expect(html).toContain("platform-select-test-meet-id");
+  expect(html).toContain("attributed-url-test-meet-id");
+  expect(html).toContain("Copy Link");
+  expect(html).toContain("navigator.clipboard.writeText");
+});
 
 test("home renders landing navigation", async () => {
   const response = await app.request("/");

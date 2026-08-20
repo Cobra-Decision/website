@@ -121,76 +121,114 @@ export const DashboardNavbar = ({
   </header>
 );
 
+export const buildMeetingAttributionUrl = (
+  origin: string,
+  meetId: string,
+  platform: string
+) => `${origin.replace(/\/+$/, "")}/meets/${encodeURIComponent(meetId)}?platform=${encodeURIComponent(platform)}`;
+
 export const MeetingLinkGenerator = ({
   meetId,
   platforms = DEFAULT_PLATFORMS,
 }: {
   meetId: string;
   platforms?: PlatformOption[];
-}) => (
-  <div
-    class="card border border-base-300 bg-base-200/60 p-4 rounded-xl space-y-3"
-    x-data={`{
-      platform: 'telegram',
-      baseUrl: window.location.origin,
-      copied: false,
-      get generatedUrl() {
-        return this.baseUrl + '/meets/${meetId}?platform=' + this.platform;
-      }
-    }`}
-  >
-    <div class="flex items-center justify-between">
-      <h4 class="font-bold text-sm text-base-content">Attributed Meeting Link Generator</h4>
-      <span class="text-xs badge badge-ghost font-mono">/meets/{meetId}</span>
+}) => {
+  const containerId = `meet-link-gen-${meetId}`;
+  return (
+    <div
+      id={containerId}
+      class="card border border-base-300 bg-base-200/60 p-4 rounded-xl space-y-3"
+    >
+      <div class="flex items-center justify-between">
+        <h4 class="font-bold text-sm text-base-content">Attributed Meeting Link Generator</h4>
+        <span class="text-xs badge badge-ghost font-mono">/meets/{meetId}</span>
+      </div>
+      <p class="text-xs text-base-content/60">
+        Generate attribution links to track RSVPs and attendees across marketing platforms.
+      </p>
+
+      <div class="grid gap-3 sm:grid-cols-2">
+        <label class="form-control w-full">
+          <span class="label-text font-medium text-xs">Destination Platform</span>
+          <select
+            id={`platform-select-${meetId}`}
+            class="select select-bordered select-sm w-full"
+            onchange={`const input = document.getElementById('attributed-url-${meetId}'); if (input) input.value = window.location.origin + '/meets/${meetId}?platform=' + this.value;`}
+          >
+            {platforms.map((p) => (
+              <option key={p.slug} value={p.slug} selected={p.slug === "telegram"}>
+                {p.name} ({p.slug})
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label class="form-control w-full">
+          <span class="label-text font-medium text-xs">Generated Attributed URL</span>
+          <input
+            id={`attributed-url-${meetId}`}
+            type="text"
+            readonly
+            class="input input-bordered input-sm w-full font-mono text-xs bg-base-100 text-base-content select-all"
+            value={`/meets/${meetId}?platform=telegram`}
+          />
+        </label>
+      </div>
+
+      <div class="flex items-center justify-between pt-1">
+        <span
+          id={`copied-notice-${meetId}`}
+          class="text-xs font-semibold text-success flex items-center gap-1 transition-opacity duration-200 opacity-0"
+        >
+          <CheckIcon class="h-3.5 w-3.5" /> Copied to clipboard!
+        </span>
+        <span id={`copy-desc-${meetId}`} class="text-xs text-base-content/50">
+          Copy this tracking URL to share on chosen platform
+        </span>
+
+        <button
+          type="button"
+          class="btn btn-primary btn-sm gap-1.5"
+          onclick={`
+            const select = document.getElementById('platform-select-${meetId}');
+            const platform = select ? select.value : 'telegram';
+            const text = window.location.origin + '/meets/${meetId}?platform=' + platform;
+            const input = document.getElementById('attributed-url-${meetId}');
+            if (input) input.value = text;
+
+            const doCopy = (val) => {
+              if (navigator.clipboard && window.isSecureContext) {
+                return navigator.clipboard.writeText(val);
+              }
+              const el = document.createElement('textarea');
+              el.value = val;
+              el.style.position = 'fixed';
+              el.style.left = '-9999px';
+              document.body.appendChild(el);
+              el.focus();
+              el.select();
+              document.execCommand('copy');
+              document.body.removeChild(el);
+              return Promise.resolve();
+            };
+
+            doCopy(text).finally(() => {
+              const notice = document.getElementById('copied-notice-${meetId}');
+              const desc = document.getElementById('copy-desc-${meetId}');
+              if (notice) notice.classList.remove('opacity-0');
+              if (desc) desc.classList.add('hidden');
+              setTimeout(() => {
+                if (notice) notice.classList.add('opacity-0');
+                if (desc) desc.classList.remove('hidden');
+              }, 2500);
+            });
+          `}
+        >
+          <CopyIcon class="h-3.5 w-3.5" />
+          Copy Link
+        </button>
+      </div>
     </div>
-    <p class="text-xs text-base-content/60">
-      Generate attribution links to track RSVPs and attendees across marketing platforms.
-    </p>
-
-    <div class="grid gap-3 sm:grid-cols-2">
-      <label class="form-control w-full">
-        <span class="label-text font-medium text-xs">Destination Platform</span>
-        <select class="select select-bordered select-sm w-full" x-model="platform">
-          {platforms.map((p) => (
-            <option key={p.slug} value={p.slug}>
-              {p.name} ({p.slug})
-            </option>
-          ))}
-        </select>
-      </label>
-
-      <label class="form-control w-full">
-        <span class="label-text font-medium text-xs">Generated Attributed URL</span>
-        <input
-          type="text"
-          readonly
-          class="input input-bordered input-sm w-full font-mono text-xs bg-base-100 text-base-content select-all"
-          x-bind:value="generatedUrl"
-        />
-      </label>
-    </div>
-
-    <div class="flex items-center justify-between pt-1">
-      <span
-        x-show="copied"
-        x-transition
-        class="text-xs font-semibold text-success flex items-center gap-1"
-        style="display: none;"
-      >
-        <CheckIcon class="h-3.5 w-3.5" /> Copied to clipboard!
-      </span>
-      <span x-show="!copied" class="text-xs text-base-content/50">
-        Copy this tracking URL to share on chosen platform
-      </span>
-
-      <button
-        type="button"
-        class="btn btn-primary btn-sm gap-1.5"
-        x-on:click="navigator.clipboard.writeText(generatedUrl); copied = true; setTimeout(() => copied = false, 2500)"
-      >
-        <CopyIcon class="h-3.5 w-3.5" />
-        Copy Link
-      </button>
-    </div>
-  </div>
-);
+  );
+};
