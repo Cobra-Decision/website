@@ -414,9 +414,6 @@ export const MeetingDetailPage = ({
                 <div>
                   <p class="text-xs font-semibold text-base-content/50 uppercase tracking-wider">{t("meet.presenter", locale)}</p>
                   <p class="mt-1 font-medium">{presenterName}</p>
-                  {meet.presenter?.email && (
-                    <p class="text-xs text-base-content/60">{meet.presenter.email}</p>
-                  )}
                 </div>
 
                 <div>
