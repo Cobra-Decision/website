@@ -23,6 +23,7 @@ import type { EmailTemplateRow, ScheduledEmailRow } from "../mailer/database";
 import { getAllTags } from "../events/queries";
 import { logger } from "../../lib/logger";
 import { createDatabaseAdminRoutes } from "./database-routes";
+import { ImageCropEditor } from "../../ui/image-crop-editor";
 
 type AdminEnv = {
   Variables: {
@@ -254,10 +255,7 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
                   )}
                 </label>
 
-                <label class="form-control sm:col-span-2">
-                  <span class="label-text font-medium">Or Upload Image / Cover (PNG, JPG, WebP - max 5MB)</span>
-                  <input class="file-input file-input-bordered w-full" name="image_file" type="file" accept="image/png,image/jpeg,image/webp" />
-                </label>
+                <ImageCropEditor />
 
                 <div
                   class="form-control sm:col-span-2 space-y-2"
