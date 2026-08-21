@@ -53,7 +53,7 @@ export const UserProfileDropdown = ({
           {user.role && <span class="block text-xs opacity-60">{user.role}</span>}
         </span>
       </button>
-      <div class="card dropdown-content z-20 mt-3 w-64 border border-base-300 bg-base-100 shadow-xl" tabindex={0}>
+      <div class="card dropdown-content z-50 mt-3 w-64 border border-base-300 bg-base-100 shadow-2xl" tabindex={0}>
         <div class="card-body gap-2 p-4">
           <p class="font-semibold">{user.name}</p>
           <p class="text-xs text-base-content/60">{user.email}</p>

@@ -80,10 +80,10 @@ export const UnifiedMeetCard = ({
             alt={meet.title}
             loading="lazy"
           />
-          <div class="badge absolute start-3 top-3 border-0 bg-base-100/90 text-xs font-medium text-base-content backdrop-blur-sm z-20">
+          <div class="badge absolute start-3 top-3 border-0 bg-base-100/90 text-xs font-medium text-base-content backdrop-blur-sm z-10">
             {t("hero.up_next", locale)} · {formattedDate}
           </div>
-          <div class="badge absolute end-3 top-3 border-0 p-0 text-xs font-medium z-20">
+          <div class="badge absolute end-3 top-3 border-0 p-0 text-xs font-medium z-10">
             <span class={`badge ${statusBadgeColor} badge-sm`}>{statusLabel}</span>
           </div>
         </div>
@@ -149,10 +149,10 @@ export const UnifiedMeetCard = ({
           alt={meet.title}
           loading="lazy"
         />
-        <div class="badge absolute start-3 top-3 border-0 bg-base-100/90 text-xs font-medium text-base-content backdrop-blur-sm z-20">
+        <div class="badge absolute start-3 top-3 border-0 bg-base-100/90 text-xs font-medium text-base-content backdrop-blur-sm z-10">
           {formattedDate}
         </div>
-        <div class="badge absolute end-3 top-3 border-0 p-0 text-xs font-medium z-20">
+        <div class="badge absolute end-3 top-3 border-0 p-0 text-xs font-medium z-10">
           <span class={`badge ${statusBadgeColor} badge-sm`}>{statusLabel}</span>
         </div>
       </div>
