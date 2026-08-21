@@ -366,29 +366,7 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
 
           {resource === "meets" && id && relationPanel(id)}
 
-          {resource === "roles" && id && (
-            <div class="border-t pt-4">
-              <p class="font-semibold">Endpoint access</p>
-              <div class="mt-2 flex gap-2">
-                <select id={`role-endpoint-${id}`} class="select select-bordered w-full" name="endpoint_id">
-                  {endpoints.map((endpoint) => (
-                    <option value={endpoint.id} key={endpoint.id}>{endpoint.title}</option>
-                  ))}
-                </select>
-                <button type="button" class="btn btn-primary" hx-post={`/dashboard/admin/roles/${id}/endpoints`} hx-include={`#role-endpoint-${id}`} hx-target="#modal">
-                  Add
-                </button>
-              </div>
-              {mappings.map((mapping) => (
-                <div class="mt-2 flex items-center justify-between gap-2" key={mapping.endpoint_id}>
-                  <span class="text-sm">{mapping.title}</span>
-                  <button type="button" class="btn btn-error btn-xs" hx-delete={`/dashboard/admin/roles/${id}/endpoints/${mapping.endpoint_id}`} hx-target="#modal">
-                    Remove
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
+          {resource === "roles" && id && roleEndpointsSection(id, endpoints, mappings)}
         </div>
       </dialog>
     );
@@ -409,6 +387,219 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
       attendees={db.query("SELECT u.id,u.email FROM users u JOIN meet_attendees ma ON ma.user_id=u.id WHERE ma.meet_id=? AND u.deleted_at IS NULL ORDER BY u.email").all(meetId) as { id: string; email: string }[]}
     />
   );
+
+  const getRoleEndpointsData = (roleId: string) => {
+    const endpoints = db.query<{ id: string; title: string }, []>("SELECT id,title FROM endpoints WHERE deleted_at IS NULL ORDER BY title").all();
+    const mappings = db
+      .query<{ endpoint_id: string; title: string }, [string]>(
+        "SELECT re.endpoint_id,e.title FROM role_endpoints re JOIN endpoints e ON e.id=re.endpoint_id WHERE re.role_id=? AND re.deleted_at IS NULL AND e.deleted_at IS NULL ORDER BY e.title"
+      )
+      .all(roleId);
+    return { endpoints, mappings };
+  };
+
+  const roleEndpointsResponse = (roleId: string, toastTitle?: string, toastFallback?: string, toastType: "info" | "error" | "success" | "warning" = "success") => {
+    const { endpoints, mappings } = getRoleEndpointsData(roleId);
+    return (
+      <>
+        {roleEndpointsSection(roleId, endpoints, mappings)}
+        {toastTitle && toastFallback && toast(toastTitle, toastFallback, toastType)}
+      </>
+    );
+  };
+
+  const roleEndpointsSection = (
+    roleId: string,
+    endpoints: { id: string; title: string }[],
+    mappings: { endpoint_id: string; title: string }[]
+  ) => {
+    const unassigned = endpoints.filter((e) => !mappings.some((m) => m.endpoint_id === e.id));
+    return (
+      <div
+        id={`role-endpoints-section-${roleId}`}
+        class="border-t pt-4 space-y-4"
+        x-data={`{
+          epSearch: (window.__roleEpSearch && window.__roleEpSearch['${roleId}']) || '',
+          assignedSearch: (window.__roleAssignedSearch && window.__roleAssignedSearch['${roleId}']) || '',
+          selectedNewEp: '',
+          selectedToDelete: [],
+          allEndpoints: ${JSON.stringify(unassigned)},
+          init() {
+            window.__roleEpSearch = window.__roleEpSearch || {};
+            window.__roleAssignedSearch = window.__roleAssignedSearch || {};
+            this.$watch('epSearch', (val) => { window.__roleEpSearch['${roleId}'] = val; });
+            this.$watch('assignedSearch', (val) => { window.__roleAssignedSearch['${roleId}'] = val; });
+          },
+          get filteredAvailable() {
+            if (!this.epSearch.trim()) return this.allEndpoints;
+            const q = this.epSearch.toLowerCase();
+            return this.allEndpoints.filter(e => e.title.toLowerCase().includes(q));
+          },
+          toggleSelectAllAssigned() {
+            const table = document.getElementById('role-endpoints-table-${roleId}');
+            if (!table) return;
+            const checkboxes = Array.from(table.querySelectorAll('tbody input[type=checkbox]'));
+            const visibleCheckboxes = checkboxes.filter(cb => {
+              const tr = cb.closest('tr');
+              return tr && tr.style.display !== 'none';
+            });
+            const allChecked = visibleCheckboxes.length > 0 && visibleCheckboxes.every(cb => this.selectedToDelete.includes(cb.value));
+            if (allChecked) {
+              const visibleVals = visibleCheckboxes.map(cb => cb.value);
+              this.selectedToDelete = this.selectedToDelete.filter(id => !visibleVals.includes(id));
+            } else {
+              const visibleVals = visibleCheckboxes.map(cb => cb.value);
+              this.selectedToDelete = Array.from(new Set([...this.selectedToDelete, ...visibleVals]));
+            }
+          },
+          isAllAssignedSelected() {
+            const table = document.getElementById('role-endpoints-table-${roleId}');
+            if (!table) return false;
+            const checkboxes = Array.from(table.querySelectorAll('tbody input[type=checkbox]'));
+            const visibleCheckboxes = checkboxes.filter(cb => {
+              const tr = cb.closest('tr');
+              return tr && tr.style.display !== 'none';
+            });
+            return visibleCheckboxes.length > 0 && visibleCheckboxes.every(cb => this.selectedToDelete.includes(cb.value));
+          },
+          deleteSelected() {
+            if (!this.selectedToDelete || !this.selectedToDelete.length) return;
+            htmx.ajax('DELETE', '/dashboard/admin/roles/${roleId}/endpoints/bulk-delete', {
+              target: '#role-endpoints-section-${roleId}',
+              swap: 'outerHTML',
+              values: { endpoint_ids: this.selectedToDelete }
+            });
+          }
+        }`}
+      >
+        <div class="flex items-center justify-between">
+          <div>
+            <h4 class="font-semibold text-base">Endpoint Access Permissions</h4>
+            <p class="text-xs text-base-content/70">Assign and remove granular route permissions for this role.</p>
+          </div>
+          <span class="badge badge-sm badge-outline">{mappings.length} assigned</span>
+        </div>
+
+        {/* Searchable Add Endpoint Section */}
+        <div class="bg-base-200/50 p-3 rounded-box border border-base-300 space-y-2">
+          <span class="text-xs font-semibold text-base-content/80">Add Endpoint Access</span>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <div class="sm:col-span-1">
+              <input
+                type="text"
+                placeholder="Filter endpoints..."
+                class="input input-bordered input-sm w-full"
+                x-model="epSearch"
+              />
+            </div>
+            <div class="sm:col-span-2 flex gap-2">
+              <select
+                id={`role-endpoint-${roleId}`}
+                class="select select-bordered select-sm w-full font-mono text-xs"
+                name="endpoint_id"
+                x-model="selectedNewEp"
+              >
+                <option value="">Select an available endpoint...</option>
+                <template x-for="ep in filteredAvailable" x-bind:key="ep.id">
+                  <option x-bind:value="ep.id" x-text="ep.title"></option>
+                </template>
+              </select>
+              <button
+                type="button"
+                class="btn btn-primary btn-sm"
+                hx-post={`/dashboard/admin/roles/${roleId}/endpoints`}
+                hx-include={`#role-endpoint-${roleId}`}
+                hx-target={`#role-endpoints-section-${roleId}`}
+                hx-swap="outerHTML"
+                x-bind:disabled="!selectedNewEp"
+              >
+                Add
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Table of Assigned Endpoints */}
+        <div class="space-y-2">
+          <div class="flex items-center justify-between gap-2 mb-2">
+            <div class="w-full max-w-xs">
+              <input
+                type="text"
+                placeholder="Search assigned endpoints..."
+                class="input input-bordered input-xs w-full"
+                x-model="assignedSearch"
+              />
+            </div>
+            <button
+              type="button"
+              class="btn btn-error btn-xs"
+              x-show="selectedToDelete.length > 0"
+              x-cloak
+              x-on:click="deleteSelected()"
+            >
+              Remove Selected (<span x-text="selectedToDelete.length"></span>)
+            </button>
+          </div>
+
+          <div class="overflow-x-auto border border-base-300 rounded-box max-h-64 overflow-y-auto">
+            <table id={`role-endpoints-table-${roleId}`} class="table table-xs table-zebra table-pin-rows w-full">
+              <thead>
+                <tr class="bg-base-200">
+                  <th class="w-8 text-center">
+                    <input
+                      type="checkbox"
+                      class="checkbox checkbox-xs"
+                      x-on:click="toggleSelectAllAssigned()"
+                      x-bind:checked="isAllAssignedSelected()"
+                    />
+                  </th>
+                  <th>Endpoint Route</th>
+                  <th class="w-16 text-right">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {mappings.map((mapping) => (
+                  <tr
+                    class="hover"
+                    key={mapping.endpoint_id}
+                    x-show={`!assignedSearch.trim() || ${JSON.stringify(mapping.title.toLowerCase())}.includes(assignedSearch.toLowerCase())`}
+                  >
+                    <td class="text-center">
+                      <input
+                        type="checkbox"
+                        value={mapping.endpoint_id}
+                        x-model="selectedToDelete"
+                        class="checkbox checkbox-xs"
+                      />
+                    </td>
+                    <td class="font-mono text-xs">{mapping.title}</td>
+                    <td class="text-right">
+                      <button
+                        type="button"
+                        class="btn btn-ghost btn-xs text-error"
+                        hx-delete={`/dashboard/admin/roles/${roleId}/endpoints/${mapping.endpoint_id}`}
+                        hx-target={`#role-endpoints-section-${roleId}`}
+                        hx-swap="outerHTML"
+                      >
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+                {mappings.length === 0 && (
+                  <tr>
+                    <td colSpan={3} class="text-center py-4 text-xs text-base-content/60">
+                      No assigned endpoints for this role.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   const valuesFrom = (body: Record<string, any>) =>
     Object.fromEntries(
@@ -769,24 +960,67 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
 
   app.post("/roles/:id/endpoints", async (c) => {
     const roleId = c.req.param("id");
-    const endpointId = String((await c.req.parseBody()).endpoint_id);
+    const body = await c.req.parseBody({ all: true });
+    const rawIds = body["endpoint_ids"] ?? body["endpoint_ids[]"] ?? body["endpoint_id"] ?? body["endpoint_id[]"];
+    const endpointIds = (Array.isArray(rawIds) ? rawIds : rawIds ? [rawIds] : []).filter(Boolean).map(String);
     const role = db.query("SELECT title,description FROM roles WHERE id=? AND deleted_at IS NULL").get(roleId) as Row | null;
     if (!role) return c.notFound();
-    if (!db.query("SELECT 1 FROM endpoints WHERE id=? AND deleted_at IS NULL").get(endpointId)) return c.html(<>{form("roles", roleId, role, "Choose a valid endpoint.")}{toast("admin.invalid_relation", "Choose a valid endpoint.", "error")}</>, 400);
-    if (db.query("SELECT 1 FROM roles WHERE id=? AND title='Super Admin'").get(roleId)) return c.html(<>{form("roles", roleId, role, "The Super Admin role is managed by the system.")}{toast("admin.error", "The Super Admin role is managed by the system.", "error")}</>, 403);
-    db.run("INSERT OR IGNORE INTO role_endpoints (id,role_id,endpoint_id,description) VALUES (?,?,?,?)", [generateId(), roleId, endpointId, "Assigned by admin"]);
+    if (db.query("SELECT 1 FROM roles WHERE id=? AND title='Super Admin'").get(roleId)) {
+      return c.html(<>{roleEndpointsResponse(roleId)}{toast("admin.error", "The Super Admin role is managed by the system.", "error")}</>, 403);
+    }
+    const validEndpoints = endpointIds.filter((epId) => db.query("SELECT 1 FROM endpoints WHERE id=? AND deleted_at IS NULL").get(epId));
+    if (validEndpoints.length === 0) {
+      return c.html(<>{roleEndpointsResponse(roleId)}{toast("admin.invalid_relation", "Choose a valid endpoint.", "error")}</>, 400);
+    }
+
+    for (const endpointId of validEndpoints) {
+      db.run("INSERT OR IGNORE INTO role_endpoints (id,role_id,endpoint_id,description) VALUES (?,?,?,?)", [generateId(), roleId, endpointId, "Assigned by admin"]);
+    }
     clearPermissionCache(roleId);
-    return c.html(<>{form("roles", roleId, role)}{toast("admin.created", "Endpoint assigned.")}</>);
+    return c.html(roleEndpointsResponse(roleId, "admin.created", `${validEndpoints.length > 1 ? "Endpoints" : "Endpoint"} assigned.`));
+  });
+
+  app.delete("/roles/:id/endpoints/bulk-delete", async (c) => {
+    const roleId = c.req.param("id");
+    let rawIds: any = null;
+    try {
+      const body = await c.req.parseBody({ all: true });
+      rawIds = body["endpoint_ids"] ?? body["endpoint_ids[]"] ?? body["endpoint_id"];
+    } catch {}
+    if (!rawIds) {
+      const queries = c.req.queries("endpoint_ids") ?? c.req.queries("endpoint_ids[]") ?? c.req.queries("endpoint_id");
+      if (queries && queries.length) {
+        rawIds = queries;
+      } else {
+        rawIds = c.req.query("endpoint_ids") ?? c.req.query("endpoint_ids[]") ?? c.req.query("endpoint_id");
+      }
+    }
+    const endpointIds = (Array.isArray(rawIds) ? rawIds : rawIds ? [rawIds] : []).filter(Boolean).map(String);
+    const role = db.query("SELECT title,description FROM roles WHERE id=? AND deleted_at IS NULL").get(roleId) as Row | null;
+    if (!role) return c.notFound();
+    if (db.query("SELECT 1 FROM roles WHERE id=? AND title='Super Admin'").get(roleId)) {
+      return c.html(<>{roleEndpointsResponse(roleId)}{toast("admin.error", "The Super Admin role is managed by the system.", "error")}</>, 403);
+    }
+    if (endpointIds.length === 0) {
+      return c.html(<>{roleEndpointsResponse(roleId)}{toast("admin.nothing_selected", "Select at least one endpoint to remove.", "warning")}</>, 400);
+    }
+
+    const placeholders = endpointIds.map(() => "?").join(",");
+    db.run(`DELETE FROM role_endpoints WHERE role_id=? AND endpoint_id IN (${placeholders})`, [roleId, ...endpointIds]);
+    clearPermissionCache(roleId);
+    return c.html(roleEndpointsResponse(roleId, "admin.deleted", `${endpointIds.length} endpoint${endpointIds.length > 1 ? "s" : ""} removed.`));
   });
 
   app.delete("/roles/:id/endpoints/:endpointId", (c) => {
     const roleId = c.req.param("id");
     const role = db.query("SELECT title,description FROM roles WHERE id=? AND deleted_at IS NULL").get(roleId) as Row | null;
     if (!role) return c.notFound();
-    if (db.query("SELECT 1 FROM roles WHERE id=? AND title='Super Admin'").get(roleId)) return c.html(<>{form("roles", roleId, role, "The Super Admin role is managed by the system.")}{toast("admin.error", "The Super Admin role is managed by the system.", "error")}</>, 403);
+    if (db.query("SELECT 1 FROM roles WHERE id=? AND title='Super Admin'").get(roleId)) {
+      return c.html(<>{roleEndpointsResponse(roleId)}{toast("admin.error", "The Super Admin role is managed by the system.", "error")}</>, 403);
+    }
     db.run("DELETE FROM role_endpoints WHERE role_id=? AND endpoint_id=?", [roleId, c.req.param("endpointId")]);
     clearPermissionCache(roleId);
-    return c.html(<>{form("roles", roleId, role)}{toast("admin.deleted", "Endpoint removed.")}</>);
+    return c.html(roleEndpointsResponse(roleId, "admin.deleted", "Endpoint removed."));
   });
 
   app.get("/roles/:id/endpoints/new", (c) =>

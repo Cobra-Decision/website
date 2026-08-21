@@ -285,5 +285,48 @@ describe("Permissions & Endpoint Integrity Suite", () => {
       }));
       expect(resDelete.status).toBe(403);
     });
+
+    test("Bulk delete role endpoints and startup seed preservation", async () => {
+      const adminRole = db.query<{ id: string }, [string]>("SELECT id FROM roles WHERE title = ?").get("admin")!;
+      const admin = db.query<{ id: string; username: string; role_id: string }, [string]>(
+        "SELECT id, username, role_id FROM users WHERE email = ?"
+      ).get("alex.admin@example.com")!;
+
+      const cookie = await createAuthCookie({
+        id: admin.id,
+        username: admin.username,
+        role_title: "admin",
+        role_id: admin.role_id,
+      });
+
+      const epUsers = db.query<{ id: string }, [string]>("SELECT id FROM endpoints WHERE title = ?").get("/dashboard/admin/users")!;
+      const epMeets = db.query<{ id: string }, [string]>("SELECT id FROM endpoints WHERE title = ?").get("/dashboard/admin/meets")!;
+
+      // Bulk remove 2 endpoints from admin role
+      const formData = new FormData();
+      formData.append("endpoint_ids", epUsers.id);
+      formData.append("endpoint_ids", epMeets.id);
+      const resBulkDelete = await app.fetch(new Request(`http://localhost/dashboard/admin/roles/${adminRole.id}/endpoints/bulk-delete`, {
+        method: "DELETE",
+        headers: { Cookie: cookie },
+        body: formData,
+      }));
+      expect(resBulkDelete.status).toBe(200);
+
+      const checkRemoved = db.query<{ c: number }, [string, string, string]>(
+        "SELECT COUNT(*) as c FROM role_endpoints WHERE role_id = ? AND endpoint_id IN (?, ?)"
+      ).get(adminRole.id, epUsers.id, epMeets.id)!;
+      expect(checkRemoved.c).toBe(0);
+
+      // Re-run startup seeding (seedEndpoints without bindRoles)
+      const { seedEndpoints } = await import("../../lib/database/seeding");
+      await seedEndpoints(db);
+
+      // Verify startup seeding did not re-add deleted permissions
+      const checkStillRemoved = db.query<{ c: number }, [string, string, string]>(
+        "SELECT COUNT(*) as c FROM role_endpoints WHERE role_id = ? AND endpoint_id IN (?, ?)"
+      ).get(adminRole.id, epUsers.id, epMeets.id)!;
+      expect(checkStillRemoved.c).toBe(0);
+    });
   });
 });
