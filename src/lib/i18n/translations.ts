@@ -65,6 +65,8 @@ export const translations = {
 
     // Meetings & Details
     "meet.about": "About this meet",
+    "meet.show_more": "Show more",
+    "meet.show_less": "Show less",
     "meet.no_description": "No description provided for this session.",
     "meet.topics": "Topics",
     "meet.session_details": "Session Details",
@@ -251,6 +253,8 @@ export const translations = {
 
     // Meetings & Details
     "meet.about": "درباره این جلسه",
+    "meet.show_more": "مشاهده بیشتر",
+    "meet.show_less": "مشاهده کمتر",
     "meet.no_description": "توضیحاتی برای این جلسه ثبت نشده است.",
     "meet.topics": "سرفصل‌ها",
     "meet.session_details": "مشخصات جلسه",

@@ -5,7 +5,7 @@ import type { Locale } from "../../lib/i18n/translations";
 import { t, formatLocalizedNumber } from "../../lib/i18n/context";
 import { formatLocalizedDate, formatLocalizedTime } from "./datetime";
 import { LanguageSwitch } from "../../ui/language-switch";
-import { VideoIcon, FileTextIcon, DownloadIcon, LockIcon } from "../../ui/icons";
+import { VideoIcon, FileTextIcon, DownloadIcon, LockIcon, ChevronDownIcon, ChevronUpIcon } from "../../ui/icons";
 
 export const DynamicCtaButton = ({
   meetId,
@@ -339,15 +339,58 @@ export const MeetingDetailPage = ({
       <div class="mx-auto max-w-7xl px-5 py-12 sm:px-8">
         <div class="grid gap-10 lg:grid-cols-[1fr_320px]">
           {/* Main Description */}
-          <div class="space-y-8">
-            <div>
+          <div class="space-y-8 min-w-0 max-w-full">
+            <div
+              x-data="{
+                expanded: false,
+                isClamped: false,
+                maxCollapsedHeight: 280,
+                checkClamp() {
+                  if (this.$refs.descContent) {
+                    this.isClamped = this.$refs.descContent.scrollHeight > this.maxCollapsedHeight;
+                  }
+                }
+              }"
+              x-init="$nextTick(() => checkClamp())"
+              {...{ "x-on:resize.window.debounce.150ms": "checkClamp()" }}
+              class="w-full max-w-full min-w-0"
+            >
               <h2 class="text-2xl font-bold text-base-content mb-4">{t("meet.about", locale)}</h2>
-              <div
-                class="prose prose-base max-w-none text-base-content/90 leading-relaxed bg-base-100 rounded-2xl border border-base-200/60 p-6 shadow-sm"
-                dangerouslySetInnerHTML={{
-                  __html: renderMarkdown(meet.description) || `<p class="italic text-base-content/50">${t("meet.no_description", locale)}</p>`,
-                }}
-              />
+              <div class="relative w-full max-w-full min-w-0 bg-base-100 rounded-2xl border border-base-200/60 p-4 sm:p-6 shadow-sm overflow-hidden transition-all duration-300">
+                <div
+                  x-ref="descContent"
+                  class="prose prose-base w-full max-w-full min-w-0 text-base-content/90 leading-relaxed transition-[max-height] duration-300 ease-in-out break-words [overflow-wrap:anywhere]"
+                  x-bind:class="(!expanded && isClamped) ? 'max-h-[280px] overflow-hidden' : ''"
+                  dangerouslySetInnerHTML={{
+                    __html: renderMarkdown(meet.description) || `<p class="italic text-base-content/50">${t("meet.no_description", locale)}</p>`,
+                  }}
+                />
+
+                {/* Fade overlay when collapsed */}
+                <div
+                  x-show="!expanded && isClamped"
+                  class="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-base-100 via-base-100/80 to-transparent"
+                />
+              </div>
+
+              {/* Expand / Minimize Toggle Button */}
+              <div x-show="isClamped" class="mt-3 flex justify-center">
+                <button
+                  type="button"
+                  x-on:click="expanded = !expanded"
+                  class="btn btn-ghost btn-sm gap-2 text-primary hover:bg-primary/10 rounded-xl"
+                  aria-label="Toggle description length"
+                >
+                  <span x-show="!expanded" class="flex items-center gap-1.5 font-medium">
+                    {t("meet.show_more", locale)}
+                    <ChevronDownIcon class="h-4 w-4" />
+                  </span>
+                  <span x-show="expanded" class="flex items-center gap-1.5 font-medium">
+                    {t("meet.show_less", locale)}
+                    <ChevronUpIcon class="h-4 w-4" />
+                  </span>
+                </button>
+              </div>
             </div>
 
             {/* Presentation Attachment Material Card */}

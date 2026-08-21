@@ -44,11 +44,11 @@ export function MarkdownEditor({
             return false;
           };
           const parseInline = (s) => {
-            let res = s.replace(/\`([^\`]+)\`/g, '<code class="bg-base-300 px-1.5 py-0.5 rounded text-xs text-primary font-mono" dir="ltr">$1</code>');
+            let res = s.replace(/\`([^\`]+)\`/g, '<code class="bg-base-300 px-1.5 py-0.5 rounded text-xs text-primary font-mono break-all inline-block max-w-full" dir="ltr">$1</code>');
             res = res.replace(/\\*\\*\\*([^*]+)\\*\\*\\*/g, '<strong><em>$1</em></strong>');
             res = res.replace(/\\*\\*([^*]+)\\*\\*/g, '<strong>$1</strong>');
             res = res.replace(/\\*([^*]+)\\*/g, '<em>$1</em>');
-            res = res.replace(/\\[([^\\]]+)\\]\\(([^)]+)\\)/g, '<a href="$2" target="_blank" class="link link-primary font-medium hover:underline">$1</a>');
+            res = res.replace(/\\[([^\\]]+)\\]\\(([^)]+)\\)/g, '<a href="$2" target="_blank" class="link link-primary font-medium hover:underline break-words [overflow-wrap:anywhere]">$1</a>');
             return res;
           };
 
@@ -70,7 +70,7 @@ export function MarkdownEditor({
 
             if (trimmed.startsWith('\`\`\`')) {
               if (inCode) {
-                parts.push('<pre class="p-4 rounded-xl bg-base-300 overflow-x-auto text-sm my-3 font-mono text-left" dir="ltr"><code>' + codeBuf.join('\\n') + '</code></pre>');
+                parts.push('<pre class="p-3 sm:p-4 rounded-xl bg-base-300 max-w-full overflow-x-auto text-xs sm:text-sm my-3 font-mono text-left" dir="ltr"><code>' + codeBuf.join('\\n') + '</code></pre>');
                 codeBuf = [];
                 inCode = false;
               } else {
@@ -92,23 +92,23 @@ export function MarkdownEditor({
 
             if (trimmed.startsWith('### ')) {
               flushList();
-              parts.push('<h3 dir="auto" class="font-bold text-lg mt-4 mb-2">' + parseInline(escape(trimmed.slice(4))) + '</h3>');
+              parts.push('<h3 dir="auto" class="font-bold text-base sm:text-lg mt-4 mb-2 break-words [overflow-wrap:anywhere]">' + parseInline(escape(trimmed.slice(4))) + '</h3>');
               continue;
             }
             if (trimmed.startsWith('## ')) {
               flushList();
-              parts.push('<h2 dir="auto" class="font-bold text-xl mt-5 mb-2 border-b pb-1">' + parseInline(escape(trimmed.slice(3))) + '</h2>');
+              parts.push('<h2 dir="auto" class="font-bold text-lg sm:text-xl mt-5 mb-2 border-b pb-1 break-words [overflow-wrap:anywhere]">' + parseInline(escape(trimmed.slice(3))) + '</h2>');
               continue;
             }
             if (trimmed.startsWith('# ')) {
               flushList();
-              parts.push('<h1 dir="auto" class="font-black text-2xl mt-6 mb-3 border-b pb-1">' + parseInline(escape(trimmed.slice(2))) + '</h1>');
+              parts.push('<h1 dir="auto" class="font-black text-xl sm:text-2xl mt-6 mb-3 border-b pb-1 break-words [overflow-wrap:anywhere]">' + parseInline(escape(trimmed.slice(2))) + '</h1>');
               continue;
             }
 
             if (trimmed.startsWith('> ')) {
               flushList();
-              parts.push('<blockquote dir="auto" class="border-s-4 border-primary/40 ps-4 py-1 my-3 italic opacity-90">' + parseInline(escape(trimmed.slice(2))) + '</blockquote>');
+              parts.push('<blockquote dir="auto" class="border-s-4 border-primary/40 ps-4 py-1 my-3 italic opacity-90 break-words [overflow-wrap:anywhere]">' + parseInline(escape(trimmed.slice(2))) + '</blockquote>');
               continue;
             }
 
@@ -118,10 +118,10 @@ export function MarkdownEditor({
               const itemDir = isRtl(itemContent) ? 'rtl' : 'ltr';
               if (!inUl) {
                 flushList();
-                parts.push('<ul class="list-disc ps-6 space-y-1.5 my-2" dir="' + itemDir + '">');
+                parts.push('<ul class="list-disc ps-6 space-y-1.5 my-2 max-w-full" dir="' + itemDir + '">');
                 inUl = true;
               }
-              parts.push('<li dir="' + itemDir + '">' + parseInline(escape(itemContent)) + '</li>');
+              parts.push('<li dir="' + itemDir + '" class="break-words [overflow-wrap:anywhere]">' + parseInline(escape(itemContent)) + '</li>');
               continue;
             }
 
@@ -131,20 +131,20 @@ export function MarkdownEditor({
               const itemDir = isRtl(itemContent) ? 'rtl' : 'ltr';
               if (!inOl) {
                 flushList();
-                parts.push('<ol class="list-decimal ps-6 space-y-1.5 my-2" dir="' + itemDir + '">');
+                parts.push('<ol class="list-decimal ps-6 space-y-1.5 my-2 max-w-full" dir="' + itemDir + '">');
                 inOl = true;
               }
-              parts.push('<li dir="' + itemDir + '">' + parseInline(escape(itemContent)) + '</li>');
+              parts.push('<li dir="' + itemDir + '" class="break-words [overflow-wrap:anywhere]">' + parseInline(escape(itemContent)) + '</li>');
               continue;
             }
 
             flushList();
-            parts.push('<p dir="auto" class="my-2 leading-relaxed">' + parseInline(escape(trimmed)) + '</p>');
+            parts.push('<p dir="auto" class="my-2 leading-relaxed break-words [overflow-wrap:anywhere]">' + parseInline(escape(trimmed)) + '</p>');
           }
 
           flushList();
           if (inCode) {
-            parts.push('<pre class="p-4 rounded-xl bg-base-300 overflow-x-auto text-sm my-3 font-mono text-left" dir="ltr"><code>' + codeBuf.join('\\n') + '</code></pre>');
+            parts.push('<pre class="p-3 sm:p-4 rounded-xl bg-base-300 max-w-full overflow-x-auto text-xs sm:text-sm my-3 font-mono text-left" dir="ltr"><code>' + codeBuf.join('\\n') + '</code></pre>');
           }
 
           this.previewHtml = parts.join('');
