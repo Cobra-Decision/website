@@ -61,7 +61,7 @@ try {
     case "endpoints":
     case "endpoint":
     case "permissions":
-      report = await seedEndpoints(database);
+      report = await seedEndpoints(database, {}, { bindRoles: true });
       break;
     case "tags":
     case "tag":

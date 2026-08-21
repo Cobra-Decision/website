@@ -242,7 +242,7 @@ test("invalid admin forms preserve actionable UI", async () => {
   const mappingResponse = await app.request(`/dashboard/admin/roles/${adminRole.id}/endpoints`, { method: "POST", headers: { cookie }, body: invalidEndpoint });
   expect(mappingResponse.status).toBe(400);
   const mappingHtml = await mappingResponse.text();
-  expect(mappingHtml).toContain('id="record-modal"');
+  expect(mappingHtml).toContain(`id="role-endpoints-section-${adminRole.id}"`);
   expect(mappingHtml).toContain('id="toast-container" hx-swap-oob="beforeend"');
 });
 
