@@ -4,7 +4,7 @@ import { Layout } from "../../../ui/layout";
 import { DashboardNavbar } from "../../../ui/dashboard";
 import { UnifiedMeetCard } from "../../../ui/meet-card";
 import type { Locale } from "../../../lib/i18n/translations";
-import { t, isRtl } from "../../../lib/i18n/context";
+import { t } from "../../../lib/i18n/context";
 
 export const RsvpButton = ({
   meet,
@@ -16,92 +16,74 @@ export const RsvpButton = ({
   locale?: Locale;
 }) => {
   const modalId = `rsvp-modal-${meet.id}`;
+  const isCompleted = meet.status === "completed";
+
+  if (isCompleted) {
+    return (
+      <div class="rsvp-button" id={`rsvp-btn-${meet.id}`}>
+        <span class="badge badge-ghost text-xs py-2 px-3">{t("meet.status.completed", locale)}</span>
+      </div>
+    );
+  }
+
+  const isLeaving = isAttending;
+  const method = isLeaving ? "hx-delete" : "hx-post";
+  const btnClass = isLeaving
+    ? "btn-outline btn-success hover:btn-error"
+    : "btn-primary";
+  const actionBtnClass = isLeaving ? "btn-error" : "btn-primary";
+  const title = isLeaving ? t("meet.confirm_leave_title", locale) : t("meet.confirm_attend_title", locale);
+  const desc = isLeaving ? t("meet.confirm_leave_desc", locale) : t("meet.confirm_attend_desc", locale);
+
+  const hxProps = isLeaving
+    ? { "hx-delete": `/meets/${meet.id}/attend` }
+    : { "hx-post": `/meets/${meet.id}/attend` };
+
   return (
     <div class="rsvp-button" id={`rsvp-btn-${meet.id}`}>
-      {meet.status === "completed" ? (
-        <span class="badge badge-ghost text-xs py-2 px-3">{t("meet.status.completed", locale)}</span>
-      ) : isAttending ? (
-        <>
-          <button
-            type="button"
-            onclick={`document.getElementById('${modalId}').showModal()`}
-            class="btn btn-sm btn-outline btn-success gap-1 hover:btn-error"
-          >
+      <button
+        type="button"
+        onclick={`document.getElementById('${modalId}').showModal()`}
+        class={`btn btn-sm gap-1 ${btnClass}`}
+      >
+        {isLeaving ? (
+          <>
             <span>{t("meet.joined", locale)}</span>
             <span class="text-xs opacity-75">({t("meet.leave", locale)})</span>
-          </button>
-          <dialog id={modalId} class="modal modal-bottom sm:modal-middle text-start">
-            <div class="modal-box">
-              <h3 class="font-bold text-lg text-base-content">{t("meet.confirm_leave_title", locale)}</h3>
-              <p class="py-4 text-sm text-base-content/80">
-                {t("meet.confirm_leave_desc", locale)}
-              </p>
-              <div class="rounded-lg bg-base-200 p-3 text-xs space-y-1 mb-4">
-                <div class="font-semibold text-base-content">{meet.title}</div>
-                <div class="text-base-content/70">{meet.scheduled_date} · {meet.scheduled_time}</div>
-              </div>
-              <div class="modal-action">
-                <form method="dialog">
-                  <button class="btn btn-sm btn-ghost">{t("meet.cancel", locale)}</button>
-                </form>
-                <button
-                  type="button"
-                  hx-delete={`/meets/${meet.id}/attend`}
-                  hx-target={`#rsvp-btn-${meet.id}`}
-                  hx-swap="outerHTML"
-                  onclick={`document.getElementById('${modalId}').close()`}
-                  class="btn btn-sm btn-error"
-                >
-                  {t("meet.confirm", locale)}
-                </button>
-              </div>
-            </div>
-            <form method="dialog" class="modal-backdrop">
-              <button>close</button>
+          </>
+        ) : (
+          <span>{t("meet.attend", locale)}</span>
+        )}
+      </button>
+
+      <dialog id={modalId} class="modal modal-bottom sm:modal-middle text-start">
+        <div class="modal-box">
+          <h3 class="font-bold text-lg text-base-content">{title}</h3>
+          <p class="py-4 text-sm text-base-content/80">{desc}</p>
+          <div class="rounded-lg bg-base-200 p-3 text-xs space-y-1 mb-4">
+            <div class="font-semibold text-base-content">{meet.title}</div>
+            <div class="text-base-content/70">{meet.scheduled_date} · {meet.scheduled_time}</div>
+          </div>
+          <div class="modal-action">
+            <form method="dialog">
+              <button class="btn btn-sm btn-ghost">{t("meet.cancel", locale)}</button>
             </form>
-          </dialog>
-        </>
-      ) : (
-        <>
-          <button
-            type="button"
-            onclick={`document.getElementById('${modalId}').showModal()`}
-            class="btn btn-sm btn-primary"
-          >
-            {t("meet.attend", locale)}
-          </button>
-          <dialog id={modalId} class="modal modal-bottom sm:modal-middle text-start">
-            <div class="modal-box">
-              <h3 class="font-bold text-lg text-base-content">{t("meet.confirm_attend_title", locale)}</h3>
-              <p class="py-4 text-sm text-base-content/80">
-                {t("meet.confirm_attend_desc", locale)}
-              </p>
-              <div class="rounded-lg bg-base-200 p-3 text-xs space-y-1 mb-4">
-                <div class="font-semibold text-base-content">{meet.title}</div>
-                <div class="text-base-content/70">{meet.scheduled_date} · {meet.scheduled_time}</div>
-              </div>
-              <div class="modal-action">
-                <form method="dialog">
-                  <button class="btn btn-sm btn-ghost">{t("meet.cancel", locale)}</button>
-                </form>
-                <button
-                  type="button"
-                  hx-post={`/meets/${meet.id}/attend`}
-                  hx-target={`#rsvp-btn-${meet.id}`}
-                  hx-swap="outerHTML"
-                  onclick={`document.getElementById('${modalId}').close()`}
-                  class="btn btn-sm btn-primary"
-                >
-                  {t("meet.confirm", locale)}
-                </button>
-              </div>
-            </div>
-            <form method="dialog" class="modal-backdrop">
-              <button>close</button>
-            </form>
-          </dialog>
-        </>
-      )}
+            <button
+              type="button"
+              {...hxProps}
+              hx-target={`#rsvp-btn-${meet.id}`}
+              hx-swap="outerHTML"
+              onclick={`document.getElementById('${modalId}').close()`}
+              class={`btn btn-sm ${actionBtnClass}`}
+            >
+              {t("meet.confirm", locale)}
+            </button>
+          </div>
+        </div>
+        <form method="dialog" class="modal-backdrop">
+          <button>close</button>
+        </form>
+      </dialog>
     </div>
   );
 };
@@ -152,7 +134,6 @@ export const UserDashboard = ({
 }) => {
   const name = [user.first_name, user.last_name].filter(Boolean).join(" ") || user.username || user.email;
   const isSuperAdmin = user.role_title === "Super Admin" || user.role_title === "admin";
-  const rtl = isRtl(locale);
 
   return (
     <Layout title={`${t("nav.dashboard", locale)} | CobraDecision`} locale={locale}>
@@ -160,7 +141,7 @@ export const UserDashboard = ({
         <input id="user-drawer" type="checkbox" class="drawer-toggle" />
 
         <div class="drawer-content flex flex-col">
-          {/* Reusable Dashboard Top Navbar */}
+          {/* Dashboard Top Navbar */}
           <DashboardNavbar
             drawerId="user-drawer"
             brandHref="/dashboard/user/meets"
@@ -238,7 +219,7 @@ export const UserDashboard = ({
           </main>
         </div>
 
-        {/* Flat Sidebar */}
+        {/* Sidebar */}
         <aside class="drawer-side z-20">
           <label for="user-drawer" class="drawer-overlay" aria-label="close sidebar"></label>
           <ul class="menu p-4 w-72 min-h-full bg-base-100 text-base-content border-e border-base-300 space-y-1">

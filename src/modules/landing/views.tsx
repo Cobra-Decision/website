@@ -1,6 +1,6 @@
 import type { LandingCache } from "../../lib/cache";
 import type { Locale } from "../../lib/i18n/translations";
-import { t, formatLocalizedNumber, isRtl } from "../../lib/i18n/context";
+import { t, formatLocalizedNumber } from "../../lib/i18n/context";
 import { SOCIAL_MEDIA_LIST } from "../../lib/social";
 import { LanguageSwitch } from "../../ui/language-switch";
 import { UnifiedMeetCard } from "../../ui/meet-card";
@@ -11,11 +11,11 @@ export const Landing = ({ data, locale = "en" }: { data: LandingCache; locale?: 
   const totalUsersFormatted = formatLocalizedNumber(data.totalUsers, locale);
   const totalHoursFormatted = formatLocalizedNumber(data.totalMeetHours, locale);
   const totalMeetsFormatted = formatLocalizedNumber(data.meets.length, locale);
-  const rtl = isRtl(locale);
 
   return (
     <div class="overflow-x-hidden bg-base-100 min-h-screen">
-      <header class="border-b border-base-200 bg-base-100 sticky top-0 z-30 backdrop-blur bg-base-100/90">
+      {/* Sticky Header Navbar */}
+      <header class="border-b border-base-200 bg-base-100/90 sticky top-0 z-30 backdrop-blur">
         <nav class="navbar mx-auto min-h-20 max-w-7xl px-5 sm:px-8">
           <div class="flex-1">
             <a class="inline-flex items-center gap-3 text-xl font-bold tracking-tight" href="/">
@@ -69,7 +69,7 @@ export const Landing = ({ data, locale = "en" }: { data: LandingCache; locale?: 
           </div>
         </section>
 
-        {/* Detailed Centered Stats Bar */}
+        {/* Centered Stats Bar */}
         <section class="border-b border-base-200 bg-base-100 py-10">
           <div class="mx-auto max-w-7xl px-5 sm:px-8">
             <div class="flex flex-wrap items-center justify-center gap-8 text-center sm:gap-16">
@@ -91,32 +91,32 @@ export const Landing = ({ data, locale = "en" }: { data: LandingCache; locale?: 
           </div>
         </section>
 
-        {/* How It Works */}
+        {/* How It Works Section */}
         <section id="how-it-works" class="mx-auto max-w-7xl px-5 py-20 sm:px-8">
           <div class="max-w-xl">
             <p class="font-semibold text-primary">{t("how.title_badge", locale)}</p>
             <h2 class="mt-3 text-3xl font-bold sm:text-4xl">{t("how.heading", locale)}</h2>
           </div>
           <div class="mt-12 grid gap-5 md:grid-cols-3">
-            <div class="rounded-2xl bg-base-200 p-7">
+            <div class="rounded-2xl bg-base-200 p-7 space-y-3">
               <span class="text-3xl font-mono text-primary">01</span>
-              <h3 class="mt-8 text-xl font-bold">{t("how.step1_title", locale)}</h3>
-              <p class="mt-3 leading-7 text-base-content/60">{t("how.step1_desc", locale)}</p>
+              <h3 class="text-xl font-bold">{t("how.step1_title", locale)}</h3>
+              <p class="leading-7 text-base-content/60">{t("how.step1_desc", locale)}</p>
             </div>
-            <div class="rounded-2xl bg-base-200 p-7">
+            <div class="rounded-2xl bg-base-200 p-7 space-y-3">
               <span class="text-3xl font-mono text-primary">02</span>
-              <h3 class="mt-8 text-xl font-bold">{t("how.step2_title", locale)}</h3>
-              <p class="mt-3 leading-7 text-base-content/60">{t("how.step2_desc", locale)}</p>
+              <h3 class="text-xl font-bold">{t("how.step2_title", locale)}</h3>
+              <p class="leading-7 text-base-content/60">{t("how.step2_desc", locale)}</p>
             </div>
-            <div class="rounded-2xl bg-base-200 p-7">
+            <div class="rounded-2xl bg-base-200 p-7 space-y-3">
               <span class="text-3xl font-mono text-primary">03</span>
-              <h3 class="mt-8 text-xl font-bold">{t("how.step3_title", locale)}</h3>
-              <p class="mt-3 leading-7 text-base-content/60">{t("how.step3_desc", locale)}</p>
+              <h3 class="text-xl font-bold">{t("how.step3_title", locale)}</h3>
+              <p class="leading-7 text-base-content/60">{t("how.step3_desc", locale)}</p>
             </div>
           </div>
         </section>
 
-        {/* Meets Carousel Section with Unified Meet Cards */}
+        {/* Meets Carousel Section */}
         <section id="meets" class="bg-base-200 py-20">
           <div class="mx-auto max-w-7xl px-5 sm:px-8">
             <div class="flex items-end justify-between gap-6">
@@ -146,6 +146,7 @@ export const Landing = ({ data, locale = "en" }: { data: LandingCache; locale?: 
         </section>
       </main>
 
+      {/* Footer */}
       <footer id="contact" class="bg-neutral text-neutral-content">
         <div class="mx-auto grid max-w-7xl gap-12 px-5 py-16 sm:px-8 lg:grid-cols-[1fr_auto_1.2fr]">
           <div>

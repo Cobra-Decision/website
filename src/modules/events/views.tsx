@@ -5,7 +5,8 @@ import type { Locale } from "../../lib/i18n/translations";
 import { t, formatLocalizedNumber } from "../../lib/i18n/context";
 import { formatLocalizedDate, formatLocalizedTime } from "./datetime";
 import { LanguageSwitch } from "../../ui/language-switch";
-import { VideoIcon, FileTextIcon, DownloadIcon, LockIcon, ChevronDownIcon, ChevronUpIcon } from "../../ui/icons";
+import { MeetStatusBadge, MeetAccessBadge } from "../../ui/meet-badges";
+import { VideoIcon, FileTextIcon, DownloadIcon, ChevronDownIcon, ChevronUpIcon } from "../../ui/icons";
 
 export const DynamicCtaButton = ({
   meetId,
@@ -20,7 +21,7 @@ export const DynamicCtaButton = ({
   meetStatus?: string;
   locale?: Locale;
 }) => {
-  if (meetStatus === "completed" || meetStatus === "cancelled") {
+  if (meetStatus === "completed") {
     return (
       <div class="rounded-xl bg-base-200 p-3 text-center text-xs font-medium text-base-content/60">
         {t("meet.completed_notice", locale)}
@@ -36,70 +37,43 @@ export const DynamicCtaButton = ({
     );
   }
 
-  if (isAttending) {
-    const modalId = `modal-leave-${meetId}`;
-    return (
-      <div class="w-full">
-        <button
-          type="button"
-          onclick={`document.getElementById('${modalId}').showModal()`}
-          class="btn btn-outline btn-error w-full transition-all"
-        >
-          {t("meet.cancel_attend", locale)}
-        </button>
-        <dialog id={modalId} class="modal modal-bottom sm:modal-middle text-start">
-          <div class="modal-box">
-            <h3 class="font-bold text-lg text-base-content">{t("meet.confirm_leave_title", locale)}</h3>
-            <p class="py-4 text-sm text-base-content/80">{t("meet.confirm_leave_desc", locale)}</p>
-            <div class="modal-action">
-              <form method="dialog">
-                <button class="btn btn-sm btn-ghost">{t("meet.cancel", locale)}</button>
-              </form>
-              <button
-                type="button"
-                hx-delete={`/meets/${meetId}/attend`}
-                hx-target="#attend-action"
-                hx-swap="innerHTML"
-                onclick={`document.getElementById('${modalId}').close()`}
-                class="btn btn-sm btn-error"
-              >
-                {t("meet.confirm", locale)}
-              </button>
-            </div>
-          </div>
-          <form method="dialog" class="modal-backdrop">
-            <button>close</button>
-          </form>
-        </dialog>
-      </div>
-    );
-  }
+  const isLeaving = isAttending;
+  const modalId = `modal-rsvp-${meetId}`;
+  const method = isLeaving ? "hx-delete" : "hx-post";
+  const btnClass = isLeaving ? "btn-outline btn-error hover:btn-error" : "btn-primary shadow-md";
+  const actionBtnClass = isLeaving ? "btn-error" : "btn-primary";
+  const btnLabel = isLeaving ? t("meet.cancel_attend", locale) : t("meet.attend", locale);
+  const title = isLeaving ? t("meet.confirm_leave_title", locale) : t("meet.confirm_attend_title", locale);
+  const desc = isLeaving ? t("meet.confirm_leave_desc", locale) : t("meet.confirm_attend_desc", locale);
 
-  const modalId = `modal-attend-${meetId}`;
+  const hxProps = isLeaving
+    ? { "hx-delete": `/meets/${meetId}/attend` }
+    : { "hx-post": `/meets/${meetId}/attend` };
+
   return (
     <div class="w-full">
       <button
         type="button"
         onclick={`document.getElementById('${modalId}').showModal()`}
-        class="btn btn-primary w-full shadow-md transition-all"
+        class={`btn w-full transition-all ${btnClass}`}
       >
-        {t("meet.attend", locale)}
+        {btnLabel}
       </button>
       <dialog id={modalId} class="modal modal-bottom sm:modal-middle text-start">
         <div class="modal-box">
-          <h3 class="font-bold text-lg text-base-content">{t("meet.confirm_attend_title", locale)}</h3>
-          <p class="py-4 text-sm text-base-content/80">{t("meet.confirm_attend_desc", locale)}</p>
+          <h3 class="font-bold text-lg text-base-content">{title}</h3>
+          <p class="py-4 text-sm text-base-content/80">{desc}</p>
           <div class="modal-action">
             <form method="dialog">
               <button class="btn btn-sm btn-ghost">{t("meet.cancel", locale)}</button>
             </form>
             <button
               type="button"
-              hx-post={`/meets/${meetId}/attend`}
+              {...hxProps}
               hx-target="#attend-action"
               hx-swap="innerHTML"
               onclick={`document.getElementById('${modalId}').close()`}
-              class="btn btn-sm btn-primary"
+              class={`btn btn-sm ${actionBtnClass}`}
             >
               {t("meet.confirm", locale)}
             </button>
@@ -162,12 +136,7 @@ export const MeetingVideoSection = ({
             />
           </div>
         ) : (
-          <video
-            class="aspect-video w-full"
-            controls
-            preload="metadata"
-            src={videoUrl}
-          >
+          <video class="aspect-video w-full" controls preload="metadata" src={videoUrl}>
             Your browser does not support the video tag.
           </video>
         )}
@@ -187,15 +156,12 @@ export const MeetAccessBanner = ({
   isAttending?: boolean;
   locale?: Locale;
 }) => {
-  // If completed, live room is not accessible
-  if (meet.status === "completed") {
+  if (meet.status === "completed" || !meet.meet_url) {
     return null;
   }
 
   const isPublic = meet.access_status === "public";
-  const canAccessMeetUrl = Boolean(meet.meet_url && (isPublic || isAttending));
-
-  if (!meet.meet_url) return null;
+  const canAccessMeetUrl = Boolean(isPublic || isAttending);
 
   return (
     <div id="meet-access-box" class="w-full">
@@ -218,10 +184,7 @@ export const MeetAccessBanner = ({
         <div class="rounded-2xl border border-warning/30 bg-warning/5 p-6 text-center sm:text-start sm:flex sm:items-center sm:justify-between shadow-sm transition-all">
           <div class="space-y-1">
             <div class="flex items-center gap-2">
-              <span class="badge badge-warning badge-sm gap-1">
-                <LockIcon class="h-3 w-3" />
-                {t("meet.private", locale)}
-              </span>
+              <MeetAccessBadge accessStatus="private" locale={locale} size="sm" />
               <h3 class="text-base font-bold text-base-content">{t("meet.private_notice_title", locale)}</h3>
             </div>
             <p class="text-xs text-base-content/70">
@@ -257,25 +220,6 @@ export const MeetingDetailPage = ({
   const formattedDuration = formatLocalizedNumber(meet.duration_minutes, locale);
   const formattedAttendeeCount = formatLocalizedNumber(meet.attendee_count, locale);
 
-  const isPublic = meet.access_status === "public";
-
-  const statusLabel =
-    meet.status === "live"
-      ? t("meet.status.live", locale)
-      : meet.status === "completed"
-      ? t("meet.status.completed", locale)
-      : t("meet.status.upcoming", locale);
-
-  const statusBadgeColor =
-    meet.status === "live"
-      ? "badge-success animate-pulse text-white"
-      : meet.status === "completed"
-      ? "badge-ghost"
-      : "badge-primary";
-
-  const accessLabel = isPublic ? t("meet.public", locale) : t("meet.private", locale);
-  const accessBadgeColor = isPublic ? "badge-outline" : "badge-warning badge-outline";
-
   return (
     <div class="min-h-screen bg-base-100 text-base-content overflow-x-hidden w-full max-w-full">
       {/* Header / Nav */}
@@ -303,8 +247,8 @@ export const MeetingDetailPage = ({
           <div class="grid gap-8 lg:grid-cols-[1.2fr_.8fr] lg:items-center">
             <div class="space-y-4">
               <div class="flex flex-wrap items-center gap-2">
-                <span class={`badge ${statusBadgeColor} font-medium`}>{statusLabel}</span>
-                <span class={`badge ${accessBadgeColor} font-medium`}>{accessLabel}</span>
+                <MeetStatusBadge status={meet.status} locale={locale} size="sm" />
+                <MeetAccessBadge accessStatus={meet.access_status} locale={locale} size="sm" />
                 <span class="badge badge-neutral font-medium">{formattedDate}</span>
                 <span class="badge badge-outline">{formattedTime}</span>
                 <span class="badge badge-ghost">{formattedDuration} {t("meet.minutes", locale)}</span>
@@ -440,8 +384,8 @@ export const MeetingDetailPage = ({
                 <div>
                   <p class="text-xs font-semibold text-base-content/50 uppercase tracking-wider">{t("meet.status", locale)} & {t("meet.access", locale)}</p>
                   <div class="mt-1 flex flex-wrap gap-1.5">
-                    <span class={`badge ${statusBadgeColor} badge-sm`}>{statusLabel}</span>
-                    <span class={`badge ${accessBadgeColor} badge-sm`}>{accessLabel}</span>
+                    <MeetStatusBadge status={meet.status} locale={locale} size="sm" />
+                    <MeetAccessBadge accessStatus={meet.access_status} locale={locale} size="sm" />
                   </div>
                 </div>
 
@@ -479,7 +423,7 @@ export const MeetingDetailPage = ({
                 )}
               </div>
 
-              {/* Dynamic Auth / Attend CTA Container with stable dimensions */}
+              {/* Dynamic Auth / Attend CTA Container */}
               <div class="mt-6 border-t border-base-200 pt-4">
                 <div id="attend-action" class="w-full">
                   <DynamicCtaButton meetId={meet.id} isAuthenticated={isAuthenticated} isAttending={isAttending} meetStatus={meet.status} locale={locale} />
