@@ -51,7 +51,8 @@ export function createAuthRoutes(database: Database, captcha: Captcha, jwtSecret
   const redirectAuthenticated = async (c: Parameters<Handler>[0]) => {
     if (await hasActiveSession(getCookie(c, "session"))) {
       const claims = (await verify(getCookie(c, "session")!, jwtSecret, "HS256")) as unknown as Claims;
-      return c.redirect(`/dashboard/${claims.role_title === "Super Admin" ? "admin" : "user"}`);
+      const isAdminRole = claims.role_title === "Super Admin" || claims.role_title === "admin";
+      return c.redirect(`/dashboard/${isAdminRole ? "admin" : "user"}`);
     }
     return null;
   };

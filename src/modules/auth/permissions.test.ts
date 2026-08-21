@@ -91,13 +91,31 @@ describe("Permissions & Endpoint Integrity Suite", () => {
       expect(can(adminRole.id, "/dashboard/admin/meets")).toBe(true);
     });
 
-    test("Prefix matching allows sub-actions under allowed resource", () => {
+    test("Parameterized and granular route matching allows only registered or parameterized endpoints", () => {
       const adminRole = db.query<{ id: string }, [string]>("SELECT id FROM roles WHERE title = ?").get("admin")!;
       const can = createPermissionChecker(db);
 
       expect(can(adminRole.id, "/dashboard/admin/users")).toBe(true);
       expect(can(adminRole.id, "/dashboard/admin/users/123/edit")).toBe(true);
       expect(can(adminRole.id, "/dashboard/admin/users/new")).toBe(true);
+      expect(can(adminRole.id, "/dashboard/admin/files/test.png")).toBe(true);
+      expect(can(adminRole.id, "/dashboard/admin/files/duplicate")).toBe(true);
+      expect(can(adminRole.id, "/dashboard/admin/files/unregistered/random/deep")).toBe(false);
+    });
+
+    test("Granular sub-endpoint restriction blocks specific action when not granted", () => {
+      // Create a test role with only /dashboard/admin/files
+      const testRoleId = "test-restricted-role";
+      db.run("INSERT INTO roles (id, title, description) VALUES (?, ?, ?)", [testRoleId, "File Viewer", "View only"]);
+      const epFiles = db.query<{ id: string }, [string]>("SELECT id FROM endpoints WHERE title = ?").get("/dashboard/admin/files")!;
+      db.run("INSERT INTO role_endpoints (id, role_id, endpoint_id, description) VALUES (?, ?, ?, ?)", ["re1", testRoleId, epFiles.id, "Files page"]);
+      clearPermissionCache(testRoleId);
+
+      const can = createPermissionChecker(db);
+      expect(can(testRoleId, "/dashboard/admin/files")).toBe(true);
+      expect(can(testRoleId, "/dashboard/admin/files/duplicate")).toBe(false);
+      expect(can(testRoleId, "/dashboard/admin/files/upload")).toBe(false);
+      expect(can(testRoleId, "/dashboard/admin/files/preview-modal")).toBe(false);
     });
 
     test("getFirstAllowedAdminPath picks earliest valid endpoint in order", () => {
@@ -162,10 +180,15 @@ describe("Permissions & Endpoint Integrity Suite", () => {
         "SELECT id, username, role_id FROM users WHERE email = ?"
       ).get("alex.admin@example.com")!;
 
-      // Strip users and database management
-      const epUsers = db.query<{ id: string }, [string]>("SELECT id FROM endpoints WHERE title = ?").get("/dashboard/admin/users")!;
+      // Strip all user-related endpoints
+      const userEndpoints = db.query<{ id: string }, []>(
+        "SELECT id FROM endpoints WHERE title LIKE '/dashboard/admin/users%'"
+      ).all();
       const epDb = db.query<{ id: string }, [string]>("SELECT id FROM endpoints WHERE title = ?").get("/dashboard/admin/database")!;
-      db.run("DELETE FROM role_endpoints WHERE role_id = ? AND endpoint_id IN (?, ?)", [admin.role_id, epUsers.id, epDb.id]);
+      for (const uEp of userEndpoints) {
+        db.run("DELETE FROM role_endpoints WHERE role_id = ? AND endpoint_id = ?", [admin.role_id, uEp.id]);
+      }
+      db.run("DELETE FROM role_endpoints WHERE role_id = ? AND endpoint_id = ?", [admin.role_id, epDb.id]);
       clearPermissionCache(admin.role_id);
 
       const cookie = await createAuthCookie({

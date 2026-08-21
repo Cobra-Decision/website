@@ -45,56 +45,114 @@ export async function seedRoles(db: Database, report: SeedReport = {}): Promise<
   return report;
 }
 
+export const SYSTEM_ENDPOINTS = [
+  // User & Root Dashboard
+  "/dashboard",
+  "/dashboard/user",
+  "/dashboard/user/meets",
+  "/dashboard/user/my-meets",
+  "/dashboard/account",
+
+  // Admin Base
+  "/dashboard/admin",
+
+  // Users CRUD
+  "/dashboard/admin/users",
+  "/dashboard/admin/users/new",
+  "/dashboard/admin/users/:id",
+  "/dashboard/admin/users/:id/edit",
+  "/dashboard/admin/users/:id/confirm",
+  "/dashboard/admin/users/bulk-confirm",
+  "/dashboard/admin/users/bulk-delete",
+
+  // Meets CRUD
+  "/dashboard/admin/meets",
+  "/dashboard/admin/meets/new",
+  "/dashboard/admin/meets/:id",
+  "/dashboard/admin/meets/:id/edit",
+  "/dashboard/admin/meets/:id/confirm",
+  "/dashboard/admin/meets/bulk-confirm",
+  "/dashboard/admin/meets/bulk-delete",
+  "/dashboard/admin/meets/:id/tags",
+  "/dashboard/admin/meets/:id/tags/:tagId",
+  "/dashboard/admin/meets/:id/attendees",
+  "/dashboard/admin/meets/:id/attendees/:userId",
+
+  // Tags CRUD
+  "/dashboard/admin/tags",
+  "/dashboard/admin/tags/new",
+  "/dashboard/admin/tags/:id",
+  "/dashboard/admin/tags/:id/edit",
+  "/dashboard/admin/tags/:id/confirm",
+  "/dashboard/admin/tags/bulk-confirm",
+  "/dashboard/admin/tags/bulk-delete",
+
+  // Roles CRUD
+  "/dashboard/admin/roles",
+  "/dashboard/admin/roles/new",
+  "/dashboard/admin/roles/:id",
+  "/dashboard/admin/roles/:id/edit",
+  "/dashboard/admin/roles/:id/confirm",
+  "/dashboard/admin/roles/bulk-confirm",
+  "/dashboard/admin/roles/bulk-delete",
+  "/dashboard/admin/roles/:id/endpoints",
+  "/dashboard/admin/roles/:id/endpoints/:endpointId",
+  "/dashboard/admin/roles/:id/endpoints/new",
+
+  // Endpoints CRUD
+  "/dashboard/admin/endpoints",
+  "/dashboard/admin/endpoints/new",
+  "/dashboard/admin/endpoints/:id",
+  "/dashboard/admin/endpoints/:id/edit",
+  "/dashboard/admin/endpoints/:id/confirm",
+  "/dashboard/admin/endpoints/bulk-confirm",
+  "/dashboard/admin/endpoints/bulk-delete",
+
+  // Files Management
+  "/dashboard/admin/files",
+  "/dashboard/admin/files/upload",
+  "/dashboard/admin/files/upload-modal",
+  "/dashboard/admin/files/preview-modal",
+  "/dashboard/admin/files/rename",
+  "/dashboard/admin/files/rename-modal",
+  "/dashboard/admin/files/duplicate",
+  "/dashboard/admin/files/confirm-delete",
+  "/dashboard/admin/files/bulk-confirm",
+  "/dashboard/admin/files/bulk-delete",
+  "/dashboard/admin/files/:filename",
+
+  // Report
+  "/dashboard/admin/report",
+
+  // Mailer Center
+  "/dashboard/admin/mailer",
+  "/dashboard/admin/mail-management",
+  "/dashboard/admin/mailer/send",
+  "/dashboard/admin/mailer/subscribers",
+  "/dashboard/admin/mailer/test-modal",
+  "/dashboard/admin/mailer/test-send",
+  "/dashboard/admin/mail-editor",
+  "/dashboard/admin/mail-editor/save",
+  "/dashboard/admin/mail-editor/delete",
+  "/dashboard/admin/mail-scheduler",
+  "/dashboard/admin/mail-scheduler/schedule",
+  "/dashboard/admin/mail-scheduler/repeat",
+  "/dashboard/admin/mail-scheduler/cancel",
+  "/dashboard/admin/mail-scheduler/delete",
+
+  // Database Center
+  "/dashboard/admin/database",
+  "/dashboard/admin/database/export",
+  "/dashboard/admin/database/import",
+  "/dashboard/admin/database/backup-now",
+  "/dashboard/admin/database/migrate",
+] as const;
+
 export async function seedEndpoints(db: Database, report: SeedReport = {}): Promise<SeedReport> {
   // Ensure roles exist first
   await seedRoles(db, report);
 
-  const endpointsToRegister = [
-    "/dashboard",
-    "/dashboard/user",
-    "/dashboard/user/meets",
-    "/dashboard/user/my-meets",
-    "/dashboard/account",
-    "/dashboard/admin",
-    "/dashboard/admin/users",
-    "/dashboard/admin/users/bulk-confirm",
-    "/dashboard/admin/meets",
-    "/dashboard/admin/meets/bulk-confirm",
-    "/dashboard/admin/tags",
-    "/dashboard/admin/tags/bulk-confirm",
-    "/dashboard/admin/roles",
-    "/dashboard/admin/roles/bulk-confirm",
-    "/dashboard/admin/endpoints",
-    "/dashboard/admin/endpoints/bulk-confirm",
-    "/dashboard/admin/files",
-    "/dashboard/admin/files/upload",
-    "/dashboard/admin/files/upload-modal",
-    "/dashboard/admin/files/preview-modal",
-    "/dashboard/admin/files/rename",
-    "/dashboard/admin/files/rename-modal",
-    "/dashboard/admin/files/duplicate",
-    "/dashboard/admin/files/bulk-confirm",
-    "/dashboard/admin/report",
-    "/dashboard/admin/mailer",
-    "/dashboard/admin/mail-management",
-    "/dashboard/admin/mailer/send",
-    "/dashboard/admin/mailer/subscribers",
-    "/dashboard/admin/mailer/test-modal",
-    "/dashboard/admin/mailer/test-send",
-    "/dashboard/admin/mail-editor",
-    "/dashboard/admin/mail-editor/save",
-    "/dashboard/admin/mail-editor/delete",
-    "/dashboard/admin/mail-scheduler",
-    "/dashboard/admin/mail-scheduler/schedule",
-    "/dashboard/admin/mail-scheduler/repeat",
-    "/dashboard/admin/mail-scheduler/cancel",
-    "/dashboard/admin/mail-scheduler/delete",
-    "/dashboard/admin/database",
-    "/dashboard/admin/database/export",
-    "/dashboard/admin/database/import",
-    "/dashboard/admin/database/backup-now",
-    "/dashboard/admin/database/migrate",
-  ];
+  const endpointsToRegister = SYSTEM_ENDPOINTS;
 
   for (const endpoint of endpointsToRegister) {
     const existing = db.query<{ id: string }, [string]>("SELECT id FROM endpoints WHERE title = ?").get(endpoint);

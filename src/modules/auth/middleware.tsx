@@ -51,13 +51,36 @@ export function getFirstAllowedAdminPath(db: Database, roleId: string): string {
   return "/dashboard/user";
 }
 
+const patternCache = new Map<string, RegExp>();
+
+function patternToRegex(pattern: string): RegExp {
+  let regex = patternCache.get(pattern);
+  if (!regex) {
+    // Replace :param with dynamic single-segment regex [^/]+
+    const escaped = pattern
+      .replace(/[.+?^${}()|[\]\\]/g, "\\$&")
+      .replace(/:[a-zA-Z0-9_]+/g, "[^/]+");
+    regex = new RegExp(`^${escaped}$`);
+    patternCache.set(pattern, regex);
+  }
+  return regex;
+}
+
+export function matchEndpointPattern(allowedPatterns: Set<string>, path: string): boolean {
+  if (allowedPatterns.has(path)) return true;
+  for (const pattern of allowedPatterns) {
+    if (pattern.includes(":")) {
+      const rx = patternToRegex(pattern);
+      if (rx.test(path)) return true;
+    }
+  }
+  return false;
+}
+
 export function createPermissionChecker(db: Database) {
   const check = (roleId: string, path: string) => {
     const permissions = getRoleAllowedEndpoints(db, roleId);
-    if (permissions.has(path)) return true;
-    const basePath = path.match(/^\/dashboard\/admin\/[^/]+/)?.[0];
-    if (basePath && permissions.has(basePath)) return true;
-    return false;
+    return matchEndpointPattern(permissions, path);
   };
   check.clear = (roleId?: string) => roleId === undefined ? permissionCache.clear() : permissionCache.delete(roleId);
   return check;
