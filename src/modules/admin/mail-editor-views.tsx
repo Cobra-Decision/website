@@ -196,9 +196,9 @@ export const MailEditorView = ({
           <div class="card border border-base-300 bg-base-100 shadow-sm">
             <div class="card-body p-6 space-y-4">
               {/* Top bar: Prebuilt loader & format switch */}
-              <div class="flex flex-wrap items-center justify-between gap-3 border-b border-base-200 pb-3">
-                <div class="flex items-center gap-2">
-                  <span class="text-xs font-semibold text-base-content">Load Sample:</span>
+              <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between items-start gap-3 border-b border-base-200 pb-3">
+                <div class="flex items-center gap-2 flex-wrap">
+                  <span class="text-xs font-semibold text-base-content shrink-0">Load Sample:</span>
                   <select
                     class="select select-bordered select-xs"
                     x-model="selectedSample"
@@ -212,7 +212,7 @@ export const MailEditorView = ({
                 </div>
 
                 {/* Format switcher */}
-                <div class="join">
+                <div class="join shrink-0">
                   <button
                     type="button"
                     class="btn btn-xs join-item"

@@ -198,28 +198,28 @@ export function DatabaseManagementView({
               <a
                 href="/dashboard/admin/database/export?format=sql"
                 download="database-export.sql"
-                class="btn btn-outline btn-block justify-between btn-sm"
+                class="btn btn-outline btn-block justify-between btn-sm h-auto min-h-8 py-2 px-3 gap-2 flex-wrap sm:flex-nowrap"
               >
                 <span>Standard SQL Dump (.sql)</span>
-                <span class="badge badge-ghost badge-xs">DDL + Inserts</span>
+                <span class="badge badge-ghost badge-xs shrink-0">DDL + Inserts</span>
               </a>
 
               <a
                 href="/dashboard/admin/database/export?format=json"
                 download="database-export.json"
-                class="btn btn-outline btn-block justify-between btn-sm"
+                class="btn btn-outline btn-block justify-between btn-sm h-auto min-h-8 py-2 px-3 gap-2 flex-wrap sm:flex-nowrap"
               >
                 <span>Structured JSON Backup (.json)</span>
-                <span class="badge badge-ghost badge-xs">Portable Data</span>
+                <span class="badge badge-ghost badge-xs shrink-0">Portable Data</span>
               </a>
 
               <a
                 href="/dashboard/admin/database/export?format=sqlite"
                 download="app.sqlite"
-                class="btn btn-outline btn-block justify-between btn-sm"
+                class="btn btn-outline btn-block justify-between btn-sm h-auto min-h-8 py-2 px-3 gap-2 flex-wrap sm:flex-nowrap"
               >
                 <span>Raw SQLite Binary (.sqlite)</span>
-                <span class="badge badge-ghost badge-xs">Binary Copy</span>
+                <span class="badge badge-ghost badge-xs shrink-0">Binary Copy</span>
               </a>
             </div>
           </div>

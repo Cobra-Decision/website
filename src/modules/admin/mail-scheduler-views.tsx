@@ -106,7 +106,7 @@ export const MailSchedulerView = ({
       {/* Schedule Creation Card */}
       <div class="card border border-base-300 bg-base-100 shadow-sm">
         <div class="card-body p-6 space-y-4">
-          <div class="flex items-center justify-between border-b border-base-200 pb-3">
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between items-start gap-3 border-b border-base-200 pb-3">
             <div>
               <h2 class="text-lg font-bold text-base-content">Create Scheduled Email</h2>
               <p class="text-xs text-base-content/60">
@@ -114,7 +114,7 @@ export const MailSchedulerView = ({
               </p>
             </div>
 
-            <div class="join">
+            <div class="join shrink-0">
               <button
                 type="button"
                 class="btn btn-sm join-item"
