@@ -277,19 +277,19 @@ export const MeetingDetailPage = ({
   const accessBadgeColor = isPublic ? "badge-outline" : "badge-warning badge-outline";
 
   return (
-    <div class="min-h-screen bg-base-100 text-base-content">
+    <div class="min-h-screen bg-base-100 text-base-content overflow-x-hidden w-full max-w-full">
       {/* Header / Nav */}
       <header class="border-b border-base-200 bg-base-100">
-        <nav class="navbar mx-auto min-h-16 max-w-7xl px-5 sm:px-8">
-          <a class="flex-1 text-xl font-bold tracking-tight" href="/">
+        <nav class="navbar mx-auto min-h-16 max-w-7xl px-3 sm:px-8 flex-wrap gap-2">
+          <a class="flex-1 text-lg sm:text-xl font-bold tracking-tight shrink-0" href="/">
             {t("brand.name", locale)}<span class="text-primary">.</span>
           </a>
-          <div class="flex-none gap-2">
+          <div class="flex items-center gap-1 sm:gap-2">
             <LanguageSwitch currentLocale={locale} size="xs" />
-            <a class="btn btn-ghost btn-sm" href="/dashboard/user/meets">
+            <a class="btn btn-ghost btn-xs sm:btn-sm px-2 sm:px-3" href="/dashboard/user/meets">
               {t("nav.dashboard", locale)}
             </a>
-            <a class="btn btn-ghost btn-sm" href="/#meets">
+            <a class="btn btn-ghost btn-xs sm:btn-sm px-2 sm:px-3" href="/#meets">
               {t("nav.back_to_meets", locale)}
             </a>
           </div>

@@ -44,7 +44,7 @@ export const Carousel = ({
 
       {/* Floating navigation buttons */}
       {showControls && (
-        <div class="hidden sm:flex items-center justify-end gap-2 px-4 mt-2">
+        <div class="flex items-center justify-end gap-2 px-4 mt-2">
           <button
             type="button"
             class="btn btn-circle btn-sm btn-outline border-base-300 hover:bg-base-300"

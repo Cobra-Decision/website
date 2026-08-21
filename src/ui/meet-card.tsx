@@ -61,7 +61,7 @@ export const UnifiedMeetCard = ({
 
   const containerClasses =
     variant === "carousel"
-      ? "carousel-item w-full sm:w-80 md:w-96 flex-shrink-0 flex flex-col overflow-hidden rounded-2xl border border-base-300 bg-base-100 shadow-sm transition hover:-translate-y-1 hover:shadow-xl group"
+      ? "carousel-item w-[85vw] max-w-[340px] sm:w-80 md:w-96 flex-shrink-0 flex flex-col overflow-hidden rounded-2xl border border-base-300 bg-base-100 shadow-sm transition hover:-translate-y-1 hover:shadow-xl group"
       : variant === "featured"
       ? "relative overflow-hidden rounded-3xl border border-base-300 bg-base-100 p-3 shadow-2xl transition hover:shadow-3xl group"
       : "flex flex-col overflow-hidden rounded-2xl border border-base-300 bg-base-100 shadow-sm transition hover:shadow-md group";
