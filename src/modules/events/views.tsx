@@ -281,8 +281,9 @@ export const MeetingDetailPage = ({
       {/* Header / Nav */}
       <header class="border-b border-base-200 bg-base-100">
         <nav class="navbar mx-auto min-h-16 max-w-7xl px-3 sm:px-8 flex-wrap gap-2">
-          <a class="flex-1 text-lg sm:text-xl font-bold tracking-tight shrink-0" href="/">
-            {t("brand.name", locale)}<span class="text-primary">.</span>
+          <a class="flex-1 inline-flex items-center gap-2.5 text-lg sm:text-xl font-bold tracking-tight shrink-0" href="/">
+            <img src="/favicon.svg" alt="CobraDecision" class="h-7 w-auto" />
+            <span>{t("brand.name", locale)}<span class="text-primary">.</span></span>
           </a>
           <div class="flex items-center gap-1 sm:gap-2">
             <LanguageSwitch currentLocale={locale} size="xs" />
