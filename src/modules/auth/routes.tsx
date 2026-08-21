@@ -14,6 +14,7 @@ import { getAllTags, setUserPreferredTags } from "../events/queries";
 import { mailService } from "../mailer/service";
 import { logger } from "../../lib/logger";
 import { Dashboard, Login, ProfileForm, Register, type Profile } from "./views";
+import { getFirstAllowedAdminPath } from "./middleware";
 
 type Captcha = { middleware: MiddlewareHandler; challengeHandler: Handler };
 type Claims = { sub: string; username: string; role_title: string; role_id: string };

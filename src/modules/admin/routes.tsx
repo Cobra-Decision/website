@@ -2,7 +2,7 @@ import { Hono, type Context, type Next } from "hono";
 import { getCookie } from "hono/cookie";
 import { verify } from "hono/jwt";
 import type { Database } from "bun:sqlite";
-import { clearPermissionCache, createPermissionChecker } from "../auth/middleware";
+import { clearPermissionCache, createPermissionChecker, getFirstAllowedAdminPath, getRoleAllowedEndpoints } from "../auth/middleware";
 import { AdminLayout, CrudTable, MeetRelations, type Row, Toast, AdminConfirmDeleteModal, AdminBulkConfirmDeleteModal } from "./views";
 import { FormMessage } from "../../ui/form-message";
 import { getErrorMessage, refreshLandingCache, refreshErrorCache } from "../../lib/cache";
@@ -37,9 +37,8 @@ const guard = (db: Database, jwtSecret: string) => async (c: Context<AdminEnv>, 
   try {
     const claims = (await verify(token, jwtSecret, "HS256")) as { sub: string; role_id: string };
     const path = c.req.path;
-    const basePath = path.match(/^\/dashboard\/admin\/[^/]+/)?.[0] ?? path;
     const can = createPermissionChecker(db);
-    if (!can(claims.role_id, path) && !can(claims.role_id, basePath) && !can(claims.role_id, "/dashboard/admin")) {
+    if (!can(claims.role_id, path)) {
       return c.html(<p class="alert alert-error">Forbidden</p>, 403);
     }
     c.set("auth", claims);
@@ -54,12 +53,7 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
   const page = (c: Context<AdminEnv>, title: string, body: any) => {
     const auth = c.get("auth");
     const locale = getLocale(c);
-    const allowed = db
-      .query<{ title: string }, [string]>(
-        "SELECT e.title FROM endpoints e JOIN role_endpoints re ON re.endpoint_id=e.id WHERE re.role_id=? AND e.deleted_at IS NULL AND re.deleted_at IS NULL"
-      )
-      .all(auth.role_id)
-      .map((r) => r.title);
+    const allowed = Array.from(getRoleAllowedEndpoints(db, auth.role_id));
     const user =
       db
         .query<{ name: string; email: string; role: string }, [string]>(
@@ -69,8 +63,19 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
     return c.html(<AdminLayout allowed={allowed} title={title} user={user} locale={locale}>{body}</AdminLayout>);
   };
 
+  app.get("/", async (c) => {
+    const token = getCookie(c, "session");
+    if (!token) return c.redirect("/auth");
+    try {
+      const claims = (await verify(token, jwtSecret, "HS256")) as unknown as { role_id: string };
+      const target = getFirstAllowedAdminPath(db, claims.role_id);
+      return c.redirect(target);
+    } catch {
+      return c.redirect("/auth");
+    }
+  });
+
   app.use("*", async (c, next) => guard(db, jwtSecret)(c, next));
-  app.get("/", (c) => c.redirect("/dashboard/admin/users"));
 
   // File Management Subroutes
   const fileRoutes = createFileAdminRoutes(db, page);

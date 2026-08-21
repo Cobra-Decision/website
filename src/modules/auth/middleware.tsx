@@ -7,21 +7,59 @@ import { database } from "../../lib/database";
 export type Claims = { sub: string; username: string; role_title: string; role_id: string };
 const permissionCache = new Map<string, Set<string>>();
 
-export function createPermissionChecker(db: Database) {
-  const cache = db === database ? permissionCache : new Map<string, Set<string>>();
-  const check = (roleId: string, path: string) => {
-    let permissions = cache.get(roleId);
-    if (!permissions) {
+export const ADMIN_SECTION_ENDPOINTS = [
+  "/dashboard/admin/users",
+  "/dashboard/admin/meets",
+  "/dashboard/admin/tags",
+  "/dashboard/admin/roles",
+  "/dashboard/admin/endpoints",
+  "/dashboard/admin/files",
+  "/dashboard/admin/mail-editor",
+  "/dashboard/admin/mail-scheduler",
+  "/dashboard/admin/mail-management",
+  "/dashboard/admin/mailer",
+  "/dashboard/admin/database",
+  "/dashboard/admin/report",
+] as const;
+
+export function getRoleAllowedEndpoints(db: Database, roleId: string): Set<string> {
+  let permissions = permissionCache.get(roleId);
+  if (!permissions) {
+    const isSuperAdmin = db.query<{ title: string }, [string]>("SELECT title FROM roles WHERE id = ? AND deleted_at IS NULL").get(roleId)?.title === "Super Admin";
+    if (isSuperAdmin) {
+      const allEndpoints = db.query<{ title: string }, []>("SELECT title FROM endpoints WHERE deleted_at IS NULL").all();
+      permissions = new Set(allEndpoints.map(({ title }) => title));
+    } else {
       const rows = db.query<{ title: string }, [string]>(
         `SELECT e.title FROM endpoints e JOIN role_endpoints re ON re.endpoint_id = e.id
          WHERE re.role_id = ? AND e.deleted_at IS NULL AND re.deleted_at IS NULL`,
       ).all(roleId);
       permissions = new Set(rows.map(({ title }) => title));
-      cache.set(roleId, permissions);
     }
-    return permissions.has(path);
+    permissionCache.set(roleId, permissions);
+  }
+  return permissions;
+}
+
+export function getFirstAllowedAdminPath(db: Database, roleId: string): string {
+  const allowed = getRoleAllowedEndpoints(db, roleId);
+  const isSuperAdmin = db.query<{ title: string }, [string]>("SELECT title FROM roles WHERE id = ? AND deleted_at IS NULL").get(roleId)?.title === "Super Admin";
+  if (isSuperAdmin) return "/dashboard/admin/users";
+  for (const ep of ADMIN_SECTION_ENDPOINTS) {
+    if (allowed.has(ep)) return ep;
+  }
+  return "/dashboard/user";
+}
+
+export function createPermissionChecker(db: Database) {
+  const check = (roleId: string, path: string) => {
+    const permissions = getRoleAllowedEndpoints(db, roleId);
+    if (permissions.has(path)) return true;
+    const basePath = path.match(/^\/dashboard\/admin\/[^/]+/)?.[0];
+    if (basePath && permissions.has(basePath)) return true;
+    return false;
   };
-  check.clear = (roleId?: string) => roleId === undefined ? cache.clear() : cache.delete(roleId);
+  check.clear = (roleId?: string) => roleId === undefined ? permissionCache.clear() : permissionCache.delete(roleId);
   return check;
 }
 
