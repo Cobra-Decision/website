@@ -3,6 +3,7 @@ import type { Profile } from "../../auth/views";
 import { Layout } from "../../../ui/layout";
 import { DashboardNavbar } from "../../../ui/dashboard";
 import { UnifiedMeetCard } from "../../../ui/meet-card";
+import { DatePicker } from "../../../ui/date-picker";
 import type { Locale } from "../../../lib/i18n/translations";
 import { t } from "../../../lib/i18n/context";
 
@@ -191,7 +192,7 @@ export const UserDashboard = ({
                 </label>
 
                 <label class="form-control">
-                  <span class="label-text font-medium text-xs">{t("dashboard.tag_label", locale)}</span>
+                  <span class="label-text font-medium text-xs mb-1">{t("dashboard.tag_label", locale)}</span>
                   <select class="select select-bordered select-sm w-full" name="tagId">
                     <option value="">{t("dashboard.all_tags", locale)}</option>
                     {tags.map((tag) => (
@@ -202,15 +203,17 @@ export const UserDashboard = ({
                   </select>
                 </label>
 
-                <label class="form-control">
-                  <span class="label-text font-medium text-xs">{t("dashboard.from_date", locale)}</span>
-                  <input class="input input-bordered input-sm w-full" type="date" name="startDate" />
-                </label>
+                <DatePicker
+                  name="startDate"
+                  label={t("dashboard.from_date", locale)}
+                  locale={locale}
+                />
 
-                <label class="form-control">
-                  <span class="label-text font-medium text-xs">{t("dashboard.to_date", locale)}</span>
-                  <input class="input input-bordered input-sm w-full" type="date" name="endDate" />
-                </label>
+                <DatePicker
+                  name="endDate"
+                  label={t("dashboard.to_date", locale)}
+                  locale={locale}
+                />
               </form>
             </div>
 
