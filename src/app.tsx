@@ -1,7 +1,6 @@
 import type { Database } from "bun:sqlite";
 import { Hono, type Handler, type MiddlewareHandler } from "hono";
 import { setCookie } from "hono/cookie";
-import { compress } from "hono/compress";
 import { serveStatic } from "hono/bun";
 import { createAuthRoutes, createDashboardRoute, createProfileRoute } from "./modules/auth/routes";
 import { createEventsRoutes, events } from "./modules/events/routes";
@@ -22,9 +21,6 @@ export function createApp({
   jwtSecret?: string;
 }) {
   const app = new Hono();
-
-  // Gzip / Deflate Compression
-  app.use(compress());
 
   // Static Assets with 1 Year Immutable Cache
   const staticCacheMiddleware: MiddlewareHandler = async (c, next) => {
