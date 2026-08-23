@@ -50,10 +50,10 @@ export const UnifiedMeetCard = ({
   const isCarousel = variant === "carousel";
 
   const cardClasses = isCarousel
-    ? "carousel-item w-[85vw] max-w-[340px] sm:w-80 md:w-96 flex-shrink-0 flex flex-col overflow-hidden rounded-2xl border border-base-300 bg-base-100 shadow-sm transition hover:-translate-y-1 hover:shadow-xl group"
+    ? "carousel-item w-[85vw] max-w-[340px] sm:w-80 md:w-96 flex-shrink-0 flex flex-col relative overflow-hidden rounded-2xl border border-base-300 bg-base-100 shadow-sm transition hover:-translate-y-1 hover:shadow-xl group"
     : isFeatured
     ? "relative overflow-hidden rounded-3xl border border-base-300 bg-base-100 p-3 shadow-2xl transition hover:shadow-3xl group"
-    : "flex flex-col overflow-hidden rounded-2xl border border-base-300 bg-base-100 shadow-sm transition hover:shadow-md group";
+    : "flex flex-col relative overflow-hidden rounded-2xl border border-base-300 bg-base-100 shadow-sm transition hover:shadow-md group";
 
   const tagLimit = isFeatured ? 4 : 3;
 
@@ -72,10 +72,10 @@ export const UnifiedMeetCard = ({
           loading={imagePriority || isFeatured ? "eager" : "lazy"}
           {...(imagePriority || isFeatured ? { fetchpriority: "high" } : {})}
         />
-        <div class="badge absolute start-3 top-3 border-0 bg-base-100/90 text-xs font-medium text-base-content backdrop-blur-sm z-10">
+        <div class="badge absolute start-3 top-3 border-0 bg-base-100/90 text-xs font-medium text-base-content backdrop-blur-sm z-20">
           {isFeatured ? `${t("hero.up_next", locale)} · ${formattedDate}` : formattedDate}
         </div>
-        <div class="badge absolute end-3 top-3 border-0 p-0 text-xs font-medium z-10">
+        <div class="badge absolute end-3 top-3 border-0 p-0 text-xs font-medium z-20">
           <MeetStatusBadge status={meet.status} locale={locale} size="sm" />
         </div>
       </div>
@@ -87,11 +87,15 @@ export const UnifiedMeetCard = ({
             <span>
               {formattedTime} · {formattedDuration} {t("meet.minutes", locale)}
             </span>
-            <MeetAccessBadge accessStatus={meet.access_status} locale={locale} size="xs" />
+            <span class="relative z-20">
+              <MeetAccessBadge accessStatus={meet.access_status} locale={locale} size="xs" />
+            </span>
           </div>
 
           <h3 class={`${isFeatured ? "text-2xl" : "text-base line-clamp-1"} font-bold tracking-tight text-base-content hover:text-primary transition-colors`}>
-            <a href={`/meets/${meet.id}`}>{meet.title}</a>
+            <a href={`/meets/${meet.id}`} class="focus:outline-none after:absolute after:inset-0 after:z-10">
+              {meet.title}
+            </a>
           </h3>
 
           {excerpt ? (
@@ -105,7 +109,7 @@ export const UnifiedMeetCard = ({
           )}
 
           {meet.tags.length > 0 && (
-            <div class="flex flex-wrap items-center gap-1.5 pt-1">
+            <div class="relative z-20 flex flex-wrap items-center gap-1.5 pt-1">
               {meet.tags.slice(0, tagLimit).map((tag) => (
                 <TagBadge key={tag.id} title={tag.title} description={tag.description} size="xs" />
               ))}
@@ -114,7 +118,7 @@ export const UnifiedMeetCard = ({
         </div>
 
         {/* Footer */}
-        <div class="flex items-center justify-between border-t border-base-200 pt-3.5 mt-auto">
+        <div class="relative z-20 flex items-center justify-between border-t border-base-200 pt-3.5 mt-auto">
           <span class={`${isFeatured ? "text-sm" : "text-xs"} font-medium text-base-content/60`}>
             {formattedAttendeeCount} {t("hero.attending", locale)}
           </span>
