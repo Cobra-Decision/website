@@ -18,7 +18,7 @@ import { toUtcIso } from "../events/datetime";
 import { mailService } from "../mailer/service";
 import { MailerDashboardView } from "./mailer-views";
 import { MailEditorView } from "./mail-editor-views";
-import { MailSchedulerView } from "./mail-scheduler-views";
+import { MailSchedulerView, AutomationRuleCard } from "./mail-scheduler-views";
 import type { EmailTemplateRow, ScheduledEmailRow, EmailAutomationRuleRow } from "../mailer/database";
 import { getAllTags, normalizeTopics, parseTopics } from "../events/queries";
 import { logger } from "../../lib/logger";
@@ -60,7 +60,7 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
           "SELECT COALESCE(NULLIF(TRIM(first_name||' '||last_name),''),COALESCE(username,email)) name,email,r.title role FROM users u JOIN roles r ON r.id=u.role_id WHERE u.id=?"
         )
         .get(auth.sub) ?? undefined;
-    return c.html(<AdminLayout allowed={allowed} title={title} user={user} locale={locale}>{body}</AdminLayout>);
+    return c.html(<AdminLayout allowed={allowed} title={title} user={user} locale={locale} currentPath={c.req.path}>{body}</AdminLayout>);
   };
 
   app.get("/", async (c) => {
@@ -1251,6 +1251,17 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
       const nextState = rule.is_enabled ? 0 : 1;
       db.run("UPDATE email_automation_rules SET is_enabled = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?", [nextState, id]);
     }
+    const updatedRule = db.query<EmailAutomationRuleRow, [string]>("SELECT * FROM email_automation_rules WHERE id = ? AND deleted_at IS NULL").get(id);
+    const isHtmx = c.req.header("hx-request") === "true";
+    if (isHtmx && updatedRule) {
+      const templates = db.query<EmailTemplateRow, []>("SELECT * FROM emails_schema WHERE deleted_at IS NULL ORDER BY title ASC").all();
+      return c.html(
+        <>
+          <AutomationRuleCard rule={updatedRule} templates={templates} />
+          {toast("admin.created", updatedRule.is_enabled ? "Trigger enabled." : "Trigger disabled.")}
+        </>
+      );
+    }
     return renderMailScheduler(c, toast("admin.created", "Rule status updated."));
   });
 
@@ -1273,6 +1284,17 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
       db.run(
         "UPDATE email_automation_rules SET template_title = ?, schedule_config = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
         [templateTitle, JSON.stringify(config), id]
+      );
+    }
+    const updatedRule = db.query<EmailAutomationRuleRow, [string]>("SELECT * FROM email_automation_rules WHERE id = ? AND deleted_at IS NULL").get(id);
+    const isHtmx = c.req.header("hx-request") === "true";
+    if (isHtmx && updatedRule) {
+      const templates = db.query<EmailTemplateRow, []>("SELECT * FROM emails_schema WHERE deleted_at IS NULL ORDER BY title ASC").all();
+      return c.html(
+        <>
+          <AutomationRuleCard rule={updatedRule} templates={templates} />
+          {toast("admin.created", "Trigger configuration saved.")}
+        </>
       );
     }
     return renderMailScheduler(c, toast("admin.created", "Trigger configuration saved."));
@@ -1302,6 +1324,17 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
         }
       }
       db.run("UPDATE email_automation_rules SET last_run_at = CURRENT_TIMESTAMP WHERE id = ?", [id]);
+    }
+    const updatedRule = db.query<EmailAutomationRuleRow, [string]>("SELECT * FROM email_automation_rules WHERE id = ? AND deleted_at IS NULL").get(id);
+    const isHtmx = c.req.header("hx-request") === "true";
+    if (isHtmx && updatedRule) {
+      const templates = db.query<EmailTemplateRow, []>("SELECT * FROM emails_schema WHERE deleted_at IS NULL ORDER BY title ASC").all();
+      return c.html(
+        <>
+          <AutomationRuleCard rule={updatedRule} templates={templates} />
+          {toast("admin.created", "Trigger executed successfully.")}
+        </>
+      );
     }
     return renderMailScheduler(c, toast("admin.created", "Trigger executed successfully."));
   });

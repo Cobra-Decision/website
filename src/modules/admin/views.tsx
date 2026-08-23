@@ -34,12 +34,14 @@ export function AdminLayout({
   title = "Admin",
   user,
   locale = "en",
+  currentPath = "",
 }: {
   children: any;
   allowed: string[];
   title?: string;
   user?: DashboardUser;
   locale?: Locale;
+  currentPath?: string;
 }) {
   const allowedManagement = managementLinks.filter(([, href]) => allowed.includes(href));
   const allowedMailCenter = mailCenterLinks.filter(([, href]) => allowed.includes(href));
@@ -73,7 +75,9 @@ export function AdminLayout({
                 </li>
                 {allowedManagement.map(([label, href]) => (
                   <li key={href}>
-                    <a href={href}>{label}</a>
+                    <a href={href} class={currentPath === href ? "active font-semibold" : ""}>
+                      {label}
+                    </a>
                   </li>
                 ))}
               </>
@@ -86,7 +90,9 @@ export function AdminLayout({
                 </li>
                 {allowedMailCenter.map(([label, href]) => (
                   <li key={href}>
-                    <a href={href}>{label}</a>
+                    <a href={href} class={currentPath === href ? "active font-semibold" : ""}>
+                      {label}
+                    </a>
                   </li>
                 ))}
               </>
@@ -99,7 +105,9 @@ export function AdminLayout({
                 </li>
                 {allowedDatabaseCenter.map(([label, href]) => (
                   <li key={href}>
-                    <a href={href}>{label}</a>
+                    <a href={href} class={currentPath === href ? "active font-semibold" : ""}>
+                      {label}
+                    </a>
                   </li>
                 ))}
               </>
@@ -112,7 +120,9 @@ export function AdminLayout({
                 </li>
                 {allowedReports.map(([label, href]) => (
                   <li key={href}>
-                    <a href={href}>{label}</a>
+                    <a href={href} class={currentPath === href ? "active font-semibold" : ""}>
+                      {label}
+                    </a>
                   </li>
                 ))}
               </>

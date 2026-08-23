@@ -2,6 +2,166 @@ import type { ScheduledEmailRow, EmailTemplateRow, EmailAutomationRuleRow } from
 import type { Tag } from "../events/types";
 import { MailPlaceholdersToolbar } from "./mail-placeholders-component";
 
+export const AutomationRuleCard = ({
+  rule,
+  templates,
+}: {
+  rule: EmailAutomationRuleRow;
+  templates: EmailTemplateRow[];
+}) => {
+  let config: any = {};
+  try {
+    config = JSON.parse(rule.schedule_config || "{}");
+  } catch {}
+
+  const isEnabled = Boolean(rule.is_enabled);
+
+  return (
+    <div
+      id={`rule-card-${rule.id}`}
+      class={`card border transition-all duration-200 shadow-sm ${
+        isEnabled
+          ? "border-primary/40 bg-base-100 ring-1 ring-primary/20"
+          : "border-base-300 bg-base-200/60 opacity-80"
+      }`}
+    >
+      <div class="card-body p-5 flex flex-col justify-between h-full space-y-4">
+        <div class="space-y-3">
+          {/* Header Badges & Toggle */}
+          <div class="flex items-center justify-between gap-3">
+            <div class="flex items-center gap-1.5 flex-wrap">
+              <span class="badge badge-outline badge-xs font-mono uppercase tracking-wider font-semibold">
+                {rule.trigger_type}
+              </span>
+              <span
+                class={`badge badge-xs font-semibold gap-1 ${
+                  isEnabled
+                    ? "badge-success text-success-content"
+                    : "badge-ghost text-base-content/60"
+                }`}
+              >
+                <span class={`inline-block w-1.5 h-1.5 rounded-full ${isEnabled ? "bg-success-content animate-pulse" : "bg-base-content/40"}`}></span>
+                {isEnabled ? "Active" : "Disabled"}
+              </span>
+            </div>
+
+            <form
+              hx-post={`/dashboard/admin/mail-scheduler/rules/${rule.id}/toggle`}
+              hx-target={`#rule-card-${rule.id}`}
+              hx-swap="outerHTML"
+              class="flex items-center shrink-0"
+            >
+              <input
+                type="checkbox"
+                class="toggle toggle-primary toggle-sm cursor-pointer"
+                checked={isEnabled}
+                onchange="this.form.requestSubmit()"
+                aria-label={`Toggle status for ${rule.title}`}
+              />
+            </form>
+          </div>
+
+          {/* Title & Description */}
+          <div>
+            <h3 class="text-base font-bold text-base-content flex items-center gap-2">
+              <span>{rule.title}</span>
+            </h3>
+            <p class="text-xs text-base-content/70 leading-relaxed mt-1">{rule.description}</p>
+          </div>
+
+          {/* Meta Info Box */}
+          <div class="rounded-xl bg-base-200/60 p-3 text-xs space-y-1.5 border border-base-300/40">
+            <div class="flex items-center justify-between text-base-content/70">
+              <span>Template:</span>
+              <span class="font-mono font-bold text-primary truncate max-w-[150px]" title={rule.template_title || "Default"}>
+                {rule.template_title || "Default"}
+              </span>
+            </div>
+            {typeof config.days_ahead !== "undefined" && (
+              <div class="flex items-center justify-between text-base-content/70">
+                <span>Timing:</span>
+                <span class="font-semibold text-base-content/90">
+                  {config.days_ahead === 0
+                    ? "Day of event"
+                    : `${config.days_ahead} day(s) before`}
+                </span>
+              </div>
+            )}
+            {rule.last_run_at && (
+              <div class="flex items-center justify-between text-2xs text-base-content/50 pt-1 border-t border-base-300/40">
+                <span>Last run:</span>
+                <span>{new Date(rule.last_run_at).toLocaleString()}</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Action Footer */}
+        <div class="pt-3 border-t border-base-200 flex items-center justify-between gap-2">
+          <form
+            hx-post={`/dashboard/admin/mail-scheduler/rules/${rule.id}/trigger`}
+            hx-target={`#rule-card-${rule.id}`}
+            hx-swap="outerHTML"
+          >
+            <button
+              type="submit"
+              class="btn btn-xs btn-outline btn-primary gap-1"
+              title="Force run this automated trigger now"
+            >
+              <span>⚡</span>
+              <span>Run Now</span>
+            </button>
+          </form>
+
+          <details class="dropdown dropdown-end">
+            <summary class="btn btn-xs btn-ghost gap-1">Configure ⚙</summary>
+            <div class="dropdown-content z-20 menu p-4 shadow-xl bg-base-100 border border-base-300 rounded-box w-72 space-y-3">
+              <h4 class="font-bold text-xs text-base-content">Configure {rule.title}</h4>
+              <form
+                hx-post={`/dashboard/admin/mail-scheduler/rules/${rule.id}/update`}
+                hx-target={`#rule-card-${rule.id}`}
+                hx-swap="outerHTML"
+                class="space-y-3"
+              >
+                <div class="form-control">
+                  <label class="label py-0.5"><span class="label-text text-2xs font-semibold">Template</span></label>
+                  <select name="templateTitle" class="select select-bordered select-xs w-full">
+                    {templates.map((tpl) => (
+                      <option
+                        key={tpl.id}
+                        value={tpl.title}
+                        selected={tpl.title === rule.template_title}
+                      >
+                        {tpl.title}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {typeof config.days_ahead !== "undefined" && (
+                  <div class="form-control">
+                    <label class="label py-0.5"><span class="label-text text-2xs font-semibold">Days Ahead</span></label>
+                    <input
+                      type="number"
+                      name="daysAhead"
+                      min="0"
+                      max="30"
+                      value={config.days_ahead}
+                      class="input input-bordered input-xs w-full"
+                    />
+                  </div>
+                )}
+
+                <button type="submit" class="btn btn-primary btn-xs w-full">Save Changes</button>
+              </form>
+            </div>
+          </details>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export const MailSchedulerView = ({
   scheduledList,
   automationRules,
@@ -148,131 +308,9 @@ export const MailSchedulerView = ({
             </div>
 
             <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {automationRules.map((rule) => {
-                let config: any = {};
-                try {
-                  config = JSON.parse(rule.schedule_config || "{}");
-                } catch {}
-
-                return (
-                  <div
-                    key={rule.id}
-                    class={`flex flex-col justify-between rounded-2xl border p-5 transition-all shadow-xs ${
-                      rule.is_enabled
-                        ? "border-primary/30 bg-base-100"
-                        : "border-base-300 bg-base-200/50 opacity-75"
-                    }`}
-                  >
-                    <div class="space-y-3">
-                      <div class="flex items-center justify-between gap-2">
-                        <span class="badge badge-outline badge-xs font-mono uppercase">
-                          {rule.trigger_type}
-                        </span>
-                        <form
-                          hx-post={`/dashboard/admin/mail-scheduler/rules/${rule.id}/toggle`}
-                          hx-target="main"
-                          hx-select="main > *"
-                        >
-                          <input
-                            type="checkbox"
-                            class="toggle toggle-primary toggle-sm"
-                            checked={Boolean(rule.is_enabled)}
-                            onchange="this.form.requestSubmit()"
-                          />
-                        </form>
-                      </div>
-
-                      <div>
-                        <h3 class="text-base font-bold text-base-content">{rule.title}</h3>
-                        <p class="text-xs text-base-content/65 leading-relaxed mt-1">{rule.description}</p>
-                      </div>
-
-                      <div class="rounded-xl bg-base-200/60 p-3 text-xs space-y-1.5 border border-base-300/40">
-                        <div class="flex items-center justify-between text-base-content/70">
-                          <span>Template:</span>
-                          <span class="font-mono font-bold text-primary">{rule.template_title || "Default"}</span>
-                        </div>
-                        {typeof config.days_ahead !== "undefined" && (
-                          <div class="flex items-center justify-between text-base-content/70">
-                            <span>Timing:</span>
-                            <span class="font-semibold">
-                              {config.days_ahead === 0
-                                ? "Day of event"
-                                : `${config.days_ahead} day(s) before`}
-                            </span>
-                          </div>
-                        )}
-                        {rule.last_run_at && (
-                          <div class="flex items-center justify-between text-2xs text-base-content/50 pt-1 border-t border-base-300/40">
-                            <span>Last run:</span>
-                            <span>{new Date(rule.last_run_at).toLocaleString()}</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    <div class="mt-4 pt-3 border-t border-base-200 flex items-center justify-between gap-2">
-                      <form
-                        hx-post={`/dashboard/admin/mail-scheduler/rules/${rule.id}/trigger`}
-                        hx-target="main"
-                        hx-select="main > *"
-                      >
-                        <button
-                          type="submit"
-                          class="btn btn-xs btn-outline btn-primary"
-                          title="Force run this automated trigger now"
-                        >
-                          ⚡ Run Trigger Now
-                        </button>
-                      </form>
-
-                      <details class="dropdown dropdown-end">
-                        <summary class="btn btn-xs btn-ghost">Configure ⚙</summary>
-                        <div class="dropdown-content z-20 menu p-4 shadow-xl bg-base-100 border border-base-300 rounded-box w-72 space-y-3">
-                          <h4 class="font-bold text-xs">Configure {rule.title}</h4>
-                          <form
-                            hx-post={`/dashboard/admin/mail-scheduler/rules/${rule.id}/update`}
-                            hx-target="main"
-                            hx-select="main > *"
-                            class="space-y-3"
-                          >
-                            <div class="form-control">
-                              <label class="label py-0.5"><span class="label-text text-2xs">Template</span></label>
-                              <select name="templateTitle" class="select select-bordered select-xs w-full">
-                                {templates.map((tpl) => (
-                                  <option
-                                    key={tpl.id}
-                                    value={tpl.title}
-                                    selected={tpl.title === rule.template_title}
-                                  >
-                                    {tpl.title}
-                                  </option>
-                                ))}
-                              </select>
-                            </div>
-
-                            {typeof config.days_ahead !== "undefined" && (
-                              <div class="form-control">
-                                <label class="label py-0.5"><span class="label-text text-2xs">Days Ahead</span></label>
-                                <input
-                                  type="number"
-                                  name="daysAhead"
-                                  min="0"
-                                  max="30"
-                                  value={config.days_ahead}
-                                  class="input input-bordered input-xs w-full"
-                                />
-                              </div>
-                            )}
-
-                            <button type="submit" class="btn btn-primary btn-xs w-full">Save Changes</button>
-                          </form>
-                        </div>
-                      </details>
-                    </div>
-                  </div>
-                );
-              })}
+              {automationRules.map((rule) => (
+                <AutomationRuleCard key={rule.id} rule={rule} templates={templates} />
+              ))}
             </div>
           </div>
         </div>
