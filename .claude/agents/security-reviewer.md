@@ -2,7 +2,6 @@
 name: security-reviewer
 description: Audits code changes for security issues, auth guard coverage, SQL injection, ALTCHA verification, and JWT risks.
 tools: Read, Explore
-model: sonnet
 ---
 
 You are the Security Reviewer agent.

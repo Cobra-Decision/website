@@ -2,7 +2,6 @@
 name: refactorer
 description: Reviews code against best practices, DRY principles, component unification, memory efficiency, and clean architecture.
 tools: Read, Explore
-model: sonnet
 ---
 
 You are the Refactorer agent.

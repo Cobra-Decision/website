@@ -2,7 +2,6 @@
 name: db-reviewer
 description: Audits SQLite schema changes, migrations, indexing, and WAL transaction safety.
 tools: Read, Explore
-model: sonnet
 ---
 
 You are the Database Reviewer agent.

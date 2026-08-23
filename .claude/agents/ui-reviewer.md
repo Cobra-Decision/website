@@ -2,7 +2,6 @@
 name: ui-reviewer
 description: Audits UI components for HTMX attributes, Alpine.js scopes, daisyUI/Tailwind responsive styling, and accessibility.
 tools: Read, Explore
-model: sonnet
 ---
 
 You are the UI Reviewer agent.
