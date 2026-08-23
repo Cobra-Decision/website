@@ -58,11 +58,16 @@ export function DatePicker({
     displayValue: '${initialDisplay}',
     jYear: 1405,
     jMonth: 6,
+    selectedDay: null,
     viewMode: 'days', // 'days' | 'months' | 'years'
     monthNames: ['فروردین','اردیبهشت','خرداد','تیر','مرداد','شهریور','مهر','آبان','آذر','دی','بهمن','اسفند'],
     weekdays: ['ش','ی','د','س','چ','پ','ج'],
 
     init() {
+      this.syncFromIso();
+    },
+
+    syncFromIso() {
       if (this.isoValue) {
         const parts = this.isoValue.split('-').map(Number);
         if (parts.length === 3) {
@@ -78,6 +83,14 @@ export function DatePicker({
       const [jy, jm] = this.g2j(today.getFullYear(), today.getMonth() + 1, today.getDate());
       this.jYear = jy;
       this.jMonth = jm;
+    },
+
+    toggleOpen() {
+      if (!this.open) {
+        this.syncFromIso();
+        this.viewMode = 'days';
+      }
+      this.open = !this.open;
     },
 
     toPersian(n) {
@@ -298,7 +311,7 @@ export function DatePicker({
         {/* Visible input box with embedded calendar icon inside */}
         <div
           class="relative flex items-center w-full cursor-pointer"
-          {...({ "x-on:click": "open = !open" } as any)}
+          {...({ "x-on:click": "toggleOpen()" } as any)}
         >
           <input
             id={inputId}
