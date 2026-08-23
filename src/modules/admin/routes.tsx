@@ -19,7 +19,7 @@ import { mailService } from "../mailer/service";
 import { MailerDashboardView } from "./mailer-views";
 import { MailEditorView } from "./mail-editor-views";
 import { MailSchedulerView } from "./mail-scheduler-views";
-import type { EmailTemplateRow, ScheduledEmailRow } from "../mailer/database";
+import type { EmailTemplateRow, ScheduledEmailRow, EmailAutomationRuleRow } from "../mailer/database";
 import { getAllTags, normalizeTopics, parseTopics } from "../events/queries";
 import { logger } from "../../lib/logger";
 import { createDatabaseAdminRoutes } from "./database-routes";
@@ -1222,25 +1222,88 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
   });
 
   // Mail Scheduler Dashboard Routes
-  app.get("/mail-scheduler", async (c) => {
-    const scheduledList = db
-      .query<ScheduledEmailRow, []>(
-        "SELECT id, template_id, title, subject, format, body, target_mode, target_payload, scheduled_for, status, sent_count, error, created_at, updated_at, deleted_at FROM scheduled_emails WHERE deleted_at IS NULL ORDER BY scheduled_for DESC"
-      )
-      .all();
-    const templates = db
-      .query<EmailTemplateRow, []>(
-        "SELECT id, title, subject, format, value, description, created_at, updated_at, deleted_at FROM emails_schema WHERE deleted_at IS NULL ORDER BY title ASC"
-      )
-      .all();
-    const tags = getAllTags(db);
-    const users = db
-      .query<{ id: string; email: string; first_name: string | null; last_name: string | null; username: string | null }, []>(
-        "SELECT id, email, first_name, last_name, username FROM users WHERE deleted_at IS NULL ORDER BY email ASC"
-      )
-      .all();
+  const getMailSchedulerState = () => ({
+    scheduledList: db.query<ScheduledEmailRow, []>("SELECT * FROM scheduled_emails WHERE deleted_at IS NULL ORDER BY scheduled_for DESC").all(),
+    automationRules: db.query<EmailAutomationRuleRow, []>("SELECT * FROM email_automation_rules WHERE deleted_at IS NULL ORDER BY created_at ASC").all(),
+    templates: db.query<EmailTemplateRow, []>("SELECT * FROM emails_schema WHERE deleted_at IS NULL ORDER BY title ASC").all(),
+    tags: getAllTags(db),
+    users: db.query<{ id: string; email: string; first_name: string | null; last_name: string | null; username: string | null }, []>("SELECT id, email, first_name, last_name, username FROM users WHERE deleted_at IS NULL ORDER BY email ASC").all(),
+  });
 
-    return page(c, "Mail Scheduler", <MailSchedulerView scheduledList={scheduledList} templates={templates} tags={tags} users={users} />);
+  const renderMailScheduler = (c: Context, toastElement?: ReturnType<typeof toast>) => {
+    const data = getMailSchedulerState();
+    return page(
+      c,
+      "Mail Automation & Scheduler",
+      <>
+        <MailSchedulerView {...data} />
+        {toastElement}
+      </>
+    );
+  };
+
+  app.get("/mail-scheduler", async (c) => renderMailScheduler(c));
+
+  app.post("/mail-scheduler/rules/:id/toggle", async (c) => {
+    const id = c.req.param("id");
+    const rule = db.query<EmailAutomationRuleRow, [string]>("SELECT * FROM email_automation_rules WHERE id = ? AND deleted_at IS NULL").get(id);
+    if (rule) {
+      const nextState = rule.is_enabled ? 0 : 1;
+      db.run("UPDATE email_automation_rules SET is_enabled = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?", [nextState, id]);
+    }
+    return renderMailScheduler(c, toast("admin.created", "Rule status updated."));
+  });
+
+  app.post("/mail-scheduler/rules/:id/update", async (c) => {
+    const id = c.req.param("id");
+    const body = await c.req.parseBody();
+    const templateTitle = String(body.templateTitle ?? "").trim() || null;
+    const rule = db.query<EmailAutomationRuleRow, [string]>("SELECT * FROM email_automation_rules WHERE id = ? AND deleted_at IS NULL").get(id);
+
+    if (rule) {
+      let config: any = {};
+      try {
+        config = JSON.parse(rule.schedule_config || "{}");
+      } catch {}
+
+      if (typeof body.daysAhead !== "undefined") {
+        config.days_ahead = Number(body.daysAhead) || 0;
+      }
+
+      db.run(
+        "UPDATE email_automation_rules SET template_title = ?, schedule_config = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+        [templateTitle, JSON.stringify(config), id]
+      );
+    }
+    return renderMailScheduler(c, toast("admin.created", "Trigger configuration saved."));
+  });
+
+  app.post("/mail-scheduler/rules/:id/trigger", async (c) => {
+    const id = c.req.param("id");
+    const rule = db.query<EmailAutomationRuleRow, [string]>("SELECT * FROM email_automation_rules WHERE id = ? AND deleted_at IS NULL").get(id);
+
+    if (rule) {
+      let config: any = {};
+      try {
+        config = JSON.parse(rule.schedule_config || "{}");
+      } catch {}
+
+      if (rule.rule_key === "tag_reminder") {
+        const daysAhead = typeof config.days_ahead === "number" ? config.days_ahead : 1;
+        await mailService.sendFavoriteTagMeetReminders(db, daysAhead);
+      } else if (rule.rule_key === "rsvp_reminder") {
+        const daysAhead = typeof config.days_ahead === "number" ? config.days_ahead : 0;
+        const target = new Date();
+        target.setDate(target.getDate() + daysAhead);
+        const targetDateStr = target.toISOString().slice(0, 10);
+        const meets = db.query<{ id: string }, [string]>("SELECT id FROM meets WHERE scheduled_date = ? AND status = 'upcoming' AND deleted_at IS NULL").all(targetDateStr);
+        for (const { id: meetId } of meets) {
+          await mailService.sendMeetAttendeesReminder(db, meetId);
+        }
+      }
+      db.run("UPDATE email_automation_rules SET last_run_at = CURRENT_TIMESTAMP WHERE id = ?", [id]);
+    }
+    return renderMailScheduler(c, toast("admin.created", "Trigger executed successfully."));
   });
 
   app.post("/mail-scheduler/schedule", async (c) => {
@@ -1254,11 +1317,7 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
     const scheduledFor = String(body.scheduledFor ?? "").trim();
 
     if (!title || !subject || !emailBody || !scheduledFor) {
-      const scheduledList = db.query<ScheduledEmailRow, []>("SELECT * FROM scheduled_emails WHERE deleted_at IS NULL ORDER BY scheduled_for DESC").all();
-      const templates = db.query<EmailTemplateRow, []>("SELECT * FROM emails_schema WHERE deleted_at IS NULL ORDER BY title ASC").all();
-      const tags = getAllTags(db);
-      const users = db.query<{ id: string; email: string; first_name: string | null; last_name: string | null; username: string | null }, []>("SELECT id, email, first_name, last_name, username FROM users WHERE deleted_at IS NULL ORDER BY email ASC").all();
-      return page(c, "Mail Scheduler", <><MailSchedulerView scheduledList={scheduledList} templates={templates} tags={tags} users={users} />{toast("admin.error", "Title, subject, body, and schedule time are required.", "error")}</>);
+      return renderMailScheduler(c, toast("admin.error", "Title, subject, body, and schedule time are required.", "error"));
     }
 
     let payloadObj: any = {};
@@ -1282,11 +1341,7 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
       [generateId(), templateId, title, subject, format, emailBody, targetMode, JSON.stringify(payloadObj), new Date(scheduledFor).toISOString()]
     );
 
-    const scheduledList = db.query<ScheduledEmailRow, []>("SELECT id, template_id, title, subject, format, body, target_mode, target_payload, scheduled_for, status, sent_count, error, created_at, updated_at, deleted_at FROM scheduled_emails WHERE deleted_at IS NULL ORDER BY scheduled_for DESC").all();
-    const templates = db.query<EmailTemplateRow, []>("SELECT id, title, subject, format, value, description, created_at, updated_at, deleted_at FROM emails_schema WHERE deleted_at IS NULL ORDER BY title ASC").all();
-    const tags = getAllTags(db);
-    const users = db.query<{ id: string; email: string; first_name: string | null; last_name: string | null; username: string | null }, []>("SELECT id, email, first_name, last_name, username FROM users WHERE deleted_at IS NULL ORDER BY email ASC").all();
-    return page(c, "Mail Scheduler", <><MailSchedulerView scheduledList={scheduledList} templates={templates} tags={tags} users={users} />{toast("admin.created", "Broadcast scheduled successfully.")}</>);
+    return renderMailScheduler(c, toast("admin.created", "Broadcast scheduled successfully."));
   });
 
   app.post("/mail-scheduler/cancel", async (c) => {
@@ -1294,11 +1349,7 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
     if (id) {
       db.run("UPDATE scheduled_emails SET status='cancelled', updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='pending'", [id]);
     }
-    const scheduledList = db.query<ScheduledEmailRow, []>("SELECT id, template_id, title, subject, format, body, target_mode, target_payload, scheduled_for, status, sent_count, error, created_at, updated_at, deleted_at FROM scheduled_emails WHERE deleted_at IS NULL ORDER BY scheduled_for DESC").all();
-    const templates = db.query<EmailTemplateRow, []>("SELECT id, title, subject, format, value, description, created_at, updated_at, deleted_at FROM emails_schema WHERE deleted_at IS NULL ORDER BY title ASC").all();
-    const tags = getAllTags(db);
-    const users = db.query<{ id: string; email: string; first_name: string | null; last_name: string | null; username: string | null }, []>("SELECT id, email, first_name, last_name, username FROM users WHERE deleted_at IS NULL ORDER BY email ASC").all();
-    return page(c, "Mail Scheduler", <><MailSchedulerView scheduledList={scheduledList} templates={templates} tags={tags} users={users} />{toast("admin.created", "Scheduled broadcast cancelled.")}</>);
+    return renderMailScheduler(c, toast("admin.created", "Scheduled broadcast cancelled."));
   });
 
   app.post("/mail-scheduler/repeat", async (c) => {
@@ -1313,11 +1364,7 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
         );
       }
     }
-    const scheduledList = db.query<ScheduledEmailRow, []>("SELECT id, template_id, title, subject, format, body, target_mode, target_payload, scheduled_for, status, sent_count, error, created_at, updated_at, deleted_at FROM scheduled_emails WHERE deleted_at IS NULL ORDER BY scheduled_for DESC").all();
-    const templates = db.query<EmailTemplateRow, []>("SELECT id, title, subject, format, value, description, created_at, updated_at, deleted_at FROM emails_schema WHERE deleted_at IS NULL ORDER BY title ASC").all();
-    const tags = getAllTags(db);
-    const users = db.query<{ id: string; email: string; first_name: string | null; last_name: string | null; username: string | null }, []>("SELECT id, email, first_name, last_name, username FROM users WHERE deleted_at IS NULL ORDER BY email ASC").all();
-    return page(c, "Mail Scheduler", <><MailSchedulerView scheduledList={scheduledList} templates={templates} tags={tags} users={users} />{toast("admin.created", "Broadcast repeated and added to queue.")}</>);
+    return renderMailScheduler(c, toast("admin.created", "Broadcast repeated and added to queue."));
   });
 
   app.post("/mail-scheduler/delete", async (c) => {
@@ -1325,11 +1372,7 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
     if (id) {
       db.run("UPDATE scheduled_emails SET deleted_at=CURRENT_TIMESTAMP, updated_at=CURRENT_TIMESTAMP WHERE id=?", [id]);
     }
-    const scheduledList = db.query<ScheduledEmailRow, []>("SELECT id, template_id, title, subject, format, body, target_mode, target_payload, scheduled_for, status, sent_count, error, created_at, updated_at, deleted_at FROM scheduled_emails WHERE deleted_at IS NULL ORDER BY scheduled_for DESC").all();
-    const templates = db.query<EmailTemplateRow, []>("SELECT id, title, subject, format, value, description, created_at, updated_at, deleted_at FROM emails_schema WHERE deleted_at IS NULL ORDER BY title ASC").all();
-    const tags = getAllTags(db);
-    const users = db.query<{ id: string; email: string; first_name: string | null; last_name: string | null; username: string | null }, []>("SELECT id, email, first_name, last_name, username FROM users WHERE deleted_at IS NULL ORDER BY email ASC").all();
-    return page(c, "Mail Scheduler", <><MailSchedulerView scheduledList={scheduledList} templates={templates} tags={tags} users={users} />{toast("admin.deleted", "Scheduled broadcast deleted.")}</>);
+    return renderMailScheduler(c, toast("admin.deleted", "Scheduled broadcast deleted."));
   });
 
   app.post("/mailer/send", async (c) => {

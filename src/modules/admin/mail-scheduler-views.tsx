@@ -1,14 +1,16 @@
-import type { ScheduledEmailRow, EmailTemplateRow } from "../mailer/database";
+import type { ScheduledEmailRow, EmailTemplateRow, EmailAutomationRuleRow } from "../mailer/database";
 import type { Tag } from "../events/types";
 import { MailPlaceholdersToolbar } from "./mail-placeholders-component";
 
 export const MailSchedulerView = ({
   scheduledList,
+  automationRules,
   templates,
   tags,
   users,
 }: {
   scheduledList: ScheduledEmailRow[];
+  automationRules: EmailAutomationRuleRow[];
   templates: EmailTemplateRow[];
   tags: Tag[];
   users: { id: string; email: string; first_name: string | null; last_name: string | null; username: string | null }[];
@@ -17,6 +19,7 @@ export const MailSchedulerView = ({
     <div
       class="space-y-8"
       x-data={`{
+        activeTab: 'rules',
         targetMode: 'all',
         format: 'html',
         selectedTemplateId: '',
@@ -88,9 +91,9 @@ export const MailSchedulerView = ({
       {/* Header */}
       <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 class="text-2xl font-bold tracking-tight text-base-content sm:text-3xl">Mail Scheduler</h1>
+          <h1 class="text-2xl font-bold tracking-tight text-base-content sm:text-3xl">Mail Automation & Scheduler</h1>
           <p class="text-sm text-base-content/60">
-            Schedule future automated batch emails to targeted audiences (All Users, Tag Followers, Domains, Specific Users).
+            Control automated email triggers (tag reminders, RSVP alerts, welcome emails) and schedule one-time broadcasts.
           </p>
         </div>
         <button
@@ -99,12 +102,184 @@ export const MailSchedulerView = ({
           hx-select="main > *"
           class="btn btn-sm btn-outline gap-2"
         >
-          ↻ Refresh Queue
+          ↻ Refresh
         </button>
       </div>
 
-      {/* Schedule Creation Card */}
-      <div class="card border border-base-300 bg-base-100 shadow-sm">
+      {/* Navigation Tabs */}
+      <div class="tabs tabs-boxed bg-base-200 p-1 w-fit">
+        <button
+          type="button"
+          class="tab tab-sm font-semibold transition-all"
+          x-bind:class="activeTab === 'rules' ? 'tab-active' : ''"
+          x-on:click="activeTab = 'rules'"
+        >
+          ⚡ Automated Email Triggers ({automationRules.length})
+        </button>
+        <button
+          type="button"
+          class="tab tab-sm font-semibold transition-all"
+          x-bind:class="activeTab === 'schedule' ? 'tab-active' : ''"
+          x-on:click="activeTab = 'schedule'"
+        >
+          📅 Schedule One-Time Broadcast
+        </button>
+        <button
+          type="button"
+          class="tab tab-sm font-semibold transition-all"
+          x-bind:class="activeTab === 'queue' ? 'tab-active' : ''"
+          x-on:click="activeTab = 'queue'"
+        >
+          📋 Broadcast Queue ({scheduledList.length})
+        </button>
+      </div>
+
+      {/* 1. Automated Email Rules Section */}
+      <div x-show="activeTab === 'rules'" class="space-y-4">
+        <div class="card border border-base-300 bg-base-100 shadow-sm">
+          <div class="card-body p-6 space-y-4">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-base-200 pb-3">
+              <div>
+                <h2 class="text-lg font-bold text-base-content">Automated Recurring Triggers</h2>
+                <p class="text-xs text-base-content/60">
+                  Toggle automated system emails on or off, configure days-ahead triggers, and map custom templates.
+                </p>
+              </div>
+            </div>
+
+            <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {automationRules.map((rule) => {
+                let config: any = {};
+                try {
+                  config = JSON.parse(rule.schedule_config || "{}");
+                } catch {}
+
+                return (
+                  <div
+                    key={rule.id}
+                    class={`flex flex-col justify-between rounded-2xl border p-5 transition-all shadow-xs ${
+                      rule.is_enabled
+                        ? "border-primary/30 bg-base-100"
+                        : "border-base-300 bg-base-200/50 opacity-75"
+                    }`}
+                  >
+                    <div class="space-y-3">
+                      <div class="flex items-center justify-between gap-2">
+                        <span class="badge badge-outline badge-xs font-mono uppercase">
+                          {rule.trigger_type}
+                        </span>
+                        <form
+                          hx-post={`/dashboard/admin/mail-scheduler/rules/${rule.id}/toggle`}
+                          hx-target="main"
+                          hx-select="main > *"
+                        >
+                          <input
+                            type="checkbox"
+                            class="toggle toggle-primary toggle-sm"
+                            checked={Boolean(rule.is_enabled)}
+                            onchange="this.form.requestSubmit()"
+                          />
+                        </form>
+                      </div>
+
+                      <div>
+                        <h3 class="text-base font-bold text-base-content">{rule.title}</h3>
+                        <p class="text-xs text-base-content/65 leading-relaxed mt-1">{rule.description}</p>
+                      </div>
+
+                      <div class="rounded-xl bg-base-200/60 p-3 text-xs space-y-1.5 border border-base-300/40">
+                        <div class="flex items-center justify-between text-base-content/70">
+                          <span>Template:</span>
+                          <span class="font-mono font-bold text-primary">{rule.template_title || "Default"}</span>
+                        </div>
+                        {typeof config.days_ahead !== "undefined" && (
+                          <div class="flex items-center justify-between text-base-content/70">
+                            <span>Timing:</span>
+                            <span class="font-semibold">
+                              {config.days_ahead === 0
+                                ? "Day of event"
+                                : `${config.days_ahead} day(s) before`}
+                            </span>
+                          </div>
+                        )}
+                        {rule.last_run_at && (
+                          <div class="flex items-center justify-between text-2xs text-base-content/50 pt-1 border-t border-base-300/40">
+                            <span>Last run:</span>
+                            <span>{new Date(rule.last_run_at).toLocaleString()}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div class="mt-4 pt-3 border-t border-base-200 flex items-center justify-between gap-2">
+                      <form
+                        hx-post={`/dashboard/admin/mail-scheduler/rules/${rule.id}/trigger`}
+                        hx-target="main"
+                        hx-select="main > *"
+                      >
+                        <button
+                          type="submit"
+                          class="btn btn-xs btn-outline btn-primary"
+                          title="Force run this automated trigger now"
+                        >
+                          ⚡ Run Trigger Now
+                        </button>
+                      </form>
+
+                      <details class="dropdown dropdown-end">
+                        <summary class="btn btn-xs btn-ghost">Configure ⚙</summary>
+                        <div class="dropdown-content z-20 menu p-4 shadow-xl bg-base-100 border border-base-300 rounded-box w-72 space-y-3">
+                          <h4 class="font-bold text-xs">Configure {rule.title}</h4>
+                          <form
+                            hx-post={`/dashboard/admin/mail-scheduler/rules/${rule.id}/update`}
+                            hx-target="main"
+                            hx-select="main > *"
+                            class="space-y-3"
+                          >
+                            <div class="form-control">
+                              <label class="label py-0.5"><span class="label-text text-2xs">Template</span></label>
+                              <select name="templateTitle" class="select select-bordered select-xs w-full">
+                                {templates.map((tpl) => (
+                                  <option
+                                    key={tpl.id}
+                                    value={tpl.title}
+                                    selected={tpl.title === rule.template_title}
+                                  >
+                                    {tpl.title}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+
+                            {typeof config.days_ahead !== "undefined" && (
+                              <div class="form-control">
+                                <label class="label py-0.5"><span class="label-text text-2xs">Days Ahead</span></label>
+                                <input
+                                  type="number"
+                                  name="daysAhead"
+                                  min="0"
+                                  max="30"
+                                  value={config.days_ahead}
+                                  class="input input-bordered input-xs w-full"
+                                />
+                              </div>
+                            )}
+
+                            <button type="submit" class="btn btn-primary btn-xs w-full">Save Changes</button>
+                          </form>
+                        </div>
+                      </details>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 2. Schedule Creation Card */}
+      <div x-show="activeTab === 'schedule'" class="card border border-base-300 bg-base-100 shadow-sm">
         <div class="card-body p-6 space-y-4">
           <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between items-start gap-3 border-b border-base-200 pb-3">
             <div>
@@ -328,8 +503,8 @@ export const MailSchedulerView = ({
         </div>
       </div>
 
-      {/* Scheduled Tasks Queue Table */}
-      <div class="card border border-base-300 bg-base-100 shadow-sm overflow-hidden">
+      {/* 3. Scheduled Tasks Queue Table */}
+      <div x-show="activeTab === 'queue'" class="card border border-base-300 bg-base-100 shadow-sm overflow-hidden">
         <div class="card-body p-6">
           <h2 class="text-lg font-bold text-base-content">
             Scheduled Queue ({scheduledList.length} jobs)

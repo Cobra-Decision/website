@@ -33,6 +33,51 @@ export interface ScheduledEmailRow {
   deleted_at: string | null;
 }
 
+export interface EmailAutomationRuleRow {
+  id: string;
+  rule_key: string;
+  title: string;
+  description: string;
+  is_enabled: number;
+  template_title: string | null;
+  trigger_type: string;
+  schedule_config: string;
+  last_run_at: string | null;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}
+
+export const PREBUILT_AUTOMATION_RULES = [
+  {
+    rule_key: "tag_reminder",
+    title: "Tag Follower Meet Reminders",
+    description: "Send automated alerts to users who follow topics/tags matching an upcoming meet.",
+    is_enabled: 1,
+    template_title: "tag_reminder",
+    trigger_type: "daily_cron",
+    schedule_config: JSON.stringify({ days_ahead: 1 }),
+  },
+  {
+    rule_key: "rsvp_reminder",
+    title: "Day-of RSVP Meet Attendee Reminder",
+    description: "Send direct join links to confirmed attendees on the day of the meeting.",
+    is_enabled: 1,
+    template_title: "attendees_reminder",
+    trigger_type: "daily_cron",
+    schedule_config: JSON.stringify({ days_ahead: 0 }),
+  },
+  {
+    rule_key: "welcome_email",
+    title: "Onboarding Welcome Email",
+    description: "Instant greeting sent to new registered users upon activation.",
+    is_enabled: 1,
+    template_title: "welcome_email",
+    trigger_type: "event_triggered",
+    schedule_config: JSON.stringify({}),
+  },
+];
+
 export const PREBUILT_EMAIL_TEMPLATES = [
   {
     title: "welcome_email",
@@ -250,6 +295,19 @@ export function initializeMailerDatabase(database: Database) {
       database.run(
         "INSERT INTO emails_schema (id, title, subject, format, value, description) VALUES (?, ?, ?, ?, ?, ?)",
         [generateId(), t.title, t.subject, t.format, t.value, t.description]
+      );
+    }
+  }
+
+  // Seed default automation rules if not present
+  for (const r of PREBUILT_AUTOMATION_RULES) {
+    const existing = database
+      .query<{ id: string }, [string]>("SELECT id FROM email_automation_rules WHERE rule_key = ?")
+      .get(r.rule_key);
+    if (!existing) {
+      database.run(
+        "INSERT INTO email_automation_rules (id, rule_key, title, description, is_enabled, template_title, trigger_type, schedule_config) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        [generateId(), r.rule_key, r.title, r.description, r.is_enabled, r.template_title, r.trigger_type, r.schedule_config]
       );
     }
   }

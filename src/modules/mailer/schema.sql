@@ -33,3 +33,20 @@ CREATE TABLE IF NOT EXISTS scheduled_emails (
 );
 
 CREATE INDEX IF NOT EXISTS idx_scheduled_emails_status ON scheduled_emails(status, scheduled_for);
+
+-- Automated Email Triggers & Recurring Rules
+CREATE TABLE IF NOT EXISTS email_automation_rules (
+  id TEXT PRIMARY KEY,
+  rule_key TEXT NOT NULL UNIQUE,
+  title TEXT NOT NULL,
+  description TEXT NOT NULL DEFAULT '',
+  is_enabled INTEGER NOT NULL DEFAULT 1,
+  template_title TEXT,
+  trigger_type TEXT NOT NULL DEFAULT 'daily_cron',
+  schedule_config TEXT NOT NULL DEFAULT '{}',
+  last_run_at DATETIME,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  deleted_at DATETIME
+);
+
