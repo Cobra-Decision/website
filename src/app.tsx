@@ -1,6 +1,7 @@
 import type { Database } from "bun:sqlite";
 import { Hono, type Handler, type MiddlewareHandler } from "hono";
 import { setCookie } from "hono/cookie";
+import { compress } from "hono/compress";
 import { serveStatic } from "hono/bun";
 import { createAuthRoutes, createDashboardRoute, createProfileRoute } from "./modules/auth/routes";
 import { createEventsRoutes, events } from "./modules/events/routes";
@@ -9,6 +10,7 @@ import { createLandingRoutes } from "./modules/landing/routes";
 import { createAdminRoutes } from "./modules/admin/routes";
 import { createUserDashboardRoutes } from "./modules/dashboard/user/routes";
 import { createAccountRoutes } from "./modules/dashboard/account/routes";
+import { createSeoRoutes } from "./modules/seo/routes";
 
 export function createApp({
   database,
@@ -21,16 +23,29 @@ export function createApp({
 }) {
   const app = new Hono();
 
-  // Static Assets
-  app.use("/app.css", serveStatic({ root: "./public" }));
-  app.use("/favicon.svg", serveStatic({ path: "./public/favicon.svg" }));
-  app.use("/placeholder-meet.svg", serveStatic({ path: "./public/placeholder-meet.svg" }));
-  app.use("/altcha.js", serveStatic({ path: "node_modules/altcha/dist/main/altcha.min.js" }));
-  app.use("/htmx.js", serveStatic({ path: "node_modules/htmx.org/dist/htmx.min.js" }));
-  app.use("/alpine.js", serveStatic({ path: "node_modules/alpinejs/dist/cdn.min.js" }));
-  app.use("/vazirmatn.css", serveStatic({ path: "node_modules/vazirmatn/Vazirmatn-Variable-font-face.css" }));
-  app.use("/fonts/*", serveStatic({ root: "node_modules/vazirmatn" }));
+  // Gzip / Deflate Compression
+  app.use(compress());
+
+  // Static Assets with 1 Year Immutable Cache
+  const staticCacheMiddleware: MiddlewareHandler = async (c, next) => {
+    await next();
+    if (c.res.status === 200) {
+      c.res.headers.set("Cache-Control", "public, max-age=31536000, immutable");
+    }
+  };
+
+  app.use("/app.css", staticCacheMiddleware, serveStatic({ root: "./public" }));
+  app.use("/favicon.svg", staticCacheMiddleware, serveStatic({ path: "./public/favicon.svg" }));
+  app.use("/placeholder-meet.svg", staticCacheMiddleware, serveStatic({ path: "./public/placeholder-meet.svg" }));
+  app.use("/altcha.js", staticCacheMiddleware, serveStatic({ path: "node_modules/altcha/dist/main/altcha.min.js" }));
+  app.use("/htmx.js", staticCacheMiddleware, serveStatic({ path: "node_modules/htmx.org/dist/htmx.min.js" }));
+  app.use("/alpine.js", staticCacheMiddleware, serveStatic({ path: "node_modules/alpinejs/dist/cdn.min.js" }));
+  app.use("/vazirmatn.css", staticCacheMiddleware, serveStatic({ path: "node_modules/vazirmatn/Vazirmatn-Variable-font-face.css" }));
+  app.use("/fonts/*", staticCacheMiddleware, serveStatic({ root: "node_modules/vazirmatn" }));
   app.use("/uploads/*", serveStatic({ root: "./public" }));
+
+  // SEO: robots.txt & sitemap.xml
+  app.route("/", createSeoRoutes(database));
 
   // Locale Switcher Route
   app.get("/locale/:lang", (c) => {
