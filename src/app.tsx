@@ -10,6 +10,7 @@ import { createAdminRoutes } from "./modules/admin/routes";
 import { createUserDashboardRoutes } from "./modules/dashboard/user/routes";
 import { createAccountRoutes } from "./modules/dashboard/account/routes";
 import { createSeoRoutes } from "./modules/seo/routes";
+import { rateLimiter } from "./middleware/rate-limit";
 
 export function createApp({
   database,
@@ -21,6 +22,15 @@ export function createApp({
   jwtSecret?: string;
 }) {
   const app = new Hono();
+
+  // Security Headers Middleware
+  app.use("*", async (c, next) => {
+    await next();
+    c.res.headers.set("X-Content-Type-Options", "nosniff");
+    c.res.headers.set("X-Frame-Options", "SAMEORIGIN");
+    c.res.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+    c.res.headers.set("Cross-Origin-Opener-Policy", "same-origin");
+  });
 
   // Static Assets with 1 Year Immutable Cache
   const staticCacheMiddleware: MiddlewareHandler = async (c, next) => {
@@ -42,6 +52,10 @@ export function createApp({
 
   // SEO: robots.txt & sitemap.xml
   app.route("/", createSeoRoutes(database));
+
+  // Rate Limiting for Auth & Contact
+  app.use("/auth/*", rateLimiter({ windowMs: 60_000, max: 20 }));
+  app.use("/api/contact", rateLimiter({ windowMs: 60_000, max: 5 }));
 
   // Locale Switcher Route
   app.get("/locale/:lang", (c) => {
