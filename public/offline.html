@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Offline | CobraDecision</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/app.css">
+</head>
+<body class="min-h-screen bg-base-200 text-base-content flex items-center justify-center p-4">
+  <div class="card bg-base-100 max-w-md w-full shadow-xl border border-base-300 text-center p-6 space-y-4">
+    <div class="flex justify-center">
+      <img src="/favicon.svg" alt="CobraDecision" class="w-16 h-16 opacity-80" />
+    </div>
+    <h1 class="text-2xl font-bold">You are offline</h1>
+    <p class="text-base-content/70 text-sm">
+      Internet connection lost. Reconnect to load events, manage profile, or RSVP to meets.
+    </p>
+    <button onclick="window.location.reload()" class="btn btn-primary w-full">
+      Retry Connection
+    </button>
+  </div>
+</body>
+</html>

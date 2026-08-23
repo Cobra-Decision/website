@@ -43,6 +43,9 @@ export function createApp({
   app.use("/app.css", staticCacheMiddleware, serveStatic({ root: "./public" }));
   app.use("/favicon.svg", staticCacheMiddleware, serveStatic({ path: "./public/favicon.svg" }));
   app.use("/placeholder-meet.svg", staticCacheMiddleware, serveStatic({ path: "./public/placeholder-meet.svg" }));
+  app.use("/manifest.webmanifest", staticCacheMiddleware, serveStatic({ path: "./public/manifest.webmanifest" }));
+  app.use("/sw.js", serveStatic({ path: "./public/sw.js" }));
+  app.use("/offline.html", staticCacheMiddleware, serveStatic({ path: "./public/offline.html" }));
   app.use("/altcha.js", staticCacheMiddleware, serveStatic({ path: "node_modules/altcha/dist/main/altcha.min.js" }));
   app.use("/htmx.js", staticCacheMiddleware, serveStatic({ path: "node_modules/htmx.org/dist/htmx.min.js" }));
   app.use("/alpine.js", staticCacheMiddleware, serveStatic({ path: "node_modules/alpinejs/dist/cdn.min.js" }));

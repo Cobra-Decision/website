@@ -75,6 +75,14 @@ export const Layout = ({
           />
         )}
 
+        <link rel="manifest" href="/manifest.webmanifest" />
+        <meta name="theme-color" content="#121d29" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="apple-mobile-web-app-title" content="CobraDecision" />
+        <link rel="apple-touch-icon" href="/favicon.svg" />
+
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
         <link rel="preload" href="/fonts/webfonts/Vazirmatn[wght].woff2" as="font" type="font/woff2" crossorigin="anonymous" />
         <link href="/app.css" rel="stylesheet" />
@@ -82,6 +90,7 @@ export const Layout = ({
         <script src="/htmx.js" />
         <script async defer src="/altcha.js" type="module" />
         <script defer src="/alpine.js" />
+        <script dangerouslySetInnerHTML={{ __html: "if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('/sw.js');});}" }} />
         <script dangerouslySetInnerHTML={{ __html: "document.addEventListener('htmx:beforeSwap',(event)=>{const status=event.detail.xhr.status;if(status>=400&&status<500){event.detail.shouldSwap=true;event.detail.isError=false}});document.addEventListener('htmx:afterSettle',()=>document.querySelectorAll('#toast-container > div').forEach((el)=>{if(!el.dataset.toastTimer){el.dataset.toastTimer='true';setTimeout(()=>{el.classList.add('opacity-0','transition-opacity','duration-300');setTimeout(()=>el.remove(),300)},5000);}}))" }} />
       </head>
       <body class="min-h-screen bg-base-200 text-base-content antialiased">

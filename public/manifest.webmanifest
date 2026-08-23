@@ -1,0 +1,17 @@
+{
+  "name": "CobraDecision",
+  "short_name": "CobraDecision",
+  "description": "Tech sessions, community meets, and interactive developer workshops.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#121d29",
+  "theme_color": "#121d29",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
