@@ -31,11 +31,13 @@ export const UnifiedMeetCard = ({
   locale = "en",
   variant = "carousel",
   actionSlot,
+  imagePriority = false,
 }: {
   meet: MeetWithDetails;
   locale?: Locale;
   variant?: "carousel" | "grid" | "featured";
   actionSlot?: any;
+  imagePriority?: boolean;
 }) => {
   const formattedDate = formatLocalizedDate(meet.scheduled_date, locale);
   const formattedTime = formatLocalizedTime(meet.scheduled_time, locale);
@@ -67,7 +69,8 @@ export const UnifiedMeetCard = ({
           class="relative z-10 h-full w-full object-contain transition duration-500 group-hover:scale-105"
           src={meet.image_url ?? "/placeholder-meet.svg"}
           alt={meet.title}
-          loading="lazy"
+          loading={imagePriority || isFeatured ? "eager" : "lazy"}
+          {...(imagePriority || isFeatured ? { fetchpriority: "high" } : {})}
         />
         <div class="badge absolute start-3 top-3 border-0 bg-base-100/90 text-xs font-medium text-base-content backdrop-blur-sm z-10">
           {isFeatured ? `${t("hero.up_next", locale)} · ${formattedDate}` : formattedDate}

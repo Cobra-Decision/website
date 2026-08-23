@@ -41,9 +41,9 @@ export function createEventsRoutes(database: Database, jwtSecret = process.env.J
       "@context": "https://schema.org",
       "@type": "Event",
       name: meet.title,
-      description: meet.description || meet.summary || meet.title,
+      description: meet.description || meet.title,
       startDate: `${meet.scheduled_date}T${meet.scheduled_time}:00Z`,
-      eventStatus: meet.status === "cancelled" ? "https://schema.org/EventCancelled" : "https://schema.org/EventScheduled",
+      eventStatus: meet.status === "completed" ? "https://schema.org/EventMovedOnline" : "https://schema.org/EventScheduled",
       eventAttendanceMode: "https://schema.org/OnlineEventAttendanceMode",
       location: {
         "@type": "VirtualLocation",
@@ -59,9 +59,9 @@ export function createEventsRoutes(database: Database, jwtSecret = process.env.J
     return c.html(
       <Document
         title={meet.title}
-        description={meet.summary || meet.description || meet.title}
+        description={meet.description || meet.title}
         canonicalUrl={`${origin}/meets/${meet.id}`}
-        ogImage={meet.cover_image_url || "/favicon.svg"}
+        ogImage={meet.image_url || "/favicon.svg"}
         ogType="article"
         locale={locale}
         jsonLd={jsonLd}

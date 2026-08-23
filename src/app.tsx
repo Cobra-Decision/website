@@ -38,7 +38,7 @@ export function createApp({
   app.use("/alpine.js", staticCacheMiddleware, serveStatic({ path: "node_modules/alpinejs/dist/cdn.min.js" }));
   app.use("/vazirmatn.css", staticCacheMiddleware, serveStatic({ path: "node_modules/vazirmatn/Vazirmatn-Variable-font-face.css" }));
   app.use("/fonts/*", staticCacheMiddleware, serveStatic({ root: "node_modules/vazirmatn" }));
-  app.use("/uploads/*", serveStatic({ root: "./public" }));
+  app.use("/uploads/*", staticCacheMiddleware, serveStatic({ root: "./public" }));
 
   // SEO: robots.txt & sitemap.xml
   app.route("/", createSeoRoutes(database));
