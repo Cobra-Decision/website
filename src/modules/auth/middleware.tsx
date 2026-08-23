@@ -88,6 +88,19 @@ export function createPermissionChecker(db: Database) {
 
 const canAccess = createPermissionChecker(database);
 
+export const authGuard = (jwtSecret = process.env.JWT_SECRET ?? "development-secret") =>
+  async (c: Context, next: Next) => {
+    const token = getCookie(c, "session");
+    if (!token) return c.redirect("/auth");
+    try {
+      const claims = (await verify(token, jwtSecret, "HS256")) as unknown as Claims;
+      c.set("auth", claims);
+      return next();
+    } catch {
+      return c.redirect("/auth");
+    }
+  };
+
 export const requirePermission = (jwtSecret = process.env.JWT_SECRET ?? "development-secret") =>
   async (c: Context, next: Next) => {
     const token = getCookie(c, "session");

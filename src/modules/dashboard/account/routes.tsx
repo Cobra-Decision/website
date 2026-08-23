@@ -1,27 +1,13 @@
 import type { Database } from "bun:sqlite";
-import { Hono, type Context, type Next } from "hono";
-import { getCookie } from "hono/cookie";
-import { verify } from "hono/jwt";
+import { Hono } from "hono";
 import { Document } from "../../../ui/layout";
 import { FormMessage } from "../../../ui/form-message";
 import { refreshLandingCache } from "../../../lib/cache";
-import type { Claims } from "../../auth/middleware";
+import { authGuard, type Claims } from "../../auth/middleware";
 import type { Profile } from "../../auth/views";
 import { getAllTags, getUserPreferredTags, setUserPreferredTags } from "../../events/queries";
 import { getLocale } from "../../../lib/i18n/context";
 import { AccountPage } from "./views";
-
-const authGuard = (jwtSecret: string) => async (c: Context, next: Next) => {
-  const token = getCookie(c, "session");
-  if (!token) return c.redirect("/auth");
-  try {
-    const claims = (await verify(token, jwtSecret, "HS256")) as unknown as Claims;
-    c.set("auth", claims);
-    return next();
-  } catch {
-    return c.redirect("/auth");
-  }
-};
 
 export function createAccountRoutes(database: Database, jwtSecret = process.env.JWT_SECRET ?? "development-secret") {
   const app = new Hono<{ Variables: { auth: Claims } }>();
@@ -76,7 +62,7 @@ export function createAccountRoutes(database: Database, jwtSecret = process.env.
     const password = String(Array.isArray(body.password) ? body.password[0] : (body.password ?? ""));
     const passwordConfirmation = String(Array.isArray(body.password_confirmation) ? body.password_confirmation[0] : (body.password_confirmation ?? ""));
 
-    if (!email || !email.includes("@")) {
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return c.html(<FormMessage message="A valid email is required." />, 400);
     }
 

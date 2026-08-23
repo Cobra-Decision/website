@@ -1,25 +1,11 @@
 import type { Database } from "bun:sqlite";
-import { Hono, type Context, type Next } from "hono";
-import { getCookie } from "hono/cookie";
-import { verify } from "hono/jwt";
-import type { Claims } from "../../auth/middleware";
+import { Hono, type Context } from "hono";
+import { authGuard, type Claims } from "../../auth/middleware";
 import type { Profile } from "../../auth/views";
 import type { Tag } from "../../events/types";
 import { filterMeets } from "../../events/queries";
 import { UserDashboard, MeetsGrid } from "./views";
 import { getLocale } from "../../../lib/i18n/context";
-
-const authGuard = (jwtSecret: string) => async (c: Context, next: Next) => {
-  const token = getCookie(c, "session");
-  if (!token) return c.redirect("/auth");
-  try {
-    const claims = (await verify(token, jwtSecret, "HS256")) as unknown as Claims;
-    c.set("auth", claims);
-    return next();
-  } catch {
-    return c.redirect("/auth");
-  }
-};
 
 export function createUserDashboardRoutes(database: Database, jwtSecret = process.env.JWT_SECRET ?? "development-secret") {
   const app = new Hono<{ Variables: { auth: Claims } }>();
