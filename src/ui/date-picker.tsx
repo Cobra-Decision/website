@@ -489,10 +489,10 @@ export function DatePicker({
                   type="button"
                   {...({
                     "x-on:click": "selectDate(day)",
-                    ":class": "isSelected(day) ? 'btn-primary text-primary-content font-bold' : 'hover:bg-base-200 text-base-content'",
+                    ":class": "isSelected(day) ? 'btn-primary text-primary-content selected-item shadow font-bold' : 'btn-ghost hover:bg-base-200 text-base-content font-medium'",
                     "x-text": "toPersian(day)",
                   } as any)}
-                  class="btn btn-ghost btn-xs h-8 w-8 p-0 rounded-lg text-xs flex items-center justify-center transition-colors mx-auto font-vazir"
+                  class="btn btn-xs h-8 w-8 p-0 rounded-lg text-xs flex items-center justify-center transition-colors mx-auto font-vazir"
                 ></button>
               </template>
             </div>
