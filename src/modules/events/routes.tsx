@@ -32,12 +32,40 @@ export function createEventsRoutes(database: Database, jwtSecret = process.env.J
     if (!meet) return c.notFound();
 
     const locale = getLocale(c);
+    const origin = new URL("/", c.req.url).origin;
     const user = await getSessionUser(getCookie(c, "session"));
     const isAuthenticated = Boolean(user);
     const isAttending = Boolean(user && meet.attendee_ids.includes(user.sub));
 
+    const jsonLd = {
+      "@context": "https://schema.org",
+      "@type": "Event",
+      name: meet.title,
+      description: meet.description || meet.summary || meet.title,
+      startDate: `${meet.scheduled_date}T${meet.scheduled_time}:00Z`,
+      eventStatus: meet.status === "cancelled" ? "https://schema.org/EventCancelled" : "https://schema.org/EventScheduled",
+      eventAttendanceMode: "https://schema.org/OnlineEventAttendanceMode",
+      location: {
+        "@type": "VirtualLocation",
+        url: `${origin}/meets/${meet.id}`,
+      },
+      organizer: {
+        "@type": "Organization",
+        name: "CobraDecision",
+        url: origin,
+      },
+    };
+
     return c.html(
-      <Document title={`${meet.title} | CobraDecision`} locale={locale}>
+      <Document
+        title={meet.title}
+        description={meet.summary || meet.description || meet.title}
+        canonicalUrl={`${origin}/meets/${meet.id}`}
+        ogImage={meet.cover_image_url || "/favicon.svg"}
+        ogType="article"
+        locale={locale}
+        jsonLd={jsonLd}
+      >
         <MeetingDetailPage meet={meet} isAuthenticated={isAuthenticated} isAttending={isAttending} locale={locale} />
       </Document>
     );

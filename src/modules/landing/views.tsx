@@ -19,7 +19,7 @@ export const Landing = ({ data, locale = "en" }: { data: LandingCache; locale?: 
         <nav class="navbar mx-auto min-h-20 max-w-7xl px-5 sm:px-8">
           <div class="flex-1">
             <a class="inline-flex items-center gap-3 text-xl font-bold tracking-tight" href="/">
-              <img src="/favicon.svg" alt="CobraDecision" class="h-8 w-auto" />
+              <img src="/favicon.svg" alt="CobraDecision" width="32" height="32" class="h-8 w-8" />
               <span>{t("brand.name", locale)}<span class="text-primary">.</span></span>
             </a>
           </div>
@@ -151,7 +151,7 @@ export const Landing = ({ data, locale = "en" }: { data: LandingCache; locale?: 
         <div class="mx-auto grid max-w-7xl gap-12 px-5 py-16 sm:px-8 lg:grid-cols-[1fr_auto_1.2fr]">
           <div>
             <a class="inline-flex items-center gap-3 text-2xl font-bold" href="/">
-              <img src="/favicon.svg" alt="CobraDecision" class="h-9 w-auto" />
+              <img src="/favicon.svg" alt="CobraDecision" width="36" height="36" class="h-9 w-9" />
               <span>{t("brand.name", locale)}<span class="text-primary">.</span></span>
             </a>
             <p class="mt-4 max-w-xs leading-7 text-neutral-content/65">
