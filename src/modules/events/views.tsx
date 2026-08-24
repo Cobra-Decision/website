@@ -234,9 +234,6 @@ export const MeetingDetailPage = ({
             <a class="btn btn-ghost btn-xs sm:btn-sm px-2 sm:px-3" href="/dashboard/user/meets">
               {t("nav.dashboard", locale)}
             </a>
-            <a class="btn btn-ghost btn-xs sm:btn-sm px-2 sm:px-3" href="/#meets">
-              {t("nav.back_to_meets", locale)}
-            </a>
           </div>
         </nav>
       </header>
