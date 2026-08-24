@@ -82,7 +82,13 @@ export function createTelegramRoutes(
                       document.body.innerHTML = html;
                       if (window.htmx) window.htmx.process(document.body);
                     } else {
-                      window.location.href = "/dashboard/user";
+                      const startParam = tg?.initDataUnsafe?.start_param || "";
+                      if (startParam.startsWith("meet_")) {
+                        const meetId = startParam.slice(5);
+                        window.location.href = "/meets/" + encodeURIComponent(meetId) + "?platform=telegram";
+                      } else {
+                        window.location.href = "/dashboard/user";
+                      }
                     }
                   } else {
                     const err = await res.text();
@@ -122,6 +128,13 @@ export function createTelegramRoutes(
     }
 
     const tgId = String(validated.user.id);
+    const startParam = validated.raw?.start_param || "";
+    let redirectUrl = "/dashboard/user";
+    if (startParam.startsWith("meet_")) {
+      const meetId = startParam.slice(5);
+      redirectUrl = `/meets/${encodeURIComponent(meetId)}?platform=telegram`;
+    }
+
     const existingUser = database
       .query<{ id: string; username: string | null; email: string; role_title: string; role_id: string }, [string]>(
         `SELECT u.id, u.username, u.email, r.title role_title, u.role_id
@@ -148,9 +161,9 @@ export function createTelegramRoutes(
       setCookie(c, "session", token, cookieOptions);
       logger.auth("TELEGRAM_AUTO_LOGIN_SUCCESS", {
         actor: { userId: existingUser.id, email: existingUser.email, role: existingUser.role_title },
-        data: { telegramId: tgId },
+        data: { telegramId: tgId, redirectUrl },
       });
-      return c.redirect("/dashboard/user");
+      return c.redirect(redirectUrl);
     }
 
     // User is NOT linked -> Redirect to standard /auth page with tg_link_id cookie/session
