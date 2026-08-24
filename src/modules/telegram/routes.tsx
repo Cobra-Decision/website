@@ -11,10 +11,12 @@ import { logger } from "../../lib/logger";
 import { validateTelegramInitData } from "./crypto";
 
 const sessionDuration = 60 * 60 * 8;
+const isProd = process.env.NODE_ENV === "production";
 const cookieOptions = {
   httpOnly: true,
-  secure: process.env.NODE_ENV === "production",
-  sameSite: "Lax" as const,
+  secure: isProd,
+  // Inside Telegram Web iframes (web.telegram.org), cookies must be SameSite=None + Secure (or Lax in non-https dev)
+  sameSite: (isProd ? "None" : "Lax") as "None" | "Lax",
   path: "/",
   maxAge: sessionDuration,
 };
@@ -154,8 +156,8 @@ export function createTelegramRoutes(
     // User is NOT linked -> Redirect to standard /auth page with tg_link_id cookie/session
     setCookie(c, "tg_link_id", tgId, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "Lax",
+      secure: isProd,
+      sameSite: isProd ? "None" : "Lax",
       path: "/",
       maxAge: 600, // 10 minutes
     });
