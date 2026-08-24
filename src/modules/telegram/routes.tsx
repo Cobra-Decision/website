@@ -9,7 +9,6 @@ import { getAllTags, setUserPreferredTags } from "../events/queries";
 import { mailService } from "../mailer/service";
 import { logger } from "../../lib/logger";
 import { validateTelegramInitData } from "./crypto";
-import { TelegramConnectView, TelegramOtpForm } from "./views";
 
 const sessionDuration = 60 * 60 * 8;
 const cookieOptions = {
@@ -141,186 +140,16 @@ export function createTelegramRoutes(
       return c.redirect("/dashboard/user");
     }
 
-    // User is NOT linked -> Return connect & onboarding view
-    const tags = getAllTags(database);
-    const name = [validated.user.first_name, validated.user.last_name].filter(Boolean).join(" ");
-    return c.html(
-      <TelegramConnectView
-        telegramId={tgId}
-        telegramUsername={validated.user.username}
-        telegramName={name || "Telegram User"}
-        tags={tags}
-      />
-    );
-  });
-
-  /**
-   * Link existing CobraDecision account with Telegram ID
-   */
-  app.post("/link-account", async (c) => {
-    const body = await c.req.parseBody();
-    const identifier = String(body.identifier ?? "").trim().toLowerCase();
-    const password = String(body.password ?? "");
-    const telegramId = String(body.telegram_id ?? "").trim();
-
-    if (!telegramId) return c.html(<FormMessage message="Missing Telegram ID." />, 400);
-
-    const user = database
-      .query<{ id: string; username: string | null; email: string; password_hash: string; role_title: string; role_id: string }, [string, string, string]>(
-        `SELECT u.id, u.username, u.email, u.password_hash, r.title role_title, u.role_id
-         FROM users u JOIN roles r ON r.id = u.role_id
-         WHERE (LOWER(u.email) = ? OR LOWER(u.username) = ? OR u.phone = ?)
-           AND u.deleted_at IS NULL AND r.deleted_at IS NULL`
-      )
-      .get(identifier, identifier, identifier);
-
-    if (!user || !(await Bun.password.verify(password, user.password_hash))) {
-      return c.html(<FormMessage message="Invalid email/username or password." />, 401);
-    }
-
-    // Save telegram_id
-    database.run("UPDATE users SET telegram_id = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?", [telegramId, user.id]);
-
-    const now = Math.floor(Date.now() / 1000);
-    const token = await sign(
-      { sub: user.id, username: user.username ?? user.email, role_title: user.role_title, role_id: user.role_id, iat: now, exp: now + sessionDuration },
-      jwtSecret,
-      "HS256"
-    );
-    setCookie(c, "session", token, cookieOptions);
-
-    logger.auth("TELEGRAM_ACCOUNT_LINKED", {
-      actor: { userId: user.id, email: user.email, role: user.role_title },
-      data: { telegramId },
+    // User is NOT linked -> Redirect to standard /auth page with tg_link_id cookie/session
+    setCookie(c, "tg_link_id", tgId, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "Lax",
+      path: "/",
+      maxAge: 600, // 10 minutes
     });
 
-    c.header("HX-Redirect", "/dashboard/user");
-    return c.body(null);
-  });
-
-  /**
-   * Send OTP for quick register inside Telegram Mini App
-   */
-  app.post("/register-otp", async (c) => {
-    const body = await c.req.parseBody({ all: true });
-    const email = String(body.email ?? "").trim().toLowerCase();
-    const telegramId = String(body.telegram_id ?? "").trim();
-    const telegramName = String(body.telegram_name ?? "").trim();
-    const telegramUsername = String(body.telegram_username ?? "").trim() || null;
-
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !telegramId) {
-      return c.html(<FormMessage message="Valid email address is required." />, 400);
-    }
-
-    // Extract tags
-    let tagIds: string[] = [];
-    if (Array.isArray(body.tagIds)) tagIds = body.tagIds.map(String);
-    else if (typeof body.tagIds === "string" && body.tagIds.trim()) tagIds = [body.tagIds.trim()];
-
-    if (tagIds.length < 3) {
-      return c.html(<FormMessage message="Please select at least 3 topics of interest." />, 400);
-    }
-
-    // Check if email or telegram_id already taken
-    const existing = database
-      .query<{ id: string }, [string, string]>(
-        "SELECT id FROM users WHERE (LOWER(email) = ? OR telegram_id = ?) AND deleted_at IS NULL"
-      )
-      .get(email, telegramId);
-
-    if (existing) {
-      return c.html(<FormMessage message="This email or Telegram account is already in use." />, 409);
-    }
-
-    const otpCode = String(Math.floor(100000 + Math.random() * 900000));
-    const expiresAt = Date.now() + 10 * 60 * 1000;
-
-    const payload = {
-      email,
-      telegramId,
-      telegramName,
-      telegramUsername,
-      tagIds,
-    };
-
-    database.run(
-      "INSERT OR REPLACE INTO registration_otps (email, otp_code, payload, expires_at) VALUES (?, ?, ?, ?)",
-      [email, otpCode, JSON.stringify(payload), expiresAt]
-    );
-
-    await mailService.sendOtpEmail(email, otpCode);
-
-    return c.html(<TelegramOtpForm email={email} telegramId={telegramId} />);
-  });
-
-  /**
-   * Verify OTP and complete registration
-   */
-  app.post("/verify-otp", async (c) => {
-    const body = await c.req.parseBody();
-    const email = String(body.email ?? "").trim().toLowerCase();
-    const otp = String(body.otp ?? "").trim();
-
-    const record = database
-      .query<{ email: string; otp_code: string; payload: string; expires_at: number }, [string]>(
-        "SELECT email, otp_code, payload, expires_at FROM registration_otps WHERE email = ?"
-      )
-      .get(email);
-
-    if (!record || record.otp_code !== otp || Date.now() > record.expires_at) {
-      return c.html(<FormMessage message="Invalid or expired verification code." />, 400);
-    }
-
-    const role = database.query<{ id: string }, []>("SELECT id FROM roles WHERE title = 'member' AND deleted_at IS NULL").get();
-    if (!role) return c.html(<FormMessage message="Registration unavailable." />, 500);
-
-    try {
-      const payload = JSON.parse(record.payload);
-      const userId = generateId();
-      const randomPassword = generateId() + generateId(); // Random initial password hash
-
-      const nameParts = (payload.telegramName || "User").split(" ");
-      const firstName = nameParts[0] || null;
-      const lastName = nameParts.slice(1).join(" ") || null;
-
-      database.transaction(() => {
-        database.run(
-          `INSERT INTO users (id, username, email, password_hash, first_name, last_name, telegram_id, role_id)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-          [
-            userId,
-            payload.telegramUsername,
-            payload.email,
-            Bun.password.hashSync(randomPassword),
-            firstName,
-            lastName,
-            payload.telegramId,
-            role.id,
-          ]
-        );
-        setUserPreferredTags(database, userId, payload.tagIds || []);
-        database.run("DELETE FROM registration_otps WHERE email = ?", [email]);
-      })();
-
-      // Sign user session
-      const now = Math.floor(Date.now() / 1000);
-      const token = await sign(
-        { sub: userId, username: payload.telegramUsername ?? payload.email, role_title: "member", role_id: role.id, iat: now, exp: now + sessionDuration },
-        jwtSecret,
-        "HS256"
-      );
-      setCookie(c, "session", token, cookieOptions);
-
-      logger.auth("TELEGRAM_REGISTER_SUCCESS", {
-        actor: { userId, email: payload.email, role: "member" },
-        data: { telegramId: payload.telegramId },
-      });
-
-      c.header("HX-Redirect", "/dashboard/user");
-      return c.body(null);
-    } catch (err) {
-      return c.html(<FormMessage message="Failed to complete registration." />, 409);
-    }
+    return c.redirect("/auth");
   });
 
   return app;

@@ -101,6 +101,12 @@ export function createAuthRoutes(database: Database, captcha: Captcha, jwtSecret
         });
         return c.html(<FormMessage message="Invalid credentials." />, 401);
       }
+      const tgLinkId = getCookie(c, "tg_link_id");
+      if (tgLinkId) {
+        database.run("UPDATE users SET telegram_id = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?", [tgLinkId, user.id]);
+        deleteCookie(c, "tg_link_id", cookieOptions);
+      }
+
       const now = Math.floor(Date.now() / 1000);
       const token = await sign(
         { sub: user.id, username: user.username ?? user.email, role_title: user.role_title, role_id: user.role_id, iat: now, exp: now + sessionDuration },
@@ -212,16 +218,18 @@ export function createAuthRoutes(database: Database, captcha: Captcha, jwtSecret
       try {
         const input = JSON.parse(record.payload);
         const userId = generateId();
+        const tgLinkId = getCookie(c, "tg_link_id");
 
         database.transaction(() => {
           database.run(
-            `INSERT INTO users (id, username, email, phone, password_hash, first_name, last_name, role_id)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-            [userId, input.username, input.email, input.phone, Bun.password.hashSync(input.password), input.firstName, input.lastName, role.id]
+            `INSERT INTO users (id, username, email, phone, password_hash, first_name, last_name, telegram_id, role_id)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [userId, input.username, input.email, input.phone, Bun.password.hashSync(input.password), input.firstName, input.lastName, tgLinkId || null, role.id]
           );
           setUserPreferredTags(database, userId, input.tagIds);
           database.run("DELETE FROM registration_otps WHERE email = ?", [email]);
         })();
+        if (tgLinkId) deleteCookie(c, "tg_link_id", cookieOptions);
 
         refreshLandingCache(database);
         logger.auth("AUTH_REGISTER_SUCCESS", {
