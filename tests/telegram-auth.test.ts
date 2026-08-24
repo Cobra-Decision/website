@@ -37,7 +37,7 @@ describe("Telegram Mini App Integration & Auth Routes", () => {
     return `user=${encodeURIComponent(userJson)}&auth_date=${authDate}&hash=${hash}`;
   }
 
-  it("should return connect screen when telegram user is unlinked", async () => {
+  it("should redirect to standard /auth when telegram user is unlinked", async () => {
     const db = new Database(":memory:");
     await runMigrations(db);
     await seedRoles(db);
@@ -52,10 +52,9 @@ describe("Telegram Mini App Integration & Auth Routes", () => {
       body: JSON.stringify({ initData }),
     });
 
-    expect(res.status).toBe(200);
-    const html = await res.text();
-    expect(html).toContain("Connect CobraDecision");
-    expect(html).toContain("Bob");
+    expect(res.status).toBe(302);
+    expect(res.headers.get("location")).toBe("/auth");
+    expect(res.headers.get("set-cookie")).toContain("tg_link_id=999000111");
   });
 
   it("should auto-login returning user with telegram_id", async () => {
@@ -84,7 +83,7 @@ describe("Telegram Mini App Integration & Auth Routes", () => {
     expect(res.headers.get("set-cookie")).toContain("session=");
   });
 
-  it("should link existing web user by password", async () => {
+  it("should link existing web user by login when tg_link_id cookie is present", async () => {
     const db = new Database(":memory:");
     await runMigrations(db);
     await seedRoles(db);
@@ -96,14 +95,22 @@ describe("Telegram Mini App Integration & Auth Routes", () => {
       [memberRole.id]
     );
 
-    const app = createTelegramRoutes(db, jwtSecret, botToken);
+    const { createAuthRoutes } = await import("../src/modules/auth/routes");
+    const fakeCaptcha = {
+      middleware: async (_c: any, next: any) => await next(),
+      challengeHandler: async (c: any) => c.json({}),
+    };
+    const authApp = createAuthRoutes(db, fakeCaptcha as any, jwtSecret);
+
     const body = new FormData();
     body.append("identifier", "web@example.com");
     body.append("password", "Secret123!");
-    body.append("telegram_id", "444333222");
 
-    const res = await app.request("/link-account", {
+    const res = await authApp.request("/login", {
       method: "POST",
+      headers: {
+        Cookie: "tg_link_id=444333222",
+      },
       body,
     });
 
@@ -111,7 +118,7 @@ describe("Telegram Mini App Integration & Auth Routes", () => {
     expect(res.headers.get("hx-redirect")).toBe("/dashboard/user");
     expect(res.headers.get("set-cookie")).toContain("session=");
 
-    // Verify DB updated
+    // Verify DB updated with telegram_id
     const user = db.query<{ telegram_id: string }, []>("SELECT telegram_id FROM users WHERE id = 'u-2'").get();
     expect(user?.telegram_id).toBe("444333222");
   });
