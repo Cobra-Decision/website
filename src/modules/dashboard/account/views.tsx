@@ -21,9 +21,8 @@ export function TelegramConnectionCard({
       <div class="card-body p-6 sm:p-8 space-y-4">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div class="space-y-1">
-            <h2 class="text-xl font-bold flex items-center gap-2">
-              <span>✈️</span>
-              <span>{t("account.telegram_title", locale)}</span>
+            <h2 class="text-xl font-bold">
+              {t("account.telegram_title", locale)}
             </h2>
             <p class="text-xs text-base-content/70">
               {isConnected
@@ -59,9 +58,8 @@ export function TelegramConnectionCard({
         {/* Telegram Connect Instructions Modal */}
         <dialog id="modal-telegram-instructions" class="modal modal-bottom sm:modal-middle">
           <div class="modal-box p-6 space-y-4">
-            <h3 class="font-bold text-lg text-primary flex items-center gap-2">
-              <span>✈️</span>
-              <span>{t("account.telegram_dialog_title", locale)}</span>
+            <h3 class="font-bold text-lg text-primary">
+              {t("account.telegram_dialog_title", locale)}
             </h3>
             <div class="space-y-2 text-sm text-base-content/80 bg-base-200/60 p-4 rounded-xl border border-base-300">
               <p>{t("account.telegram_step1", locale)}</p>
@@ -178,6 +176,19 @@ export function AccountPage({
 
                 <label class="form-control w-full">
                   <span class="label-text font-medium text-xs">
+                    {rtl ? "نام کاربری" : "Username"}
+                  </span>
+                  <input
+                    type="text"
+                    name="username"
+                    value={user.username ?? ""}
+                    placeholder="username"
+                    class="input input-bordered input-sm sm:input-md w-full"
+                  />
+                </label>
+
+                <label class="form-control w-full">
+                  <span class="label-text font-medium text-xs">
                     {rtl ? "آدرس ایمیل" : "Email Address"}
                   </span>
                   <input
@@ -186,19 +197,6 @@ export function AccountPage({
                     required
                     value={user.email}
                     placeholder="name@example.com"
-                    class="input input-bordered input-sm sm:input-md w-full"
-                  />
-                </label>
-
-                <label class="form-control w-full">
-                  <span class="label-text font-medium text-xs">
-                    {rtl ? "نام کاربری" : "Username"}
-                  </span>
-                  <input
-                    type="text"
-                    name="username"
-                    value={user.username ?? ""}
-                    placeholder="username"
                     class="input input-bordered input-sm sm:input-md w-full"
                   />
                 </label>
@@ -298,7 +296,7 @@ export function AccountPage({
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div class="space-y-1">
                 <h3 class="font-bold text-base text-error">
-                  {t("account.danger_zone", locale)} · {t("account.delete_account_title", locale)}
+                  {t("account.delete_account_title", locale)}
                 </h3>
                 <p class="text-xs text-base-content/70">
                   {t("account.delete_account_desc", locale)}
