@@ -7,6 +7,7 @@ import { createEventsRoutes, events } from "./modules/events/routes";
 import { mailer } from "./modules/mailer/routes";
 import { createLandingRoutes } from "./modules/landing/routes";
 import { createAdminRoutes } from "./modules/admin/routes";
+import { createTelegramRoutes } from "./modules/telegram/routes";
 import { createUserDashboardRoutes } from "./modules/dashboard/user/routes";
 import { createAccountRoutes } from "./modules/dashboard/account/routes";
 import { createSeoRoutes } from "./modules/seo/routes";
@@ -74,6 +75,9 @@ export function createApp({
 
   // Auth Routes
   app.route("/auth", createAuthRoutes(database, captcha, jwtSecret));
+
+  // Telegram Mini App Routes
+  app.route("/tg", createTelegramRoutes(database, jwtSecret));
 
   // Dashboard Routes
   app.route("/dashboard/user", createUserDashboardRoutes(database, jwtSecret));
