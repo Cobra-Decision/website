@@ -166,7 +166,7 @@ export function createTelegramRoutes(
       return c.redirect(redirectUrl);
     }
 
-    // User is NOT linked -> Redirect to standard /auth page with tg_link_id cookie/session
+    // User is NOT linked -> Save tg_link_id cookie for later linking
     setCookie(c, "tg_link_id", tgId, {
       httpOnly: true,
       secure: isProd,
@@ -174,6 +174,11 @@ export function createTelegramRoutes(
       path: "/",
       maxAge: 600, // 10 minutes
     });
+
+    // If a specific meet was requested, redirect directly to it as guest; otherwise go to /auth
+    if (startParam.startsWith("meet_")) {
+      return c.redirect(redirectUrl);
+    }
 
     return c.redirect("/auth");
   });
