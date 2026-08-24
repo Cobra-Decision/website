@@ -52,8 +52,8 @@ export const TagSelector = ({
         }
       }`}
     >
-      <div class="flex items-center justify-between">
-        <div>
+      <div class="flex items-start justify-between gap-3">
+        <div class="min-w-0 flex-1">
           <span class="label-text font-semibold text-sm text-base-content block">
             {title ?? defaultTitle}
             {minRequired > 0 && <span class="text-error ms-1">*</span>}
@@ -64,7 +64,7 @@ export const TagSelector = ({
         </div>
         {minRequired > 0 && (
           <span
-            class="badge badge-sm font-medium transition-colors"
+            class="badge badge-sm font-medium transition-colors shrink-0 whitespace-nowrap"
             x-bind:class="isValid ? 'badge-success text-success-content' : 'badge-warning text-warning-content'"
           >
             <span x-text="count">{selectedTagIds.length}</span> / {minRequired}
