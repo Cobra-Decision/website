@@ -51,8 +51,17 @@ export function createTelegramRoutes(
                   tg.ready();
                   tg.expand();
                 }
-                const hashParams = new URLSearchParams(window.location.hash.slice(1));
-                const initData = tg?.initData || hashParams.get("tgWebAppData") || "";
+                const rawHash = window.location.hash.slice(1);
+                const hashParams = new URLSearchParams(rawHash);
+                let initData = tg?.initData || "";
+                if (!initData && hashParams.has("tgWebAppData")) {
+                  const paramVal = hashParams.get("tgWebAppData") || "";
+                  try {
+                    initData = paramVal.includes("hash=") ? paramVal : decodeURIComponent(paramVal);
+                  } catch {
+                    initData = paramVal;
+                  }
+                }
                 if (!initData) {
                   document.getElementById("tg-loader").innerHTML = '<div class="alert alert-warning max-w-sm mx-auto">Please open this page inside Telegram.</div>';
                   return;
@@ -60,7 +69,8 @@ export function createTelegramRoutes(
                 fetch("/tg/auth", {
                   method: "POST",
                   headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ initData })
+                  body: JSON.stringify({ initData }),
+                  redirect: "follow"
                 }).then(async (res) => {
                   if (res.redirected) {
                     window.location.href = res.url;
