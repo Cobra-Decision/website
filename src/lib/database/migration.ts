@@ -229,6 +229,25 @@ export const migrations: MigrationStep[] = [
       }
     },
   },
+  {
+    version: 6,
+    name: "006_add_telegram_to_users",
+    up: (db: Database) => {
+      const columns = db.query<{ name: string }, []>("PRAGMA table_info(users)").all();
+      if (!columns.some((c) => c.name === "telegram_id")) {
+        db.run("ALTER TABLE users ADD COLUMN telegram_id TEXT;");
+        db.run("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_telegram_id ON users(telegram_id);");
+      }
+      db.run(`
+        CREATE TABLE IF NOT EXISTS telegram_link_tokens (
+          token TEXT PRIMARY KEY,
+          user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          expires_at INTEGER NOT NULL,
+          created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+        );
+      `);
+    },
+  },
 ];
 
 export function ensureMigrationTable(db: Database) {
