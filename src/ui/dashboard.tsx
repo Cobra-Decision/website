@@ -1,7 +1,7 @@
 import type { Locale } from "../lib/i18n/translations";
 import { t, isRtl } from "../lib/i18n/context";
 import { LanguageSwitch } from "./language-switch";
-import { MenuIcon, CopyIcon, CheckIcon } from "./icons";
+import { MenuIcon, CopyIcon, CheckIcon, LinkIcon } from "./icons";
 
 export type DashboardUser = {
   name: string;
@@ -150,24 +150,28 @@ export const MeetingLinkGenerator = ({
       </div>
 
       {/* Telegram Mini App Direct Link */}
-      <div class="p-3 bg-base-100 rounded-lg border border-primary/20 space-y-2">
+      <div class="p-3 bg-base-100 rounded-lg border border-base-300 space-y-2">
         <div class="flex items-center justify-between">
-          <span class="label-text font-bold text-xs flex items-center gap-1.5 text-primary">
-            🚀 Telegram Mini App Direct Link
-          </span>
-          <span class="text-[10px] text-base-content/60">Opens directly in Telegram</span>
+          <label for={`tg-direct-url-${meetId}`} class="label-text font-semibold text-xs flex items-center gap-1.5 text-base-content">
+            <LinkIcon class="h-3.5 w-3.5 text-primary" />
+            Telegram Mini App Direct Link
+          </label>
+          <span class="text-[11px] text-base-content/60">Opens directly in Telegram</span>
         </div>
         <div class="flex gap-2">
           <input
             id={`tg-direct-url-${meetId}`}
             type="text"
             readonly
+            dir="ltr"
+            aria-label="Telegram Mini App direct link"
             class="input input-bordered input-sm w-full font-mono text-xs bg-base-200/50 text-base-content select-all"
             value={tgDirectLink}
           />
           <button
             type="button"
             class="btn btn-primary btn-sm gap-1 shrink-0"
+            aria-label="Copy Telegram Mini App direct link"
             onclick={`
               const text = '${tgDirectLink}';
               const doCopy = (val) => {
@@ -236,6 +240,8 @@ export const MeetingLinkGenerator = ({
               id={`attributed-url-${meetId}`}
               type="text"
               readonly
+              dir="ltr"
+              aria-label="Generated attributed web URL"
               class="input input-bordered input-sm w-full font-mono text-xs bg-base-100 text-base-content select-all"
               value={`/meets/${meetId}?platform=telegram`}
             />
@@ -256,6 +262,7 @@ export const MeetingLinkGenerator = ({
           <button
             type="button"
             class="btn btn-outline btn-sm gap-1.5"
+            aria-label="Copy web link"
             onclick={`
               const select = document.getElementById('platform-select-${meetId}');
               const platform = select ? select.value : 'telegram';
