@@ -51,7 +51,8 @@ export function createTelegramRoutes(
                   tg.ready();
                   tg.expand();
                 }
-                const initData = tg?.initData || "";
+                const hashParams = new URLSearchParams(window.location.hash.slice(1));
+                const initData = tg?.initData || hashParams.get("tgWebAppData") || "";
                 if (!initData) {
                   document.getElementById("tg-loader").innerHTML = '<div class="alert alert-warning max-w-sm mx-auto">Please open this page inside Telegram.</div>';
                   return;
