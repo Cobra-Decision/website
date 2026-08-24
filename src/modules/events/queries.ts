@@ -81,6 +81,7 @@ export function filterMeets(database: Database, params: {
   tagId?: string;
   startDate?: string;
   endDate?: string;
+  status?: string;
   userId?: string;
   attendedOnly?: boolean;
 }): MeetWithDetails[] {
@@ -90,6 +91,11 @@ export function filterMeets(database: Database, params: {
   if (params.attendedOnly && params.userId) {
     sql += ` AND EXISTS (SELECT 1 FROM meet_attendees ma WHERE ma.meet_id = m.id AND ma.user_id = ?)`;
     args.push(params.userId);
+  }
+
+  if (params.status) {
+    sql += ` AND m.status = ?`;
+    args.push(params.status);
   }
 
   if (params.tagId) {
