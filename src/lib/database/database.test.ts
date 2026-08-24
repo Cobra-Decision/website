@@ -10,12 +10,12 @@ test("Database migration engine runs sequentially and tracks versions", async ()
   expect(getCurrentVersion(db)).toBe(0);
 
   const res = await runMigrations(db);
-  expect(res.applied.length).toBe(5);
-  expect(res.currentVersion).toBe(5);
-  expect(getCurrentVersion(db)).toBe(5);
+  expect(res.applied.length).toBe(6);
+  expect(res.currentVersion).toBe(6);
+  expect(getCurrentVersion(db)).toBe(6);
 
   const applied = getAppliedMigrations(db);
-  expect(applied.length).toBe(5);
+  expect(applied.length).toBe(6);
   expect(applied[0].name).toBe("001_core_auth_schema");
 
   // Re-run migration should be no-op
