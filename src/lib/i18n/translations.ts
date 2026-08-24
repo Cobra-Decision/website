@@ -120,6 +120,8 @@ export const translations = {
     "dashboard.to_date": "To Date",
     "dashboard.search_label": "Search Title / Topic",
     "dashboard.tag_label": "Filter by Tag",
+    "dashboard.status_label": "Filter by Status",
+    "dashboard.all_statuses": "All Statuses",
     "dashboard.empty": "No meetings found matching your criteria.",
 
     // Admin & Common Form
@@ -308,6 +310,8 @@ export const translations = {
     "dashboard.to_date": "تا تاریخ",
     "dashboard.search_label": "جستجوی عنوان / سرفصل",
     "dashboard.tag_label": "فیلتر بر اساس برچسب",
+    "dashboard.status_label": "فیلتر بر اساس وضعیت",
+    "dashboard.all_statuses": "همه وضعیت‌ها",
     "dashboard.empty": "هیچ جلسه‌ای مطابق با فیلترهای انتخابی یافت نشد.",
 
     // Admin & Common Form

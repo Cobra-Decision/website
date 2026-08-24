@@ -32,13 +32,24 @@ export function createUserDashboardRoutes(database: Database, jwtSecret = proces
     const user = loadUser(auth.sub);
     if (!user) return c.redirect("/auth");
 
+    const defaultStatus = "upcoming";
     const meets = filterMeets(database, {
       userId: user.id,
       attendedOnly: activeTab === "attended",
+      status: defaultStatus,
     });
 
     const tags = getTags();
-    return c.html(<UserDashboard user={user} meets={meets} tags={tags} activeTab={activeTab} locale={locale} />);
+    return c.html(
+      <UserDashboard
+        user={user}
+        meets={meets}
+        tags={tags}
+        activeTab={activeTab}
+        selectedStatus={defaultStatus}
+        locale={locale}
+      />
+    );
   };
 
   app.get("/", (c) => renderMeetsPage(c, "all"));
@@ -50,6 +61,7 @@ export function createUserDashboardRoutes(database: Database, jwtSecret = proces
     const locale = getLocale(c);
     const q = c.req.query("q");
     const tagId = c.req.query("tagId") ?? c.req.query("tag_id");
+    const status = c.req.query("status");
     const startDate = c.req.query("startDate") ?? c.req.query("start_date");
     const endDate = c.req.query("endDate") ?? c.req.query("end_date");
     const attendedOnly = c.req.query("attendedOnly") === "true" || c.req.query("attended_only") === "true";
@@ -57,6 +69,7 @@ export function createUserDashboardRoutes(database: Database, jwtSecret = proces
     const meets = filterMeets(database, {
       q,
       tagId: tagId || undefined,
+      status: status || undefined,
       startDate: startDate || undefined,
       endDate: endDate || undefined,
       userId: auth.sub,

@@ -125,16 +125,19 @@ export const UserDashboard = ({
   meets,
   tags,
   activeTab = "all",
+  selectedStatus,
   locale = "en",
 }: {
   user: Profile;
   meets: MeetWithDetails[];
   tags: Tag[];
   activeTab?: "all" | "attended";
+  selectedStatus?: string;
   locale?: Locale;
 }) => {
   const name = [user.first_name, user.last_name].filter(Boolean).join(" ") || user.username || user.email;
   const isSuperAdmin = user.role_title === "Super Admin" || user.role_title === "admin";
+  const currentStatus = selectedStatus !== undefined ? selectedStatus : "upcoming";
 
   return (
     <Layout title={`${t("nav.dashboard", locale)} | CobraDecision`} locale={locale}>
@@ -177,7 +180,7 @@ export const UserDashboard = ({
                 hx-trigger="keyup changed delay:300ms, change"
                 hx-target="#meets-grid"
                 hx-swap="outerHTML"
-                class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4"
+                class="grid gap-3 sm:grid-cols-2 lg:grid-cols-5"
               >
                 <input type="hidden" name="attendedOnly" value={activeTab === "attended" ? "true" : "false"} />
 
@@ -189,6 +192,16 @@ export const UserDashboard = ({
                     name="q"
                     placeholder={t("dashboard.search_placeholder", locale)}
                   />
+                </label>
+
+                <label class="form-control">
+                  <span class="label-text font-medium text-xs mb-1">{t("dashboard.status_label", locale)}</span>
+                  <select class="select select-bordered select-sm w-full" name="status">
+                    <option value="" selected={currentStatus === ""}>{t("dashboard.all_statuses", locale)}</option>
+                    <option value="upcoming" selected={currentStatus === "upcoming"}>{t("meet.status.upcoming", locale)}</option>
+                    <option value="live" selected={currentStatus === "live"}>{t("meet.status.live", locale)}</option>
+                    <option value="completed" selected={currentStatus === "completed"}>{t("meet.status.completed", locale)}</option>
+                  </select>
                 </label>
 
                 <label class="form-control">
