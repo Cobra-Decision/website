@@ -130,104 +130,171 @@ export const buildMeetingAttributionUrl = (
 export const MeetingLinkGenerator = ({
   meetId,
   platforms = DEFAULT_PLATFORMS,
+  botUsername = process.env.TELEGRAM_BOT_USERNAME || "CobraDecisionBot",
 }: {
   meetId: string;
   platforms?: PlatformOption[];
+  botUsername?: string;
 }) => {
   const containerId = `meet-link-gen-${meetId}`;
+  const tgDirectLink = `https://t.me/${botUsername}?startapp=meet_${meetId}`;
+
   return (
     <div
       id={containerId}
-      class="card border border-base-300 bg-base-200/60 p-4 rounded-xl space-y-3"
+      class="card border border-base-300 bg-base-200/60 p-4 rounded-xl space-y-4"
     >
       <div class="flex items-center justify-between">
-        <h4 class="font-bold text-sm text-base-content">Attributed Meeting Link Generator</h4>
+        <h4 class="font-bold text-sm text-base-content">Meeting Links & Attribution</h4>
         <span class="text-xs badge badge-ghost font-mono">/meets/{meetId}</span>
       </div>
-      <p class="text-xs text-base-content/60">
-        Generate attribution links to track RSVPs and attendees across marketing platforms.
-      </p>
 
-      <div class="grid gap-3 sm:grid-cols-2">
-        <label class="form-control w-full">
-          <span class="label-text font-medium text-xs">Destination Platform</span>
-          <select
-            id={`platform-select-${meetId}`}
-            class="select select-bordered select-sm w-full"
-            onchange={`const input = document.getElementById('attributed-url-${meetId}'); if (input) input.value = window.location.origin + '/meets/${meetId}?platform=' + this.value;`}
-          >
-            {platforms.map((p) => (
-              <option key={p.slug} value={p.slug} selected={p.slug === "telegram"}>
-                {p.name} ({p.slug})
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <label class="form-control w-full">
-          <span class="label-text font-medium text-xs">Generated Attributed URL</span>
+      {/* Telegram Mini App Direct Link */}
+      <div class="p-3 bg-base-100 rounded-lg border border-primary/20 space-y-2">
+        <div class="flex items-center justify-between">
+          <span class="label-text font-bold text-xs flex items-center gap-1.5 text-primary">
+            🚀 Telegram Mini App Direct Link
+          </span>
+          <span class="text-[10px] text-base-content/60">Opens directly in Telegram</span>
+        </div>
+        <div class="flex gap-2">
           <input
-            id={`attributed-url-${meetId}`}
+            id={`tg-direct-url-${meetId}`}
             type="text"
             readonly
-            class="input input-bordered input-sm w-full font-mono text-xs bg-base-100 text-base-content select-all"
-            value={`/meets/${meetId}?platform=telegram`}
+            class="input input-bordered input-sm w-full font-mono text-xs bg-base-200/50 text-base-content select-all"
+            value={tgDirectLink}
           />
-        </label>
+          <button
+            type="button"
+            class="btn btn-primary btn-sm gap-1 shrink-0"
+            onclick={`
+              const text = '${tgDirectLink}';
+              const doCopy = (val) => {
+                if (navigator.clipboard && window.isSecureContext) {
+                  return navigator.clipboard.writeText(val);
+                }
+                const el = document.createElement('textarea');
+                el.value = val;
+                el.style.position = 'fixed';
+                el.style.left = '-9999px';
+                document.body.appendChild(el);
+                el.focus();
+                el.select();
+                document.execCommand('copy');
+                document.body.removeChild(el);
+                return Promise.resolve();
+              };
+              doCopy(text).finally(() => {
+                const notice = document.getElementById('tg-copied-notice-${meetId}');
+                if (notice) {
+                  notice.classList.remove('opacity-0');
+                  setTimeout(() => notice.classList.add('opacity-0'), 2500);
+                }
+              });
+            `}
+          >
+            <CopyIcon class="h-3.5 w-3.5" />
+            Copy Bot Link
+          </button>
+        </div>
+        <div class="h-4 flex items-center">
+          <span
+            id={`tg-copied-notice-${meetId}`}
+            class="text-xs font-semibold text-success flex items-center gap-1 transition-opacity duration-200 opacity-0"
+          >
+            <CheckIcon class="h-3.5 w-3.5" /> Copied Telegram Mini App link!
+          </span>
+        </div>
       </div>
 
-      <div class="flex items-center justify-between pt-1">
-        <span
-          id={`copied-notice-${meetId}`}
-          class="text-xs font-semibold text-success flex items-center gap-1 transition-opacity duration-200 opacity-0"
-        >
-          <CheckIcon class="h-3.5 w-3.5" /> Copied to clipboard!
-        </span>
-        <span id={`copy-desc-${meetId}`} class="text-xs text-base-content/50">
-          Copy this tracking URL to share on chosen platform
-        </span>
+      {/* General Attributed URL Generator */}
+      <div class="space-y-2">
+        <p class="text-xs text-base-content/60">
+          Generate attribution links to track RSVPs across other marketing platforms.
+        </p>
 
-        <button
-          type="button"
-          class="btn btn-primary btn-sm gap-1.5"
-          onclick={`
-            const select = document.getElementById('platform-select-${meetId}');
-            const platform = select ? select.value : 'telegram';
-            const text = window.location.origin + '/meets/${meetId}?platform=' + platform;
-            const input = document.getElementById('attributed-url-${meetId}');
-            if (input) input.value = text;
+        <div class="grid gap-3 sm:grid-cols-2">
+          <label class="form-control w-full">
+            <span class="label-text font-medium text-xs">Destination Platform</span>
+            <select
+              id={`platform-select-${meetId}`}
+              class="select select-bordered select-sm w-full"
+              onchange={`const input = document.getElementById('attributed-url-${meetId}'); if (input) input.value = window.location.origin + '/meets/${meetId}?platform=' + this.value;`}
+            >
+              {platforms.map((p) => (
+                <option key={p.slug} value={p.slug} selected={p.slug === "telegram"}>
+                  {p.name} ({p.slug})
+                </option>
+              ))}
+            </select>
+          </label>
 
-            const doCopy = (val) => {
-              if (navigator.clipboard && window.isSecureContext) {
-                return navigator.clipboard.writeText(val);
-              }
-              const el = document.createElement('textarea');
-              el.value = val;
-              el.style.position = 'fixed';
-              el.style.left = '-9999px';
-              document.body.appendChild(el);
-              el.focus();
-              el.select();
-              document.execCommand('copy');
-              document.body.removeChild(el);
-              return Promise.resolve();
-            };
+          <label class="form-control w-full">
+            <span class="label-text font-medium text-xs">Generated Attributed URL</span>
+            <input
+              id={`attributed-url-${meetId}`}
+              type="text"
+              readonly
+              class="input input-bordered input-sm w-full font-mono text-xs bg-base-100 text-base-content select-all"
+              value={`/meets/${meetId}?platform=telegram`}
+            />
+          </label>
+        </div>
 
-            doCopy(text).finally(() => {
-              const notice = document.getElementById('copied-notice-${meetId}');
-              const desc = document.getElementById('copy-desc-${meetId}');
-              if (notice) notice.classList.remove('opacity-0');
-              if (desc) desc.classList.add('hidden');
-              setTimeout(() => {
-                if (notice) notice.classList.add('opacity-0');
-                if (desc) desc.classList.remove('hidden');
-              }, 2500);
-            });
-          `}
-        >
-          <CopyIcon class="h-3.5 w-3.5" />
-          Copy Link
-        </button>
+        <div class="flex items-center justify-between pt-1">
+          <span
+            id={`copied-notice-${meetId}`}
+            class="text-xs font-semibold text-success flex items-center gap-1 transition-opacity duration-200 opacity-0"
+          >
+            <CheckIcon class="h-3.5 w-3.5" /> Copied to clipboard!
+          </span>
+          <span id={`copy-desc-${meetId}`} class="text-xs text-base-content/50">
+            Copy tracking URL for web browsers
+          </span>
+
+          <button
+            type="button"
+            class="btn btn-outline btn-sm gap-1.5"
+            onclick={`
+              const select = document.getElementById('platform-select-${meetId}');
+              const platform = select ? select.value : 'telegram';
+              const text = window.location.origin + '/meets/${meetId}?platform=' + platform;
+              const input = document.getElementById('attributed-url-${meetId}');
+              if (input) input.value = text;
+
+              const doCopy = (val) => {
+                if (navigator.clipboard && window.isSecureContext) {
+                  return navigator.clipboard.writeText(val);
+                }
+                const el = document.createElement('textarea');
+                el.value = val;
+                el.style.position = 'fixed';
+                el.style.left = '-9999px';
+                document.body.appendChild(el);
+                el.focus();
+                el.select();
+                document.execCommand('copy');
+                document.body.removeChild(el);
+                return Promise.resolve();
+              };
+
+              doCopy(text).finally(() => {
+                const notice = document.getElementById('copied-notice-${meetId}');
+                const desc = document.getElementById('copy-desc-${meetId}');
+                if (notice) notice.classList.remove('opacity-0');
+                if (desc) desc.classList.add('hidden');
+                setTimeout(() => {
+                  if (notice) notice.classList.add('opacity-0');
+                  if (desc) desc.classList.remove('hidden');
+                }, 2500);
+              });
+            `}
+          >
+            <CopyIcon class="h-3.5 w-3.5" />
+            Copy Web Link
+          </button>
+        </div>
       </div>
     </div>
   );

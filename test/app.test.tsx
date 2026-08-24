@@ -18,7 +18,9 @@ test("MeetingLinkGenerator component renders meetId, default platform and copy t
   expect(html).toContain("test-meet-id");
   expect(html).toContain("platform-select-test-meet-id");
   expect(html).toContain("attributed-url-test-meet-id");
-  expect(html).toContain("Copy Link");
+  expect(html).toContain("tg-direct-url-test-meet-id");
+  expect(html).toContain("https://t.me/CobraDecisionBot?startapp=meet_test-meet-id");
+  expect(html).toContain("Copy Bot Link");
   expect(html).toContain("navigator.clipboard.writeText");
 });
 
