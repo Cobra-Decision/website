@@ -139,7 +139,16 @@ export const Register = ({ tags, locale = "en" }: { tags: Tag[]; locale?: Locale
   </AuthCard>
 );
 
-export type Profile = { id?: string; email: string; username: string | null; phone: string | null; first_name: string | null; last_name: string | null; role_title: string };
+export type Profile = {
+  id?: string;
+  email: string;
+  username: string | null;
+  phone: string | null;
+  first_name: string | null;
+  last_name: string | null;
+  role_title: string;
+  telegram_id?: string | null;
+};
 
 export const Dashboard = ({ user }: { user: Profile }) => {
   const name = [user.first_name, user.last_name].filter(Boolean).join(" ") || user.username || user.email;

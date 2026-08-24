@@ -6,6 +6,83 @@ import type { Locale } from "../../../lib/i18n/translations";
 import { t, isRtl } from "../../../lib/i18n/context";
 import { LanguageSwitch } from "../../../ui/language-switch";
 
+export function TelegramConnectionCard({
+  telegramId,
+  locale = "en",
+}: {
+  telegramId?: string | null;
+  locale?: Locale;
+}) {
+  const rtl = isRtl(locale);
+  const isConnected = Boolean(telegramId);
+
+  return (
+    <div id="telegram-connection-box" class="card bg-base-100 border border-base-300 shadow-sm">
+      <div class="card-body p-6 sm:p-8 space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div class="space-y-1">
+            <h2 class="text-xl font-bold flex items-center gap-2">
+              <span>✈️</span>
+              <span>{t("account.telegram_title", locale)}</span>
+            </h2>
+            <p class="text-xs text-base-content/70">
+              {isConnected
+                ? `${t("account.telegram_connected", locale)} (ID: ${telegramId})`
+                : t("account.telegram_not_connected", locale)}
+            </p>
+          </div>
+
+          <div>
+            {isConnected ? (
+              <form
+                hx-post="/dashboard/account/telegram/disconnect"
+                hx-target="#telegram-connection-box"
+                hx-swap="outerHTML"
+                hx-confirm={t("account.telegram_disconnect_confirm", locale)}
+              >
+                <button type="submit" class="btn btn-outline btn-error btn-sm">
+                  {t("account.telegram_disconnect_btn", locale)}
+                </button>
+              </form>
+            ) : (
+              <button
+                type="button"
+                onclick="document.getElementById('modal-telegram-instructions').showModal()"
+                class="btn btn-primary btn-sm"
+              >
+                {t("account.telegram_connect_btn", locale)}
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Telegram Connect Instructions Modal */}
+        <dialog id="modal-telegram-instructions" class="modal modal-bottom sm:modal-middle">
+          <div class="modal-box p-6 space-y-4">
+            <h3 class="font-bold text-lg text-primary flex items-center gap-2">
+              <span>✈️</span>
+              <span>{t("account.telegram_dialog_title", locale)}</span>
+            </h3>
+            <div class="space-y-2 text-sm text-base-content/80 bg-base-200/60 p-4 rounded-xl border border-base-300">
+              <p>{t("account.telegram_step1", locale)}</p>
+              <p>{t("account.telegram_step2", locale)}</p>
+              <p>{t("account.telegram_step3", locale)}</p>
+            </div>
+            <div class="modal-action flex justify-end">
+              <form method="dialog">
+                <button class="btn btn-sm btn-ghost">{t("common.close", locale)}</button>
+              </form>
+            </div>
+          </div>
+          <form method="dialog" class="modal-backdrop">
+            <button>close</button>
+          </form>
+        </dialog>
+      </div>
+    </div>
+  );
+}
+
 export function AccountPage({
   user,
   from,
@@ -193,8 +270,11 @@ export function AccountPage({
           </div>
         </div>
 
+        {/* Telegram Integration Card */}
+        <TelegramConnectionCard telegramId={user.telegram_id} locale={locale} />
+
         {/* Logout Section */}
-        <div class="card bg-base-100 border border-error/20 shadow-sm">
+        <div class="card bg-base-100 border border-base-300 shadow-sm">
           <div class="card-body p-6 flex flex-row items-center justify-between">
             <div>
               <h3 class="font-bold text-base text-base-content">
@@ -205,10 +285,86 @@ export function AccountPage({
               </p>
             </div>
             <form hx-post="/auth/logout">
-              <button class="btn btn-error btn-outline btn-sm" type="submit">
+              <button class="btn btn-outline btn-sm" type="submit">
                 {rtl ? "خروج از حساب" : "Log Out"}
               </button>
             </form>
+          </div>
+        </div>
+
+        {/* Danger Zone: Account Deletion */}
+        <div class="card bg-base-100 border border-error/30 shadow-sm">
+          <div class="card-body p-6 space-y-4">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div class="space-y-1">
+                <h3 class="font-bold text-base text-error">
+                  {t("account.danger_zone", locale)} · {t("account.delete_account_title", locale)}
+                </h3>
+                <p class="text-xs text-base-content/70">
+                  {t("account.delete_account_desc", locale)}
+                </p>
+              </div>
+              <button
+                type="button"
+                onclick="document.getElementById('modal-delete-account').showModal()"
+                class="btn btn-error btn-sm shrink-0"
+              >
+                {t("account.delete_account_btn", locale)}
+              </button>
+            </div>
+
+            {/* Account Delete Confirmation Modal */}
+            <dialog id="modal-delete-account" class="modal modal-bottom sm:modal-middle">
+              <div class="modal-box p-6 space-y-4 border border-error/30">
+                <h3 class="font-bold text-lg text-error">
+                  {t("account.delete_modal_title", locale)}
+                </h3>
+                <p class="text-xs text-error/90 bg-error/10 p-3 rounded-lg">
+                  {t("account.delete_modal_warning", locale)}
+                </p>
+
+                <form
+                  hx-post="/dashboard/account/delete"
+                  hx-target="#delete-account-error"
+                  hx-swap="innerHTML"
+                  class="space-y-4 text-start"
+                >
+                  <div class="form-control">
+                    <label class="label py-1">
+                      <span class="label-text text-xs font-semibold">
+                        {t("account.delete_modal_password", locale)}
+                      </span>
+                    </label>
+                    <input
+                      type="password"
+                      name="password"
+                      required
+                      placeholder="••••••••"
+                      class="input input-bordered input-error input-sm w-full"
+                    />
+                  </div>
+
+                  <div id="delete-account-error"></div>
+
+                  <div class="modal-action flex justify-end gap-2 pt-2">
+                    <button
+                      type="button"
+                      onclick="document.getElementById('modal-delete-account').close()"
+                      class="btn btn-sm btn-ghost"
+                    >
+                      {t("common.cancel", locale)}
+                    </button>
+                    <button type="submit" class="btn btn-sm btn-error">
+                      <span class="htmx-indicator loading loading-spinner loading-xs"></span>
+                      {t("account.delete_modal_btn", locale)}
+                    </button>
+                  </div>
+                </form>
+              </div>
+              <form method="dialog" class="modal-backdrop">
+                <button>close</button>
+              </form>
+            </dialog>
           </div>
         </div>
       </div>
