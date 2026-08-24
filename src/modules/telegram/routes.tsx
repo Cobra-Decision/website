@@ -23,8 +23,9 @@ const cookieOptions = {
 export function createTelegramRoutes(
   database: Database,
   jwtSecret: string,
-  botToken = process.env.TELEGRAM_BOT_TOKEN ?? "development-bot-token"
+  botToken?: string
 ) {
+  const getBotToken = () => botToken || process.env.TELEGRAM_BOT_TOKEN || "development-bot-token";
   const app = new Hono();
 
   /**
@@ -97,8 +98,14 @@ export function createTelegramRoutes(
       return c.text("Missing initData", 400);
     }
 
-    const validated = await validateTelegramInitData(initData, botToken);
+    const token = getBotToken();
+    const validated = await validateTelegramInitData(initData, token);
     if (!validated) {
+      logger.auth("TELEGRAM_INIT_DATA_INVALID", {
+        level: "WARN",
+        actor: { ip: c.req.header("x-forwarded-for") ?? "local", userAgent: c.req.header("user-agent") },
+        data: { hasToken: Boolean(token && token !== "development-bot-token") },
+      });
       return c.text("Invalid or expired Telegram signature", 401);
     }
 
