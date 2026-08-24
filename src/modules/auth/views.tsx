@@ -89,17 +89,10 @@ export const Register = ({ tags, locale = "en" }: { tags: Tag[]; locale?: Locale
   <AuthCard title={t("auth.create_account", locale)} subtitle={t("auth.register_subtitle", locale)} locale={locale}>
     <form class="space-y-4" hx-post="/auth/register" hx-target="#auth-result" hx-swap="innerHTML">
       <div class="grid gap-4 sm:grid-cols-2">
-        <Field label={t("auth.email", locale)} name="email" type="email" required />
-        <Field label={t("auth.password", locale)} name="password" type="password" required />
-        <Field label={t("auth.confirm_password", locale)} name="password_confirmation" type="password" required />
-        <Field label={t("auth.username", locale)} name="username" optionalLabel={t("auth.optional", locale)} />
-      </div>
-
-      <div class="divider text-xs uppercase text-base-content/50">{t("auth.profile_details", locale)}</div>
-
-      <div class="grid gap-4 sm:grid-cols-2">
         <Field label={t("auth.first_name", locale)} name="first_name" optionalLabel={t("auth.optional", locale)} />
         <Field label={t("auth.last_name", locale)} name="last_name" optionalLabel={t("auth.optional", locale)} />
+        <Field label={t("auth.username", locale)} name="username" optionalLabel={t("auth.optional", locale)} />
+        <Field label={t("auth.email", locale)} name="email" type="email" required />
         <div class="sm:col-span-2">
           <PhoneInput
             name="phone"
@@ -108,6 +101,13 @@ export const Register = ({ tags, locale = "en" }: { tags: Tag[]; locale?: Locale
             optional={true}
           />
         </div>
+      </div>
+
+      <div class="divider text-xs uppercase text-base-content/50">{t("auth.password", locale)}</div>
+
+      <div class="grid gap-4 sm:grid-cols-2">
+        <Field label={t("auth.password", locale)} name="password" type="password" required />
+        <Field label={t("auth.confirm_password", locale)} name="password_confirmation" type="password" required />
       </div>
 
       <div class="divider text-xs uppercase text-base-content/50">{t("auth.preferred_tags", locale)}</div>
