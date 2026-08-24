@@ -19,10 +19,11 @@ import { getFirstAllowedAdminPath } from "./middleware";
 type Captcha = { middleware: MiddlewareHandler; challengeHandler: Handler };
 type Claims = { sub: string; username: string; role_title: string; role_id: string };
 const sessionDuration = 60 * 60 * 8;
+const isProd = process.env.NODE_ENV === "production";
 const cookieOptions = {
   httpOnly: true,
-  secure: process.env.NODE_ENV === "production",
-  sameSite: "Lax" as const,
+  secure: isProd,
+  sameSite: (isProd ? "None" : "Lax") as "None" | "Lax",
   path: "/",
   maxAge: sessionDuration,
 };

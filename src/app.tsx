@@ -61,9 +61,15 @@ export function createApp({
   app.use("/api/contact", rateLimiter({ windowMs: 60_000, max: 5 }));
 
   // Locale Switcher Route
+  const isProd = process.env.NODE_ENV === "production";
   app.get("/locale/:lang", (c) => {
     const lang = c.req.param("lang") === "fa" ? "fa" : "en";
-    setCookie(c, "locale", lang, { path: "/", maxAge: 60 * 60 * 24 * 365, sameSite: "Lax" });
+    setCookie(c, "locale", lang, {
+      path: "/",
+      maxAge: 60 * 60 * 24 * 365,
+      secure: isProd,
+      sameSite: isProd ? "None" : "Lax",
+    });
     const referer = c.req.header("Referer") || "/";
     return c.redirect(referer);
   });
