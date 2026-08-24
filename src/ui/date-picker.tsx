@@ -15,8 +15,7 @@ export interface DatePickerProps {
 
 /**
  * Unified DatePicker Component.
- * - In English ('en'): Native browser `<input type="date">`.
- * - In Persian ('fa'): Beautiful Shamsi calendar popover with 7-column calendar grid, Persian Vazirmatn font, and standard ISO value synchronization.
+ * Supports Shamsi (fa) and Gregorian (en) calendars with identical UI and ISO value synchronization.
  */
 export function DatePicker({
   name,
@@ -34,34 +33,28 @@ export function DatePicker({
   const initialIso = value || "";
   const initialDisplay = isPersian && initialIso ? toPersianDigits(formatJalaliDisplay(initialIso)) : initialIso;
 
-  if (!isPersian) {
-    return (
-      <label class="form-control w-full" for={inputId}>
-        {label && <span class="label-text font-medium text-xs mb-1">{label}</span>}
-        <input
-          id={inputId}
-          type="date"
-          name={name}
-          defaultValue={initialIso}
-          required={required}
-          placeholder={placeholder}
-          class={`input input-bordered input-sm w-full ${className}`}
-        />
-      </label>
-    );
-  }
+  const monthNamesEn = JSON.stringify([
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"
+  ]);
+  const monthNamesFa = JSON.stringify([
+    "فروردین", "اردیبهشت", "خرداد", "تیر", "مرداد", "شهریور",
+    "مهر", "آبان", "آذر", "دی", "بهمن", "اسفند"
+  ]);
+  const weekdaysEn = JSON.stringify(["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"]);
+  const weekdaysFa = JSON.stringify(["ش", "ی", "د", "س", "چ", "پ", "ج"]);
 
-  // Pure self-contained Alpine component for Jalali DatePicker
   const alpineData = `{
     open: false,
+    isPersian: ${isPersian},
     isoValue: '${initialIso}',
     displayValue: '${initialDisplay}',
-    jYear: 1405,
-    jMonth: 6,
+    year: 2026,
+    month: 1,
     selectedDay: null,
-    viewMode: 'days', // 'days' | 'months' | 'years'
-    monthNames: ['فروردین','اردیبهشت','خرداد','تیر','مرداد','شهریور','مهر','آبان','آذر','دی','بهمن','اسفند'],
-    weekdays: ['ش','ی','د','س','چ','پ','ج'],
+    viewMode: 'days',
+    monthNames: ${isPersian ? monthNamesFa : monthNamesEn},
+    weekdays: ${isPersian ? weekdaysFa : weekdaysEn},
 
     init() {
       this.syncFromIso();
@@ -70,19 +63,30 @@ export function DatePicker({
     syncFromIso() {
       if (this.isoValue) {
         const parts = this.isoValue.split('-').map(Number);
-        if (parts.length === 3) {
-          const [jy, jm, jd] = this.g2j(parts[0], parts[1], parts[2]);
-          this.jYear = jy;
-          this.jMonth = jm;
-          this.selectedDay = jd;
+        if (parts.length === 3 && !parts.some(isNaN)) {
+          if (this.isPersian) {
+            const [jy, jm, jd] = this.g2j(parts[0], parts[1], parts[2]);
+            this.year = jy;
+            this.month = jm;
+            this.selectedDay = jd;
+          } else {
+            this.year = parts[0];
+            this.month = parts[1];
+            this.selectedDay = parts[2];
+          }
           this.updateDisplay();
           return;
         }
       }
       const today = new Date();
-      const [jy, jm] = this.g2j(today.getFullYear(), today.getMonth() + 1, today.getDate());
-      this.jYear = jy;
-      this.jMonth = jm;
+      if (this.isPersian) {
+        const [jy, jm] = this.g2j(today.getFullYear(), today.getMonth() + 1, today.getDate());
+        this.year = jy;
+        this.month = jm;
+      } else {
+        this.year = today.getFullYear();
+        this.month = today.getMonth() + 1;
+      }
     },
 
     toggleOpen() {
@@ -93,49 +97,44 @@ export function DatePicker({
       this.open = !this.open;
     },
 
-    toPersian(n) {
+    toDisplayNum(n) {
+      if (!this.isPersian) return String(n);
       return String(n).replace(/\\d/g, d => '۰۱۲۳۴۵۶۷۸۹'[d]);
     },
 
     prevMonth() {
-      if (this.jMonth === 1) {
-        this.jMonth = 12;
-        this.jYear--;
+      if (this.month === 1) {
+        this.month = 12;
+        this.year--;
       } else {
-        this.jMonth--;
+        this.month--;
       }
     },
 
     nextMonth() {
-      if (this.jMonth === 12) {
-        this.jMonth = 1;
-        this.jYear++;
+      if (this.month === 12) {
+        this.month = 1;
+        this.year++;
       } else {
-        this.jMonth++;
+        this.month++;
       }
     },
 
-    prevYear() {
-      this.jYear--;
-    },
-
-    nextYear() {
-      this.jYear++;
-    },
-
     selectMonth(m) {
-      this.jMonth = m;
+      this.month = m;
       this.viewMode = 'days';
     },
 
     selectYear(y) {
-      this.jYear = y;
+      this.year = y;
       this.viewMode = 'days';
     },
 
     getYearList() {
       const list = [];
-      for (let y = 1350; y <= 1450; y++) {
+      const start = this.isPersian ? 1350 : 1970;
+      const end = this.isPersian ? 1450 : 2070;
+      for (let y = start; y <= end; y++) {
         list.push(y);
       }
       return list;
@@ -152,7 +151,7 @@ export function DatePicker({
       }, 50);
     },
 
-    isLeap(jy) {
+    isLeapJalali(jy) {
       const breaks = [-61, 9, 38, 199, 426, 686, 756, 818, 1111, 1181, 1210, 1635, 2060, 2097, 2192, 2262, 2324, 2394, 2456, 3178];
       let jp = breaks[0], jump = 0;
       for (let j = 1; j < breaks.length; j++) {
@@ -169,15 +168,21 @@ export function DatePicker({
     },
 
     daysInMonth() {
-      if (this.jMonth <= 6) return 31;
-      if (this.jMonth <= 11) return 30;
-      return this.isLeap(this.jYear) ? 30 : 29;
+      if (this.isPersian) {
+        if (this.month <= 6) return 31;
+        if (this.month <= 11) return 30;
+        return this.isLeapJalali(this.year) ? 30 : 29;
+      }
+      return new Date(this.year, this.month, 0).getDate();
     },
 
     firstDayOfWeek() {
-      const [gy, gm, gd] = this.j2g(this.jYear, this.jMonth, 1);
-      const day = new Date(gy, gm - 1, gd).getDay();
-      return (day + 1) % 7;
+      if (this.isPersian) {
+        const [gy, gm, gd] = this.j2g(this.year, this.month, 1);
+        const day = new Date(gy, gm - 1, gd).getDay();
+        return (day + 1) % 7;
+      }
+      return new Date(this.year, this.month - 1, 1).getDay();
     },
 
     g2j(gy, gm, gd) {
@@ -233,9 +238,13 @@ export function DatePicker({
 
     selectDate(day) {
       this.selectedDay = day;
-      const [gy, gm, gd] = this.j2g(this.jYear, this.jMonth, day);
       const pPad = (n) => String(n).padStart(2, '0');
-      this.isoValue = gy + '-' + pPad(gm) + '-' + pPad(gd);
+      if (this.isPersian) {
+        const [gy, gm, gd] = this.j2g(this.year, this.month, day);
+        this.isoValue = gy + '-' + pPad(gm) + '-' + pPad(gd);
+      } else {
+        this.isoValue = this.year + '-' + pPad(this.month) + '-' + pPad(day);
+      }
       this.updateDisplay();
       this.open = false;
       this.$nextTick(() => {
@@ -249,10 +258,16 @@ export function DatePicker({
 
     selectToday() {
       const today = new Date();
-      const [jy, jm, jd] = this.g2j(today.getFullYear(), today.getMonth() + 1, today.getDate());
-      this.jYear = jy;
-      this.jMonth = jm;
-      this.selectDate(jd);
+      if (this.isPersian) {
+        const [jy, jm, jd] = this.g2j(today.getFullYear(), today.getMonth() + 1, today.getDate());
+        this.year = jy;
+        this.month = jm;
+        this.selectDate(jd);
+      } else {
+        this.year = today.getFullYear();
+        this.month = today.getMonth() + 1;
+        this.selectDate(today.getDate());
+      }
     },
 
     clear() {
@@ -275,15 +290,22 @@ export function DatePicker({
         return;
       }
       const pPad = (n) => String(n).padStart(2, '0');
-      this.displayValue = this.toPersian(this.jYear + '/' + pPad(this.jMonth) + '/' + pPad(this.selectedDay));
+      if (this.isPersian) {
+        this.displayValue = this.toDisplayNum(this.year + '/' + pPad(this.month) + '/' + pPad(this.selectedDay));
+      } else {
+        this.displayValue = this.year + '-' + pPad(this.month) + '-' + pPad(this.selectedDay);
+      }
     },
 
     isSelected(day) {
       if (!this.isoValue) return false;
       const parts = this.isoValue.split('-').map(Number);
       if (parts.length !== 3) return false;
-      const [jy, jm, jd] = this.g2j(parts[0], parts[1], parts[2]);
-      return this.jYear === jy && this.jMonth === jm && day === jd;
+      if (this.isPersian) {
+        const [jy, jm, jd] = this.g2j(parts[0], parts[1], parts[2]);
+        return this.year === jy && this.month === jm && day === jd;
+      }
+      return this.year === parts[0] && this.month === parts[1] && day === parts[2];
     },
 
     getEmptyCells() {
@@ -295,8 +317,17 @@ export function DatePicker({
     }
   }`;
 
+  const defaultPlaceholder = isPersian ? "انتخاب تاریخ..." : "Select date...";
+  const todayLabel = isPersian ? "امروز" : "Today";
+  const clearLabel = isPersian ? "پاک کردن" : "Clear";
+  const selectMonthLabel = isPersian ? "انتخاب ماه" : "Select Month";
+  const selectYearLabel = isPersian ? "انتخاب سال" : "Select Year";
+  const backLabel = isPersian ? "بازگشت ✕" : "Back ✕";
+  const prevLabel = isPersian ? "ماه قبل" : "Previous Month";
+  const nextLabel = isPersian ? "ماه بعد" : "Next Month";
+
   return (
-    <div class="form-control w-full font-vazir" x-data={alpineData} dir={rtl ? "rtl" : "ltr"}>
+    <div class={`form-control w-full ${isPersian ? "font-vazir" : ""}`} x-data={alpineData} dir={rtl ? "rtl" : "ltr"}>
       {label && <span class="label-text font-medium text-xs mb-1">{label}</span>}
 
       {/* Real form input submitted to backend with standard ISO date (e.g. 2026-08-23) */}
@@ -317,9 +348,9 @@ export function DatePicker({
             id={inputId}
             type="text"
             readonly
-            placeholder={placeholder || "انتخاب تاریخ..."}
+            placeholder={placeholder || defaultPlaceholder}
             {...({ "x-model": "displayValue" } as any)}
-            class={`input input-bordered input-sm w-full cursor-pointer px-3 ${rtl ? "pl-9 text-right" : "pr-9 text-left"} font-vazir ${className}`}
+            class={`input input-bordered input-sm w-full cursor-pointer px-3 ${rtl ? "pl-9 text-right font-vazir" : "pr-9 text-left"} ${className}`}
           />
 
           <span
@@ -332,7 +363,7 @@ export function DatePicker({
           </span>
         </div>
 
-        {/* Shamsi Calendar Popover */}
+        {/* Calendar Popover */}
         <div
           {...({
             "x-show": "open",
@@ -340,7 +371,7 @@ export function DatePicker({
             "x-on:click.outside": "open = false",
             "x-transition": "",
           } as any)}
-          class="absolute top-full start-0 z-50 mt-1.5 w-72 rounded-2xl border border-base-300 bg-base-100 p-3 shadow-2xl font-vazir"
+          class={`absolute top-full start-0 z-50 mt-1.5 w-72 rounded-2xl border border-base-300 bg-base-100 p-3 shadow-2xl ${isPersian ? "font-vazir" : ""}`}
           style="display: none;"
         >
           {/* Navigation header */}
@@ -351,7 +382,7 @@ export function DatePicker({
                   type="button"
                   {...({ "x-on:click": "prevMonth()" } as any)}
                   class="btn btn-ghost btn-xs btn-square text-base-content hover:text-primary"
-                  aria-label="ماه قبل"
+                  aria-label={prevLabel}
                 >
                   {rtl ? "→" : "←"}
                 </button>
@@ -362,7 +393,7 @@ export function DatePicker({
                     {...({ "x-on:click": "viewMode = 'months'; scrollToSelected()" } as any)}
                     class="btn btn-xs btn-outline border-base-300 hover:btn-primary text-xs font-bold transition-colors"
                   >
-                    <span {...({ "x-text": "monthNames[jMonth - 1]" } as any)}></span>
+                    <span {...({ "x-text": "monthNames[month - 1]" } as any)}></span>
                     <span class="text-[10px] opacity-70">▾</span>
                   </button>
                   <button
@@ -370,7 +401,7 @@ export function DatePicker({
                     {...({ "x-on:click": "viewMode = 'years'; scrollToSelected()" } as any)}
                     class="btn btn-xs btn-outline border-base-300 hover:btn-primary text-xs font-bold transition-colors"
                   >
-                    <span {...({ "x-text": "toPersian(jYear)" } as any)}></span>
+                    <span {...({ "x-text": "toDisplayNum(year)" } as any)}></span>
                     <span class="text-[10px] opacity-70">▾</span>
                   </button>
                 </div>
@@ -379,7 +410,7 @@ export function DatePicker({
                   type="button"
                   {...({ "x-on:click": "nextMonth()" } as any)}
                   class="btn btn-ghost btn-xs btn-square text-base-content hover:text-primary"
-                  aria-label="ماه بعد"
+                  aria-label={nextLabel}
                 >
                   {rtl ? "←" : "→"}
                 </button>
@@ -388,26 +419,26 @@ export function DatePicker({
 
             <template {...({ "x-if": "viewMode === 'months'" } as any)}>
               <div class="flex items-center justify-between w-full">
-                <span class="text-xs font-bold text-primary px-1">انتخاب ماه</span>
+                <span class="text-xs font-bold text-primary px-1">{selectMonthLabel}</span>
                 <button
                   type="button"
                   {...({ "x-on:click": "viewMode = 'days'" } as any)}
                   class="btn btn-ghost btn-xs text-xs hover:bg-base-200"
                 >
-                  بازگشت ✕
+                  {backLabel}
                 </button>
               </div>
             </template>
 
             <template {...({ "x-if": "viewMode === 'years'" } as any)}>
               <div class="flex items-center justify-between w-full">
-                <span class="text-xs font-bold text-primary px-1">انتخاب سال</span>
+                <span class="text-xs font-bold text-primary px-1">{selectYearLabel}</span>
                 <button
                   type="button"
                   {...({ "x-on:click": "viewMode = 'days'" } as any)}
                   class="btn btn-ghost btn-xs text-xs hover:bg-base-200"
                 >
-                  بازگشت ✕
+                  {backLabel}
                 </button>
               </div>
             </template>
@@ -427,10 +458,10 @@ export function DatePicker({
                 type="button"
                 {...({
                   "x-on:click": "selectMonth(idx + 1)",
-                  ":class": "jMonth === (idx + 1) ? 'btn-primary text-primary-content selected-item shadow font-bold' : 'btn-ghost hover:bg-base-200 text-base-content font-medium'",
+                  ":class": "month === (idx + 1) ? 'btn-primary text-primary-content selected-item shadow font-bold' : 'btn-ghost hover:bg-base-200 text-base-content font-medium'",
                   "x-text": "mName",
                 } as any)}
-                class="btn btn-sm py-2 w-full text-sm rounded-lg font-vazir flex items-center justify-center text-center shrink-0"
+                class={`btn btn-sm py-2 w-full text-sm rounded-lg flex items-center justify-center text-center shrink-0 ${isPersian ? "font-vazir" : ""}`}
               ></button>
             </template>
           </div>
@@ -449,10 +480,10 @@ export function DatePicker({
                 type="button"
                 {...({
                   "x-on:click": "selectYear(y)",
-                  ":class": "jYear === y ? 'btn-primary text-primary-content selected-item shadow font-bold' : 'btn-ghost hover:bg-base-200 text-base-content font-medium'",
-                  "x-text": "toPersian(y)",
+                  ":class": "year === y ? 'btn-primary text-primary-content selected-item shadow font-bold' : 'btn-ghost hover:bg-base-200 text-base-content font-medium'",
+                  "x-text": "toDisplayNum(y)",
                 } as any)}
-                class="btn btn-sm py-2 w-full text-sm rounded-lg font-vazir flex items-center justify-center text-center shrink-0"
+                class={`btn btn-sm py-2 w-full text-sm rounded-lg flex items-center justify-center text-center shrink-0 ${isPersian ? "font-vazir" : ""}`}
               ></button>
             </template>
           </div>
@@ -464,13 +495,14 @@ export function DatePicker({
               style="display: grid; grid-template-columns: repeat(7, minmax(0, 1fr));"
               class="gap-1 text-center text-[10px] font-bold text-base-content/70 mb-1"
             >
-              <div class="py-1">ش</div>
-              <div class="py-1">ی</div>
-              <div class="py-1">د</div>
-              <div class="py-1">س</div>
-              <div class="py-1">چ</div>
-              <div class="py-1">پ</div>
-              <div class="py-1 text-error font-bold">ج</div>
+              <template {...({ "x-for": "(wDay, idx) in weekdays", ":key": "'wday-' + idx" } as any)}>
+                <div
+                  {...({
+                    ":class": "(isPersian && idx === 6) || (!isPersian && (idx === 0 || idx === 6)) ? 'py-1 text-error font-bold' : 'py-1'",
+                    "x-text": "wDay",
+                  } as any)}
+                ></div>
+              </template>
             </div>
 
             {/* Calendar days 7-column grid */}
@@ -490,9 +522,9 @@ export function DatePicker({
                   {...({
                     "x-on:click": "selectDate(day)",
                     ":class": "isSelected(day) ? 'btn-primary text-primary-content selected-item shadow font-bold' : 'btn-ghost hover:bg-base-200 text-base-content font-medium'",
-                    "x-text": "toPersian(day)",
+                    "x-text": "toDisplayNum(day)",
                   } as any)}
-                  class="btn btn-xs h-8 w-8 p-0 rounded-lg text-xs flex items-center justify-center transition-colors mx-auto font-vazir"
+                  class={`btn btn-xs h-8 w-8 p-0 rounded-lg text-xs flex items-center justify-center transition-colors mx-auto ${isPersian ? "font-vazir" : ""}`}
                 ></button>
               </template>
             </div>
@@ -505,14 +537,14 @@ export function DatePicker({
               {...({ "x-on:click": "selectToday()" } as any)}
               class="btn btn-ghost btn-xs text-primary font-medium"
             >
-              امروز
+              {todayLabel}
             </button>
             <button
               type="button"
               {...({ "x-on:click": "clear()" } as any)}
               class="btn btn-ghost btn-xs text-base-content/50 hover:text-error"
             >
-              پاک کردن
+              {clearLabel}
             </button>
           </div>
         </div>
@@ -520,3 +552,4 @@ export function DatePicker({
     </div>
   );
 }
+

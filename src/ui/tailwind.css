@@ -2,12 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Suppress browser native date calendar picker indicator */
-input[type="date"]::-webkit-calendar-picker-indicator {
-  display: none !important;
-  -webkit-appearance: none !important;
-}
-
 @layer base {
   [dir="rtl"], [dir="rtl"] * {
     font-family: "Vazirmatn", system-ui, -apple-system, sans-serif !important;
