@@ -3,6 +3,7 @@ import { PREBUILT_EMAIL_TEMPLATES } from "../mailer/database";
 import { MailPlaceholdersToolbar } from "./mail-placeholders-component";
 import { formatUtcDateTime } from "../events/datetime";
 import type { Locale } from "../../lib/i18n/translations";
+import { t, formatLocalizedNumber } from "../../lib/i18n/context";
 
 export const MailEditorView = ({
   templates,
@@ -113,14 +114,16 @@ export const MailEditorView = ({
       {/* Header */}
       <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 class="text-2xl font-bold tracking-tight text-base-content sm:text-3xl">Mail Editor</h1>
+          <h1 class="text-2xl font-bold tracking-tight text-base-content sm:text-3xl">
+            {t("admin.mail.editor_title", locale)}
+          </h1>
           <p class="text-sm text-base-content/60">
-            Build, edit, and preview dynamic email templates (HTML, Markdown, Plain Text) with variable interpolation.
+            {t("admin.mail.editor_subtitle", locale)}
           </p>
         </div>
         <div class="flex gap-2">
           <button type="button" class="btn btn-sm btn-outline" x-on:click="resetForm()">
-            + New Template
+            {t("admin.mail.new_template", locale)}
           </button>
         </div>
       </div>
@@ -132,13 +135,13 @@ export const MailEditorView = ({
             <div class="card-body p-4 space-y-3">
               <div class="flex items-center justify-between border-b border-base-200 pb-2">
                 <h3 class="font-bold text-sm text-base-content">
-                  Saved Templates ({templates.length})
+                  {t("admin.mail.select_template", locale)} ({formatLocalizedNumber(templates.length, locale)})
                 </h3>
               </div>
               <div class="space-y-2 max-h-[600px] overflow-y-auto pr-1">
                 {templates.length === 0 ? (
                   <p class="text-xs text-base-content/50 italic py-4 text-center">
-                    No templates saved yet.
+                    {locale === "fa" ? "هیچ قالبی هنوز ذخیره نشده است." : "No templates saved yet."}
                   </p>
                 ) : (
                   templates.map((tpl) => (
@@ -175,11 +178,11 @@ export const MailEditorView = ({
                               value = ${JSON.stringify(tpl.value)};
                             `}
                           >
-                            Edit
+                            {t("admin.edit", locale)}
                           </button>
                           <form
                             hx-post={`/dashboard/admin/mail-editor/delete?id=${tpl.id}`}
-                            hx-confirm="Are you sure you want to delete this email template?"
+                            hx-confirm={locale === "fa" ? "آیا از حذف این قالب ایمیل مطمئن هستید؟" : "Are you sure you want to delete this email template?"}
                             hx-target="main"
                             hx-select="main > *"
                           >
@@ -204,13 +207,13 @@ export const MailEditorView = ({
               {/* Top bar: Prebuilt loader & format switch */}
               <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between items-start gap-3 border-b border-base-200 pb-3">
                 <div class="flex items-center gap-2 flex-wrap">
-                  <span class="text-xs font-semibold text-base-content shrink-0">Load Sample:</span>
+                  <span class="text-xs font-semibold text-base-content shrink-0">{t("admin.mail.load_sample", locale)}:</span>
                   <select
                     class="select select-bordered select-xs"
                     x-model="selectedSample"
                     x-on:change="loadSample(selectedSample)"
                   >
-                    <option value="">Select prebuilt starter sample...</option>
+                    <option value="">{t("admin.mail.choose_sample", locale)}</option>
                     <template x-for="s in samples" x-bind:key="s.title">
                       <option x-bind:value="s.title" x-text="s.title"></option>
                     </template>
@@ -259,7 +262,7 @@ export const MailEditorView = ({
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div class="form-control">
                     <label class="label py-1">
-                      <span class="label-text font-semibold text-xs">Template Slug / Identifier *</span>
+                      <span class="label-text font-semibold text-xs">{t("admin.mail.template_title", locale)} *</span>
                     </label>
                     <input
                       type="text"
@@ -273,7 +276,7 @@ export const MailEditorView = ({
 
                   <div class="form-control">
                     <label class="label py-1">
-                      <span class="label-text font-semibold text-xs">Subject Line *</span>
+                      <span class="label-text font-semibold text-xs">{t("admin.mail.email_subject", locale)} *</span>
                     </label>
                     <input
                       type="text"
@@ -288,7 +291,7 @@ export const MailEditorView = ({
 
                 <div class="form-control">
                   <label class="label py-1">
-                    <span class="label-text font-semibold text-xs">Description (Optional)</span>
+                    <span class="label-text font-semibold text-xs">{locale === "fa" ? "توضیحات (اختیاری)" : "Description (Optional)"}</span>
                   </label>
                   <input
                     type="text"
@@ -302,7 +305,7 @@ export const MailEditorView = ({
                 {/* Variable insertion bar */}
                 <div class="space-y-1.5 pt-2">
                   <div class="flex flex-wrap items-center justify-between gap-2">
-                    <span class="text-xs font-semibold text-base-content/70">Insert Variable Placeholders:</span>
+                    <span class="text-xs font-semibold text-base-content/70">{t("admin.mail.insert_placeholder", locale)}:</span>
                     <button
                       type="button"
                       class="btn btn-xs btn-ghost text-2xs"
@@ -331,7 +334,7 @@ export const MailEditorView = ({
                 <div x-show="preview" x-cloak class="space-y-2">
                   <div class="flex items-center justify-between border-b pb-1">
                     <span class="text-xs font-bold uppercase text-base-content/50">
-                      Live Output Preview (Variables Interpolated)
+                      {t("admin.mail.live_preview", locale)}
                     </span>
                     <span class="badge badge-sm badge-ghost font-mono text-2xs" x-text="format"></span>
                   </div>
@@ -348,7 +351,7 @@ export const MailEditorView = ({
                     class="btn btn-sm btn-ghost"
                     x-on:click="resetForm()"
                   >
-                    Clear
+                    {t("admin.reset", locale)}
                   </button>
                   <button class="btn btn-primary btn-sm gap-2" type="submit">
                     <span class="htmx-indicator loading loading-spinner loading-xs"></span>

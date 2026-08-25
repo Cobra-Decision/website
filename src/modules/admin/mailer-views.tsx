@@ -1,17 +1,21 @@
 import type { EmailMessage, MailerStats } from "../mailer/types";
 import type { Tag } from "../events/types";
 import { MailPlaceholdersToolbar } from "./mail-placeholders-component";
+import type { Locale } from "../../lib/i18n/translations";
+import { t, formatLocalizedNumber } from "../../lib/i18n/context";
 
 export const MailerDashboardView = ({
   stats,
   buffer,
   tags,
   users,
+  locale = "en",
 }: {
   stats: MailerStats;
   buffer: EmailMessage[];
   tags: Tag[];
   users: { id: string; email: string; first_name: string | null; last_name: string | null; username: string | null }[];
+  locale?: Locale;
 }) => {
   return (
     <div
@@ -111,9 +115,11 @@ export const MailerDashboardView = ({
       {/* Header */}
       <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 class="text-2xl font-bold tracking-tight text-base-content sm:text-3xl">Mail Management</h1>
+          <h1 class="text-2xl font-bold tracking-tight text-base-content sm:text-3xl">
+            {t("admin.mail.management_title", locale)}
+          </h1>
           <p class="text-sm text-base-content/60">
-            Inspect circular email buffer, monitor delivery stats, and compose batch or stack emails with attachments.
+            {t("admin.mail.management_subtitle", locale)}
           </p>
         </div>
         <button
@@ -122,36 +128,36 @@ export const MailerDashboardView = ({
           hx-select="main > *"
           class="btn btn-sm btn-outline gap-2"
         >
-          ↻ Refresh Buffer
+          {t("admin.files.refresh", locale)}
         </button>
       </div>
 
       {/* Stats Cards */}
       <div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <div class="stat rounded-2xl border border-base-300 bg-base-100 p-4 shadow-sm">
-          <div class="stat-title text-xs">Active Provider</div>
+          <div class="stat-title text-xs">{locale === "fa" ? "سرویس‌دهنده فعال" : "Active Provider"}</div>
           <div class="stat-value text-xl font-bold text-primary truncate">{stats.activeProvider}</div>
-          <div class="stat-desc">Configured engine</div>
+          <div class="stat-desc">{locale === "fa" ? "موتور پیکربندی‌شده" : "Configured engine"}</div>
         </div>
 
         <div class="stat rounded-2xl border border-base-300 bg-base-100 p-4 shadow-sm">
-          <div class="stat-title text-xs">Sent Emails</div>
-          <div class="stat-value text-xl font-bold text-success">{stats.sent}</div>
-          <div class="stat-desc">Total successful sends</div>
+          <div class="stat-title text-xs">{t("admin.mail.sent_count", locale)}</div>
+          <div class="stat-value text-xl font-bold text-success">{formatLocalizedNumber(stats.sent, locale)}</div>
+          <div class="stat-desc">{locale === "fa" ? "ارسال موفق کل" : "Total successful sends"}</div>
         </div>
 
         <div class="stat rounded-2xl border border-base-300 bg-base-100 p-4 shadow-sm">
-          <div class="stat-title text-xs">Failed Emails</div>
-          <div class="stat-value text-xl font-bold text-error">{stats.failed}</div>
-          <div class="stat-desc">Encountered errors</div>
+          <div class="stat-title text-xs">{t("admin.mail.failed_count", locale)}</div>
+          <div class="stat-value text-xl font-bold text-error">{formatLocalizedNumber(stats.failed, locale)}</div>
+          <div class="stat-desc">{locale === "fa" ? "خطاهای رخ داده" : "Encountered errors"}</div>
         </div>
 
         <div class="stat rounded-2xl border border-base-300 bg-base-100 p-4 shadow-sm">
-          <div class="stat-title text-xs">Ring Buffer Capacity</div>
+          <div class="stat-title text-xs">{locale === "fa" ? "ظرفیت بافر حلقه‌ای" : "Ring Buffer Capacity"}</div>
           <div class="stat-value text-xl font-bold text-base-content">
-            {stats.bufferSize} / {stats.bufferCapacity}
+            {formatLocalizedNumber(stats.bufferSize, locale)} / {formatLocalizedNumber(stats.bufferCapacity, locale)}
           </div>
-          <div class="stat-desc">Zero-leak circular slots</div>
+          <div class="stat-desc">{locale === "fa" ? "اسلات‌های بافر حافظه" : "Zero-leak circular slots"}</div>
         </div>
       </div>
 
@@ -160,9 +166,9 @@ export const MailerDashboardView = ({
         <div class="card-body p-6 space-y-4">
           <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between items-start gap-3 border-b border-base-200 pb-3">
             <div>
-              <h2 class="text-lg font-bold text-base-content">Compose Batch / Stack Email</h2>
+              <h2 class="text-lg font-bold text-base-content">{t("admin.mail.composer_title", locale)}</h2>
               <p class="text-xs text-base-content/60">
-                Send unified email to all users, specific tag followers, or domain matches with attachments.
+                {t("admin.mail.management_subtitle", locale)}
               </p>
             </div>
             {/* Format Style Selector */}
@@ -206,16 +212,16 @@ export const MailerDashboardView = ({
             {/* Target Audience Select */}
             <div class="grid gap-4 sm:grid-cols-2">
               <div class="form-control sm:col-span-2">
-                <label class="label"><span class="label-text font-semibold text-xs">Target Audience</span></label>
+                <label class="label"><span class="label-text font-semibold text-xs">{t("admin.mail.recipient_mode", locale)}</span></label>
                 <select
                   class="select select-bordered select-sm w-full"
                   name="targetMode"
                   x-model="targetMode"
                 >
-                  <option value="all">All Active Users ({users.length} total)</option>
-                  <option value="tags">Followers of Specific Tags</option>
-                  <option value="domain">Filter by Email Domain (e.g. gmail.com)</option>
-                  <option value="selected">Select Specific Users</option>
+                  <option value="all">{t("admin.mail.mode_all", locale)} ({formatLocalizedNumber(users.length, locale)})</option>
+                  <option value="tags">{t("admin.mail.mode_tags", locale)}</option>
+                  <option value="domain">{locale === "fa" ? "فیلتر بر اساس دامنه ایمیل (مثلاً gmail.com)" : "Filter by Email Domain (e.g. gmail.com)"}</option>
+                  <option value="selected">{t("admin.mail.mode_users", locale)}</option>
                 </select>
               </div>
 
@@ -223,16 +229,16 @@ export const MailerDashboardView = ({
               <div class="form-control sm:col-span-2 space-y-2" x-show="targetMode === 'tags'" x-cloak>
                 <div class="flex items-center justify-between">
                   <label class="label-text font-semibold text-xs">
-                    Select Tags (<span x-text="selectedTagIds.length"></span> selected)
+                    {t("admin.mail.mode_tags", locale)} (<span x-text="selectedTagIds.length"></span>)
                   </label>
                   <div class="flex gap-1">
-                    <button type="button" class="btn btn-xs btn-ghost" x-on:click="selectAllFilteredTags()">Select All</button>
-                    <button type="button" class="btn btn-xs btn-ghost" x-on:click="clearSelectedTags()">Clear</button>
+                    <button type="button" class="btn btn-xs btn-ghost" x-on:click="selectAllFilteredTags()">{t("admin.select_all", locale)}</button>
+                    <button type="button" class="btn btn-xs btn-ghost" x-on:click="clearSelectedTags()">{t("admin.reset", locale)}</button>
                   </div>
                 </div>
                 <input
                   type="text"
-                  placeholder="Search tags..."
+                  placeholder={locale === "fa" ? "جستجوی برچسب‌ها..." : "Search tags..."}
                   x-model="tagSearch"
                   class="input input-bordered input-xs w-full"
                 />
@@ -254,7 +260,7 @@ export const MailerDashboardView = ({
 
               {/* Domain Input */}
               <div class="form-control sm:col-span-2" x-show="targetMode === 'domain'" x-cloak>
-                <label class="label"><span class="label-text font-semibold text-xs">Email Domain</span></label>
+                <label class="label"><span class="label-text font-semibold text-xs">{locale === "fa" ? "دامنه ایمیل" : "Email Domain"}</span></label>
                 <input
                   type="text"
                   name="domain"
@@ -267,16 +273,16 @@ export const MailerDashboardView = ({
               <div class="form-control sm:col-span-2 space-y-2" x-show="targetMode === 'selected'" x-cloak>
                 <div class="flex items-center justify-between">
                   <label class="label-text font-semibold text-xs">
-                    Select Users (<span x-text="selectedUserIds.length"></span> selected)
+                    {t("admin.mail.mode_users", locale)} (<span x-text="selectedUserIds.length"></span>)
                   </label>
                   <div class="flex gap-1">
-                    <button type="button" class="btn btn-xs btn-ghost" x-on:click="selectAllFilteredUsers()">Select Filtered</button>
-                    <button type="button" class="btn btn-xs btn-ghost" x-on:click="clearSelectedUsers()">Clear</button>
+                    <button type="button" class="btn btn-xs btn-ghost" x-on:click="selectAllFilteredUsers()">{t("admin.select_all", locale)}</button>
+                    <button type="button" class="btn btn-xs btn-ghost" x-on:click="clearSelectedUsers()">{t("admin.reset", locale)}</button>
                   </div>
                 </div>
                 <input
                   type="text"
-                  placeholder="Search users by name or email..."
+                  placeholder={locale === "fa" ? "جستجوی کاربران..." : "Search users by name or email..."}
                   x-model="userSearch"
                   class="input input-bordered input-xs w-full"
                 />
@@ -302,7 +308,7 @@ export const MailerDashboardView = ({
 
             {/* Subject */}
             <div class="form-control">
-              <label class="label"><span class="label-text font-semibold text-xs">Subject Line</span></label>
+              <label class="label"><span class="label-text font-semibold text-xs">{t("admin.mail.email_subject", locale)}</span></label>
               <input
                 type="text"
                 name="subject"
@@ -315,7 +321,7 @@ export const MailerDashboardView = ({
             {/* File Attachment Upload */}
             <div class="form-control">
               <label class="label">
-                <span class="label-text font-semibold text-xs">Attach Files (Optional)</span>
+                <span class="label-text font-semibold text-xs">{locale === "fa" ? "پیوست فایل (اختیاری)" : "Attach Files (Optional)"}</span>
                 <span class="label-text-alt text-base-content/60 text-2xs">PDF, Images, Documents (max 25MB)</span>
               </label>
               <input
@@ -362,7 +368,7 @@ export const MailerDashboardView = ({
                 class="mt-3 rounded-xl border border-base-300 bg-white p-4 text-black shadow-inner"
               >
                 <div class="flex items-center justify-between border-b pb-1 mb-2">
-                  <span class="text-xs font-bold uppercase text-gray-400">Live Output Preview (Variables Interpolated)</span>
+                  <span class="text-xs font-bold uppercase text-gray-400">{t("admin.mail.live_preview", locale)}</span>
                   <span class="badge badge-xs badge-ghost font-mono uppercase" x-text="format"></span>
                 </div>
                 <div x-html="interpolatedPreview" class="prose max-w-none"></div>
@@ -374,7 +380,7 @@ export const MailerDashboardView = ({
             <div class="flex justify-end">
               <button class="btn btn-primary btn-sm gap-2" type="submit">
                 <span class="htmx-indicator loading loading-spinner loading-xs"></span>
-                <span>Send Batch Emails</span>
+                <span>{t("admin.mail.send_now", locale)}</span>
               </button>
             </div>
           </form>
@@ -384,29 +390,31 @@ export const MailerDashboardView = ({
       {/* Ring Buffer History Viewer */}
       <div class="card border border-base-300 bg-base-100 shadow-sm overflow-hidden">
         <div class="card-body p-6">
-          <h2 class="text-lg font-bold text-base-content">Recent Ring Buffer History ({buffer.length} items)</h2>
+          <h2 class="text-lg font-bold text-base-content">
+            {t("admin.mail.recent_dispatched", locale)} ({formatLocalizedNumber(buffer.length, locale)})
+          </h2>
           <p class="text-xs text-base-content/60 mb-4">
-            Recent emails captured in the in-memory circular buffer.
+            {locale === "fa" ? "ایمیل‌های اخیر ذخیره‌شده در بافر حلقه‌ای حافظه." : "Recent emails captured in the in-memory circular buffer."}
           </p>
 
           <div class="overflow-x-auto">
             <table class="table table-sm table-zebra w-full">
               <thead>
                 <tr>
-                  <th>Status</th>
-                  <th>Recipient</th>
-                  <th>Subject</th>
-                  <th>Format</th>
-                  <th>Provider</th>
-                  <th>Created At</th>
-                  <th>Sent / Error</th>
+                  <th>{t("admin.platforms.timestamp", locale)}</th>
+                  <th>{locale === "fa" ? "گیرنده" : "Recipient"}</th>
+                  <th>{t("admin.mail.email_subject", locale)}</th>
+                  <th>{t("admin.mail.format", locale)}</th>
+                  <th>{locale === "fa" ? "سرویس‌دهنده" : "Provider"}</th>
+                  <th>{locale === "fa" ? "زمان ایجاد" : "Created At"}</th>
+                  <th>{locale === "fa" ? "ارسال / خطا" : "Sent / Error"}</th>
                 </tr>
               </thead>
               <tbody>
                 {buffer.length === 0 ? (
                   <tr>
                     <td colSpan={7} class="text-center py-6 text-base-content/50">
-                      Ring buffer is currently empty.
+                      {t("admin.mail.no_logs", locale)}
                     </td>
                   </tr>
                 ) : (

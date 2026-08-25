@@ -3,13 +3,16 @@ import type { Tag } from "../events/types";
 import { MailPlaceholdersToolbar } from "./mail-placeholders-component";
 import { formatUtcDateTime } from "../events/datetime";
 import type { Locale } from "../../lib/i18n/translations";
+import { t, formatLocalizedNumber } from "../../lib/i18n/context";
 
 export const AutomationRuleCard = ({
   rule,
   templates,
+  locale = "en",
 }: {
   rule: EmailAutomationRuleRow;
   templates: EmailTemplateRow[];
+  locale?: Locale;
 }) => {
   let config: any = {};
   try {
@@ -43,7 +46,7 @@ export const AutomationRuleCard = ({
                 }`}
               >
                 <span class={`inline-block w-1.5 h-1.5 rounded-full ${isEnabled ? "bg-success-content animate-pulse" : "bg-base-content/40"}`}></span>
-                {isEnabled ? "Active" : "Disabled"}
+                {isEnabled ? t("admin.mail.active", locale) : t("admin.mail.disabled", locale)}
               </span>
             </div>
 
@@ -76,24 +79,24 @@ export const AutomationRuleCard = ({
           {/* Meta Info Box */}
           <div class="rounded-xl bg-base-200/60 p-3 text-xs space-y-1.5 border border-base-300/40">
             <div class="flex items-center justify-between text-base-content/70">
-              <span>Template:</span>
+              <span>{t("admin.mail.template_title", locale)}:</span>
               <span class="font-mono font-bold text-primary truncate max-w-[150px]" title={rule.template_title || "Default"}>
                 {rule.template_title || "Default"}
               </span>
             </div>
             {typeof config.days_ahead !== "undefined" && (
               <div class="flex items-center justify-between text-base-content/70">
-                <span>Timing:</span>
+                <span>{locale === "fa" ? "زمانبندی:" : "Timing:"}</span>
                 <span class="font-semibold text-base-content/90">
                   {config.days_ahead === 0
-                    ? "Day of event"
-                    : `${config.days_ahead} day(s) before`}
+                    ? (locale === "fa" ? "روز برگزاری رویداد" : "Day of event")
+                    : (locale === "fa" ? `${formatLocalizedNumber(config.days_ahead, locale)} روز قبل` : `${config.days_ahead} day(s) before`)}
                 </span>
               </div>
             )}
             {rule.last_run_at && (
               <div class="flex items-center justify-between text-2xs text-base-content/50 pt-1 border-t border-base-300/40">
-                <span>Last run:</span>
+                <span>{locale === "fa" ? "آخرین اجرا:" : "Last run:"}</span>
                 <span>{new Date(rule.last_run_at).toLocaleString()}</span>
               </div>
             )}
@@ -112,14 +115,14 @@ export const AutomationRuleCard = ({
               class="btn btn-xs btn-outline btn-primary"
               title="Force run this automated trigger now"
             >
-              Run Now
+              {locale === "fa" ? "اجرا اکنون" : "Run Now"}
             </button>
           </form>
 
           <details class="dropdown dropdown-end dropdown-top sm:dropdown-bottom relative z-50">
-            <summary class="btn btn-xs btn-ghost">Configure</summary>
+            <summary class="btn btn-xs btn-ghost">{locale === "fa" ? "پیکربندی" : "Configure"}</summary>
             <div class="dropdown-content z-50 menu p-4 shadow-2xl bg-base-100 border border-base-300 rounded-box w-72 space-y-3">
-              <h4 class="font-bold text-xs text-base-content">Configure {rule.title}</h4>
+              <h4 class="font-bold text-xs text-base-content">{locale === "fa" ? `پیکربندی ${rule.title}` : `Configure ${rule.title}`}</h4>
               <form
                 hx-post={`/dashboard/admin/mail-scheduler/rules/${rule.id}/update`}
                 hx-target={`#rule-card-${rule.id}`}
@@ -127,7 +130,7 @@ export const AutomationRuleCard = ({
                 class="space-y-3"
               >
                 <div class="form-control">
-                  <label class="label py-0.5"><span class="label-text text-2xs font-semibold">Template</span></label>
+                  <label class="label py-0.5"><span class="label-text text-2xs font-semibold">{t("admin.mail.template_title", locale)}</span></label>
                   <select name="templateTitle" class="select select-bordered select-xs w-full">
                     {templates.map((tpl) => (
                       <option
@@ -143,7 +146,7 @@ export const AutomationRuleCard = ({
 
                 {typeof config.days_ahead !== "undefined" && (
                   <div class="form-control">
-                    <label class="label py-0.5"><span class="label-text text-2xs font-semibold">Days Ahead</span></label>
+                    <label class="label py-0.5"><span class="label-text text-2xs font-semibold">{locale === "fa" ? "روزهای قبل" : "Days Ahead"}</span></label>
                     <input
                       type="number"
                       name="daysAhead"
@@ -155,7 +158,7 @@ export const AutomationRuleCard = ({
                   </div>
                 )}
 
-                <button type="submit" class="btn btn-primary btn-xs w-full">Save Changes</button>
+                <button type="submit" class="btn btn-primary btn-xs w-full">{t("admin.save", locale)}</button>
               </form>
             </div>
           </details>
@@ -258,9 +261,11 @@ export const MailSchedulerView = ({
       {/* Header */}
       <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 class="text-2xl font-bold tracking-tight text-base-content sm:text-3xl">Mail Automation & Scheduler</h1>
+          <h1 class="text-2xl font-bold tracking-tight text-base-content sm:text-3xl">
+            {t("admin.mail.scheduler_title", locale)}
+          </h1>
           <p class="text-sm text-base-content/60">
-            Control automated email triggers (tag reminders, RSVP alerts, welcome emails) and schedule one-time broadcasts.
+            {t("admin.mail.scheduler_subtitle", locale)}
           </p>
         </div>
         <button
@@ -269,7 +274,7 @@ export const MailSchedulerView = ({
           hx-select="main > *"
           class="btn btn-sm btn-outline"
         >
-          Refresh
+          {t("admin.files.refresh", locale)}
         </button>
       </div>
 
@@ -281,7 +286,7 @@ export const MailSchedulerView = ({
           x-bind:class="activeTab === 'rules' ? 'tab-active' : ''"
           x-on:click="activeTab = 'rules'"
         >
-          Automated Triggers ({automationRules.length})
+          {t("admin.mail.active_rules", locale)} ({formatLocalizedNumber(automationRules.length, locale)})
         </button>
         <button
           type="button"
@@ -289,7 +294,7 @@ export const MailSchedulerView = ({
           x-bind:class="activeTab === 'schedule' ? 'tab-active' : ''"
           x-on:click="activeTab = 'schedule'"
         >
-          Schedule Broadcast
+          {t("admin.mail.send_now", locale)}
         </button>
         <button
           type="button"
@@ -297,7 +302,7 @@ export const MailSchedulerView = ({
           x-bind:class="activeTab === 'queue' ? 'tab-active' : ''"
           x-on:click="activeTab = 'queue'"
         >
-          Broadcast Queue ({scheduledList.length})
+          {t("admin.mail.scheduled_cron", locale)} ({formatLocalizedNumber(scheduledList.length, locale)})
         </button>
       </div>
 
@@ -307,16 +312,16 @@ export const MailSchedulerView = ({
           <div class="card-body p-6 space-y-4">
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-base-200 pb-3">
               <div>
-                <h2 class="text-lg font-bold text-base-content">Automated Recurring Triggers</h2>
+                <h2 class="text-lg font-bold text-base-content">{t("admin.mail.active_rules", locale)}</h2>
                 <p class="text-xs text-base-content/60">
-                  Toggle automated system emails on or off, configure days-ahead triggers, and map custom templates.
+                  {t("admin.mail.scheduler_subtitle", locale)}
                 </p>
               </div>
             </div>
 
             <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {automationRules.map((rule) => (
-                <AutomationRuleCard key={rule.id} rule={rule} templates={templates} />
+                <AutomationRuleCard key={rule.id} rule={rule} templates={templates} locale={locale} />
               ))}
             </div>
           </div>
@@ -328,9 +333,9 @@ export const MailSchedulerView = ({
         <div class="card-body p-6 space-y-4">
           <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between items-start gap-3 border-b border-base-200 pb-3">
             <div>
-              <h2 class="text-lg font-bold text-base-content">Create Scheduled Email</h2>
+              <h2 class="text-lg font-bold text-base-content">{t("admin.mail.send_now", locale)}</h2>
               <p class="text-xs text-base-content/60">
-                Pick a template or craft a custom message and set delivery date and time.
+                {t("admin.mail.scheduler_subtitle", locale)}
               </p>
             </div>
 
@@ -373,14 +378,14 @@ export const MailSchedulerView = ({
             {/* Template Selector & Title */}
             <div class="grid gap-4 sm:grid-cols-2">
               <div class="form-control">
-                <label class="label py-1"><span class="label-text font-semibold text-xs">Load Saved Template (Optional)</span></label>
+                <label class="label py-1"><span class="label-text font-semibold text-xs">{t("admin.mail.select_template", locale)}</span></label>
                 <select
                   class="select select-bordered select-sm w-full"
                   name="templateId"
                   x-model="selectedTemplateId"
                   x-on:change="loadTemplate(selectedTemplateId)"
                 >
-                  <option value="">-- Custom Email / No Template --</option>
+                  <option value="">{locale === "fa" ? "-- بدون قالب پیش‌فرض --" : "-- Custom Email / No Template --"}</option>
                   {templates.map((t) => (
                     <option key={t.id} value={t.id}>
                       {t.title} ({t.format})
@@ -390,7 +395,7 @@ export const MailSchedulerView = ({
               </div>
 
               <div class="form-control">
-                <label class="label py-1"><span class="label-text font-semibold text-xs">Campaign Title *</span></label>
+                <label class="label py-1"><span class="label-text font-semibold text-xs">{t("admin.mail.template_title", locale)} *</span></label>
                 <input
                   type="text"
                   name="title"
@@ -405,21 +410,21 @@ export const MailSchedulerView = ({
             {/* Target Audience Mode */}
             <div class="grid gap-4 sm:grid-cols-2">
               <div class="form-control">
-                <label class="label py-1"><span class="label-text font-semibold text-xs">Target Audience *</span></label>
+                <label class="label py-1"><span class="label-text font-semibold text-xs">{t("admin.mail.recipient_mode", locale)} *</span></label>
                 <select
                   class="select select-bordered select-sm w-full"
                   name="targetMode"
                   x-model="targetMode"
                 >
-                  <option value="all">All Active Users ({users.length} total)</option>
-                  <option value="tags">Followers of Specific Tags</option>
-                  <option value="domain">Filter by Email Domain (e.g. gmail.com)</option>
-                  <option value="selected">Select Specific Users</option>
+                  <option value="all">{t("admin.mail.mode_all", locale)} ({formatLocalizedNumber(users.length, locale)})</option>
+                  <option value="tags">{t("admin.mail.mode_tags", locale)}</option>
+                  <option value="domain">{locale === "fa" ? "فیلتر بر اساس دامنه ایمیل (مثلاً gmail.com)" : "Filter by Email Domain (e.g. gmail.com)"}</option>
+                  <option value="selected">{t("admin.mail.mode_users", locale)}</option>
                 </select>
               </div>
 
               <div class="form-control">
-                <label class="label py-1"><span class="label-text font-semibold text-xs">Schedule Date & Time *</span></label>
+                <label class="label py-1"><span class="label-text font-semibold text-xs">{locale === "fa" ? "تاریخ و زمان ارسال *" : "Schedule Date & Time *"}</span></label>
                 <input
                   type="datetime-local"
                   name="scheduledFor"
@@ -433,16 +438,16 @@ export const MailSchedulerView = ({
               <div class="form-control sm:col-span-2 space-y-2" x-show="targetMode === 'tags'" x-cloak>
                 <div class="flex items-center justify-between">
                   <label class="label-text font-semibold text-xs">
-                    Select Tags (<span x-text="selectedTagIds.length"></span> selected)
+                    {t("admin.mail.mode_tags", locale)} (<span x-text="selectedTagIds.length"></span>)
                   </label>
                   <div class="flex gap-1">
-                    <button type="button" class="btn btn-xs btn-ghost" x-on:click="selectAllFilteredTags()">Select All</button>
-                    <button type="button" class="btn btn-xs btn-ghost" x-on:click="clearSelectedTags()">Clear</button>
+                    <button type="button" class="btn btn-xs btn-ghost" x-on:click="selectAllFilteredTags()">{t("admin.select_all", locale)}</button>
+                    <button type="button" class="btn btn-xs btn-ghost" x-on:click="clearSelectedTags()">{t("admin.reset", locale)}</button>
                   </div>
                 </div>
                 <input
                   type="text"
-                  placeholder="Search tags..."
+                  placeholder={locale === "fa" ? "جستجوی برچسب‌ها..." : "Search tags..."}
                   x-model="tagSearch"
                   class="input input-bordered input-xs w-full"
                 />
@@ -464,7 +469,7 @@ export const MailSchedulerView = ({
 
               {/* Domain Input */}
               <div class="form-control sm:col-span-2" x-show="targetMode === 'domain'" x-cloak>
-                <label class="label py-1"><span class="label-text font-semibold text-xs">Email Domain Filter</span></label>
+                <label class="label py-1"><span class="label-text font-semibold text-xs">{locale === "fa" ? "دامنه ایمیل" : "Email Domain Filter"}</span></label>
                 <input
                   type="text"
                   name="domain"
@@ -477,16 +482,16 @@ export const MailSchedulerView = ({
               <div class="form-control sm:col-span-2 space-y-2" x-show="targetMode === 'selected'" x-cloak>
                 <div class="flex items-center justify-between">
                   <label class="label-text font-semibold text-xs">
-                    Select Users (<span x-text="selectedUserIds.length"></span> selected)
+                    {t("admin.mail.mode_users", locale)} (<span x-text="selectedUserIds.length"></span>)
                   </label>
                   <div class="flex gap-1">
-                    <button type="button" class="btn btn-xs btn-ghost" x-on:click="selectAllFilteredUsers()">Select Filtered</button>
-                    <button type="button" class="btn btn-xs btn-ghost" x-on:click="clearSelectedUsers()">Clear</button>
+                    <button type="button" class="btn btn-xs btn-ghost" x-on:click="selectAllFilteredUsers()">{t("admin.select_all", locale)}</button>
+                    <button type="button" class="btn btn-xs btn-ghost" x-on:click="clearSelectedUsers()">{t("admin.reset", locale)}</button>
                   </div>
                 </div>
                 <input
                   type="text"
-                  placeholder="Search users by name or email..."
+                  placeholder={locale === "fa" ? "جستجوی کاربران بر اساس نام یا ایمیل..." : "Search users by name or email..."}
                   x-model="userSearch"
                   class="input input-bordered input-xs w-full"
                 />
@@ -512,7 +517,7 @@ export const MailSchedulerView = ({
 
             {/* Subject */}
             <div class="form-control">
-              <label class="label py-1"><span class="label-text font-semibold text-xs">Subject Line *</span></label>
+              <label class="label py-1"><span class="label-text font-semibold text-xs">{t("admin.mail.email_subject", locale)} *</span></label>
               <input
                 type="text"
                 name="subject"
@@ -525,7 +530,7 @@ export const MailSchedulerView = ({
 
             {/* Body Textarea */}
             <div class="form-control space-y-1">
-              <label class="label py-1"><span class="label-text font-semibold text-xs">Email Message Body *</span></label>
+              <label class="label py-1"><span class="label-text font-semibold text-xs">{t("admin.mail.body_content", locale)} *</span></label>
               <MailPlaceholdersToolbar onInsertMethod="insertTag" />
               <textarea
                 x-ref="bodyTextarea"
@@ -541,7 +546,7 @@ export const MailSchedulerView = ({
             <div class="flex justify-end">
               <button class="btn btn-primary btn-sm gap-2" type="submit">
                 <span class="htmx-indicator loading loading-spinner loading-xs"></span>
-                <span>Schedule Broadcast</span>
+                <span>{t("admin.mail.send_now", locale)}</span>
               </button>
             </div>
           </form>
@@ -552,30 +557,30 @@ export const MailSchedulerView = ({
       <div x-show="activeTab === 'queue'" class="card border border-base-300 bg-base-100 shadow-sm overflow-hidden">
         <div class="card-body p-6">
           <h2 class="text-lg font-bold text-base-content">
-            Scheduled Queue ({scheduledList.length} jobs)
+            {t("admin.mail.scheduled_cron", locale)} ({formatLocalizedNumber(scheduledList.length, locale)})
           </h2>
           <p class="text-xs text-base-content/60 mb-4">
-            Review status of scheduled email jobs. The background scheduler evaluates and triggers tasks when time is reached.
+            {t("admin.mail.scheduler_subtitle", locale)}
           </p>
 
           <div class="overflow-x-auto">
             <table class="table table-sm table-zebra w-full">
               <thead>
                 <tr>
-                  <th>Status</th>
-                  <th>Title</th>
-                  <th>Audience</th>
-                  <th>Format</th>
-                  <th>Scheduled For</th>
-                  <th>Sent Count</th>
-                  <th>Actions</th>
+                  <th>{t("admin.platforms.timestamp", locale)}</th>
+                  <th>{t("admin.mail.template_title", locale)}</th>
+                  <th>{t("admin.mail.recipient_mode", locale)}</th>
+                  <th>{t("admin.mail.format", locale)}</th>
+                  <th>{locale === "fa" ? "زمانبندی شده برای" : "Scheduled For"}</th>
+                  <th>{t("admin.mail.sent_count", locale)}</th>
+                  <th>{t("admin.actions", locale)}</th>
                 </tr>
               </thead>
               <tbody>
                 {scheduledList.length === 0 ? (
                   <tr>
                     <td colSpan={7} class="text-center py-6 text-base-content/50">
-                      No scheduled email broadcasts in queue.
+                      {t("admin.mail.no_logs", locale)}
                     </td>
                   </tr>
                 ) : (
@@ -614,7 +619,7 @@ export const MailSchedulerView = ({
                         {formatUtcDateTime(job.scheduled_for, locale, timeZone).full || new Date(job.scheduled_for).toLocaleString()}
                       </td>
                       <td class="text-xs font-bold text-center">
-                        {job.sent_count}
+                        {formatLocalizedNumber(job.sent_count, locale)}
                       </td>
                       <td>
                         <div class="flex items-center gap-1">
@@ -625,7 +630,7 @@ export const MailSchedulerView = ({
                               hx-select="main > *"
                             >
                               <button type="submit" class="btn btn-xs btn-outline btn-warning">
-                                Cancel
+                                {t("admin.cancel", locale)}
                               </button>
                             </form>
                           )}
@@ -635,17 +640,17 @@ export const MailSchedulerView = ({
                             hx-select="main > *"
                           >
                             <button type="submit" class="btn btn-xs btn-outline btn-info" title="Repeat this broadcast in queue">
-                              Repeat
+                              {locale === "fa" ? "تکرار" : "Repeat"}
                             </button>
                           </form>
                           <form
                             hx-post={`/dashboard/admin/mail-scheduler/delete?id=${job.id}`}
-                            hx-confirm="Are you sure you want to delete this scheduled job?"
+                            hx-confirm={locale === "fa" ? "آیا از حذف این ارسال زمانبندی شده مطمئن هستید؟" : "Are you sure you want to delete this scheduled job?"}
                             hx-target="main"
                             hx-select="main > *"
                           >
                             <button type="submit" class="btn btn-xs btn-ghost text-error">
-                              Delete
+                              {t("admin.delete", locale)}
                             </button>
                           </form>
                         </div>

@@ -1,6 +1,6 @@
 import type { Database } from "bun:sqlite";
 import type { Locale } from "../../lib/i18n/translations";
-import { t } from "../../lib/i18n/context";
+import { t, formatLocalizedNumber } from "../../lib/i18n/context";
 import { formatUtcDateTime } from "../events/datetime";
 
 export interface PlatformFunnelStats {
@@ -161,10 +161,10 @@ export function PlatformsDataView({
       <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 class="text-2xl font-bold tracking-tight text-base-content sm:text-3xl">
-            Platforms Data & Funnel Center
+            {t("admin.platforms.title", locale)}
           </h1>
           <p class="text-sm text-base-content/60">
-            Real-time traffic acquisition channels, meet conversion funnels, and visit event logs.
+            {t("admin.platforms.subtitle", locale)}
           </p>
         </div>
       </div>
@@ -172,32 +172,32 @@ export function PlatformsDataView({
       {/* KPI Cards */}
       <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div class="card border border-base-300 bg-base-100 p-5 shadow-sm">
-          <span class="text-xs font-semibold uppercase tracking-wider text-base-content/60">Total Visits</span>
-          <div class="mt-2 text-3xl font-extrabold text-primary">{stats.totalVisits.toLocaleString()}</div>
-          <span class="mt-1 text-xs text-base-content/50">Across {stats.uniqueMeetsCount} active meets</span>
+          <span class="text-xs font-semibold uppercase tracking-wider text-base-content/60">{t("admin.platforms.total_visits", locale)}</span>
+          <div class="mt-2 text-3xl font-extrabold text-primary">{formatLocalizedNumber(stats.totalVisits.toLocaleString(), locale)}</div>
+          <span class="mt-1 text-xs text-base-content/50">{t("admin.platforms.across_meets", locale)} ({formatLocalizedNumber(stats.uniqueMeetsCount, locale)})</span>
         </div>
 
         <div class="card border border-base-300 bg-base-100 p-5 shadow-sm">
-          <span class="text-xs font-semibold uppercase tracking-wider text-base-content/60">Total RSVPs</span>
-          <div class="mt-2 text-3xl font-extrabold text-secondary">{stats.totalAttendees.toLocaleString()}</div>
-          <span class="mt-1 text-xs text-base-content/50">Confirmed attendee signups</span>
+          <span class="text-xs font-semibold uppercase tracking-wider text-base-content/60">{t("admin.platforms.total_rsvps", locale)}</span>
+          <div class="mt-2 text-3xl font-extrabold text-secondary">{formatLocalizedNumber(stats.totalAttendees.toLocaleString(), locale)}</div>
+          <span class="mt-1 text-xs text-base-content/50">{t("admin.platforms.confirmed_signups", locale)}</span>
         </div>
 
         <div class="card border border-base-300 bg-base-100 p-5 shadow-sm">
-          <span class="text-xs font-semibold uppercase tracking-wider text-base-content/60">Funnel Conversion</span>
+          <span class="text-xs font-semibold uppercase tracking-wider text-base-content/60">{t("admin.platforms.funnel_conversion", locale)}</span>
           <div class="mt-2 text-3xl font-extrabold text-success">
-            {stats.overallConversionRate.toFixed(1)}%
+            {formatLocalizedNumber(stats.overallConversionRate.toFixed(1), locale)}%
           </div>
-          <span class="mt-1 text-xs text-base-content/50">Visits to RSVP conversion</span>
+          <span class="mt-1 text-xs text-base-content/50">{t("admin.platforms.visits_to_rsvp", locale)}</span>
         </div>
 
         <div class="card border border-base-300 bg-base-100 p-5 shadow-sm">
-          <span class="text-xs font-semibold uppercase tracking-wider text-base-content/60">Top Channel</span>
+          <span class="text-xs font-semibold uppercase tracking-wider text-base-content/60">{t("admin.platforms.top_channel", locale)}</span>
           <div class="mt-2 text-2xl font-bold text-accent truncate">
-            {stats.topPlatform?.name ?? "Direct / Organic"}
+            {stats.topPlatform?.name ?? (locale === "fa" ? "مستقیم / ارگانیک" : "Direct / Organic")}
           </div>
           <span class="mt-1 text-xs text-base-content/50">
-            {stats.topPlatform?.visits.toLocaleString() ?? 0} referrals
+            {formatLocalizedNumber(stats.topPlatform?.visits ?? 0, locale)} {t("admin.platforms.referrals", locale)}
           </span>
         </div>
       </div>
@@ -207,8 +207,8 @@ export function PlatformsDataView({
         {/* Step-by-Step Funnel Visualizer */}
         <div class="card border border-base-300 bg-base-100 p-6 shadow-sm lg:col-span-1 space-y-6">
           <div>
-            <h2 class="text-lg font-bold text-base-content">Acquisition Funnel</h2>
-            <p class="text-xs text-base-content/60">Global attendee conversion stages</p>
+            <h2 class="text-lg font-bold text-base-content">{t("admin.platforms.acquisition_funnel", locale)}</h2>
+            <p class="text-xs text-base-content/60">{t("admin.platforms.global_conversion_stages", locale)}</p>
           </div>
 
           <div class="space-y-4">
@@ -216,26 +216,26 @@ export function PlatformsDataView({
             <div class="space-y-1.5">
               <div class="flex justify-between text-xs font-semibold">
                 <span class="flex items-center gap-1.5">
-                  <span class="badge badge-primary badge-xs">1</span> Meet Page Visits
+                  <span class="badge badge-primary badge-xs">1</span> {t("admin.platforms.step1_visits", locale)}
                 </span>
-                <span>{stats.totalVisits.toLocaleString()} (100%)</span>
+                <span>{formatLocalizedNumber(stats.totalVisits.toLocaleString(), locale)} ({formatLocalizedNumber(100, locale)}%)</span>
               </div>
               <progress class="progress progress-primary w-full h-3" value="100" max="100" />
             </div>
 
             {/* Drop off arrow */}
             <div class="flex items-center justify-center text-xs font-medium text-base-content/40">
-              ↓ {Math.min(100, Math.max(0, 100 - stats.overallConversionRate)).toFixed(1)}% drop-off
+              ↓ {formatLocalizedNumber(Math.min(100, Math.max(0, 100 - stats.overallConversionRate)).toFixed(1), locale)}% {t("admin.platforms.drop_off", locale)}
             </div>
 
             {/* Step 2 */}
             <div class="space-y-1.5">
               <div class="flex justify-between text-xs font-semibold">
                 <span class="flex items-center gap-1.5">
-                  <span class="badge badge-success badge-xs">2</span> Confirmed RSVPs
+                  <span class="badge badge-success badge-xs">2</span> {t("admin.platforms.step2_rsvps", locale)}
                 </span>
                 <span>
-                  {stats.totalAttendees.toLocaleString()} ({Math.min(100, stats.overallConversionRate).toFixed(1)}%)
+                  {formatLocalizedNumber(stats.totalAttendees.toLocaleString(), locale)} ({formatLocalizedNumber(Math.min(100, stats.overallConversionRate).toFixed(1), locale)}%)
                 </span>
               </div>
               <progress
@@ -247,7 +247,7 @@ export function PlatformsDataView({
           </div>
 
           <div class="rounded-xl bg-base-200/50 p-3 text-xs text-base-content/70">
-            <span class="font-bold">Efficiency Tip:</span> Optimize referral landing pages with high drop-off to boost RSVP rates.
+            {t("admin.platforms.funnel_insight", locale)}
           </div>
         </div>
 
@@ -255,8 +255,8 @@ export function PlatformsDataView({
         <div class="card border border-base-300 bg-base-100 p-6 shadow-sm lg:col-span-2 space-y-4">
           <div class="flex items-center justify-between">
             <div>
-              <h2 class="text-lg font-bold text-base-content">Platform Attribution Matrix</h2>
-              <p class="text-xs text-base-content/60">Traffic volume and percentage share by channel</p>
+              <h2 class="text-lg font-bold text-base-content">{t("admin.platforms.platform_shares", locale)}</h2>
+              <p class="text-xs text-base-content/60">{t("admin.platforms.visits_by_platform", locale)}</p>
             </div>
           </div>
 
@@ -264,10 +264,10 @@ export function PlatformsDataView({
             <table class="table table-zebra table-sm">
               <thead class="bg-base-200/50 text-xs uppercase tracking-wider text-base-content/70">
                 <tr>
-                  <th>Platform / Channel</th>
-                  <th class="text-right">Visits</th>
-                  <th class="text-right">Traffic Share</th>
-                  <th class="w-1/3">Distribution</th>
+                  <th>{t("admin.platforms.platform", locale)}</th>
+                  <th class="text-right">{t("admin.platforms.total_visits", locale)}</th>
+                  <th class="text-right">{t("admin.platforms.platform_shares", locale)}</th>
+                  <th class="w-1/3">{t("admin.platforms.acquisition_funnel", locale)}</th>
                 </tr>
               </thead>
               <tbody>
@@ -280,8 +280,8 @@ export function PlatformsDataView({
                         </span>
                         {p.name}
                       </td>
-                      <td class="text-right font-mono font-semibold">{p.visits.toLocaleString()}</td>
-                      <td class="text-right font-mono text-xs">{p.sharePercent.toFixed(1)}%</td>
+                      <td class="text-right font-mono font-semibold">{formatLocalizedNumber(p.visits.toLocaleString(), locale)}</td>
+                      <td class="text-right font-mono text-xs">{formatLocalizedNumber(p.sharePercent.toFixed(1), locale)}%</td>
                       <td>
                         <progress
                           class="progress progress-accent w-full h-2"
@@ -294,7 +294,7 @@ export function PlatformsDataView({
                 ) : (
                   <tr>
                     <td colSpan={4} class="text-center py-6 text-sm text-base-content/40">
-                      No platform traffic recorded yet.
+                      {t("admin.platforms.no_visits", locale)}
                     </td>
                   </tr>
                 )}
@@ -308,9 +308,9 @@ export function PlatformsDataView({
       <div class="card border border-base-300 bg-base-100 p-6 shadow-sm space-y-4">
         <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h2 class="text-lg font-bold text-base-content">Raw Meet Visits Log</h2>
+            <h2 class="text-lg font-bold text-base-content">{t("admin.platforms.live_log", locale)}</h2>
             <p class="text-xs text-base-content/60">
-              Filterable visit stream recorded with 5-minute deduping ({stats.totalVisitsCount} records)
+              {t("admin.platforms.traffic_events", locale)} ({formatLocalizedNumber(stats.totalVisitsCount, locale)})
             </p>
           </div>
         </div>
@@ -323,10 +323,10 @@ export function PlatformsDataView({
           hx-swap="outerHTML"
         >
           <label class="form-control">
-            <span class="label-text text-xs font-semibold">Filter Channel</span>
+            <span class="label-text text-xs font-semibold">{t("admin.platforms.platform", locale)}</span>
             <select class="select select-bordered select-sm w-full" name="platform">
-              <option value="" selected={!query.platform}>All Channels</option>
-              <option value="direct" selected={query.platform === "direct"}>Direct / Organic</option>
+              <option value="" selected={!query.platform}>{t("admin.platforms.filter_all", locale)}</option>
+              <option value="direct" selected={query.platform === "direct"}>{t("admin.platforms.filter_direct", locale)}</option>
               {stats.platforms.filter((p) => p.slug).map((p) => (
                 <option value={p.slug!} selected={query.platform === p.slug} key={p.slug!}>
                   {p.name} ({p.slug})
@@ -336,17 +336,17 @@ export function PlatformsDataView({
           </label>
 
           <label class="form-control">
-            <span class="label-text text-xs font-semibold">Search Meet Title</span>
+            <span class="label-text text-xs font-semibold">{t("admin.platforms.meet_title", locale)}</span>
             <input
               class="input input-bordered input-sm w-full"
               name="q"
               value={query.q ?? ""}
-              placeholder="Search by meeting title..."
+              placeholder={t("admin.platforms.search_meet_placeholder", locale)}
             />
           </label>
 
-          <button class="btn btn-primary btn-sm">Filter</button>
-          <a class="btn btn-ghost btn-sm" href="/dashboard/admin/platforms-data">Reset</a>
+          <button class="btn btn-primary btn-sm">{t("admin.platforms.apply_filter", locale)}</button>
+          <a class="btn btn-ghost btn-sm" href="/dashboard/admin/platforms-data">{t("admin.reset", locale)}</a>
         </form>
 
         {/* Visits Table */}
@@ -363,10 +363,10 @@ export function PlatformsDataView({
                       aria-label="Select all"
                     />
                   </th>
-                  <th>Meeting</th>
-                  <th>Channel</th>
-                  <th>Timestamp (UTC)</th>
-                  <th class="text-right">Actions</th>
+                  <th>{t("admin.platforms.meet_title", locale)}</th>
+                  <th>{t("admin.platforms.platform", locale)}</th>
+                  <th>{t("admin.platforms.timestamp", locale)}</th>
+                  <th class="text-right">{t("admin.actions", locale)}</th>
                 </tr>
               </thead>
               <tbody>
@@ -394,9 +394,9 @@ export function PlatformsDataView({
                           hx-post={`/dashboard/admin/platforms-data/delete-visit?id=${v.id}`}
                           hx-target={`#visit-${v.id}`}
                           hx-swap="outerHTML"
-                          hx-confirm="Are you sure you want to delete this visit record?"
+                          hx-confirm={locale === "fa" ? "آیا از حذف این لاگ بازدید اطمینان دارید؟" : "Are you sure you want to delete this visit record?"}
                         >
-                          Delete
+                          {t("admin.delete", locale)}
                         </button>
                       </td>
                     </tr>
@@ -404,7 +404,7 @@ export function PlatformsDataView({
                 ) : (
                   <tr>
                     <td colSpan={5} class="text-center py-6 text-sm text-base-content/40">
-                      No visits found matching filter criteria.
+                      {t("admin.platforms.no_visits", locale)}
                     </td>
                   </tr>
                 )}
@@ -421,9 +421,9 @@ export function PlatformsDataView({
             hx-include="#visits-bulk-form"
             hx-target="#platforms-data-view"
             hx-swap="outerHTML"
-            hx-confirm="Delete selected visit logs?"
+            hx-confirm={locale === "fa" ? "آیا از حذف لاگ‌های انتخاب‌شده مطمئن هستید؟" : "Delete selected visit logs?"}
           >
-            Delete Selected
+            {t("admin.delete_selected", locale)}
           </button>
 
           {stats.totalPages > 1 && (
@@ -432,16 +432,16 @@ export function PlatformsDataView({
                 class={`join-item btn btn-xs ${stats.page <= 1 ? "btn-disabled" : ""}`}
                 href={`/dashboard/admin/platforms-data?page=${stats.page - 1}&platform=${encodeURIComponent(query.platform ?? "")}&q=${encodeURIComponent(query.q ?? "")}`}
               >
-                « Prev
+                {t("admin.platforms.prev", locale)}
               </a>
               <button class="join-item btn btn-xs btn-active">
-                Page {stats.page} of {stats.totalPages}
+                {t("admin.platforms.page", locale)} {formatLocalizedNumber(stats.page, locale)} {t("admin.platforms.of", locale)} {formatLocalizedNumber(stats.totalPages, locale)}
               </button>
               <a
                 class={`join-item btn btn-xs ${stats.page >= stats.totalPages ? "btn-disabled" : ""}`}
                 href={`/dashboard/admin/platforms-data?page=${stats.page + 1}&platform=${encodeURIComponent(query.platform ?? "")}&q=${encodeURIComponent(query.q ?? "")}`}
               >
-                Next »
+                {t("admin.platforms.next", locale)}
               </a>
             </div>
           )}

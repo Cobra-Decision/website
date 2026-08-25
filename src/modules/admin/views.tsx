@@ -7,30 +7,30 @@ import { formatUtcDateTime, formatLocalizedDate, formatLocalizedTime } from "../
 
 export type Row = Record<string, string | number | null>;
 const managementLinks = [
-  ["Users", "/dashboard/admin/users"],
-  ["Meets", "/dashboard/admin/meets"],
-  ["Tags", "/dashboard/admin/tags"],
-  ["Roles", "/dashboard/admin/roles"],
-  ["Endpoints", "/dashboard/admin/endpoints"],
-  ["File Management", "/dashboard/admin/files"],
+  ["admin.nav.users", "/dashboard/admin/users"],
+  ["admin.nav.meets", "/dashboard/admin/meets"],
+  ["admin.nav.tags", "/dashboard/admin/tags"],
+  ["admin.nav.roles", "/dashboard/admin/roles"],
+  ["admin.nav.endpoints", "/dashboard/admin/endpoints"],
+  ["admin.nav.file_management", "/dashboard/admin/files"],
 ] as const;
 
 const mailCenterLinks = [
-  ["Mail Editor", "/dashboard/admin/mail-editor"],
-  ["Mail Scheduler", "/dashboard/admin/mail-scheduler"],
-  ["Mail Management", "/dashboard/admin/mail-management"],
+  ["admin.nav.mail_editor", "/dashboard/admin/mail-editor"],
+  ["admin.nav.mail_scheduler", "/dashboard/admin/mail-scheduler"],
+  ["admin.nav.mail_management", "/dashboard/admin/mail-management"],
 ] as const;
 
 const databaseCenterLinks = [
-  ["Database Management", "/dashboard/admin/database"],
+  ["admin.nav.database_management", "/dashboard/admin/database"],
 ] as const;
 
 const warehouseCenterLinks = [
-  ["Platforms Data", "/dashboard/admin/platforms-data"],
+  ["admin.nav.platforms_data", "/dashboard/admin/platforms-data"],
 ] as const;
 
 const reportLinks = [
-  ["SQL report", "/dashboard/admin/report"],
+  ["admin.nav.sql_report", "/dashboard/admin/report"],
 ] as const;
 
 export function AdminLayout({
@@ -77,12 +77,12 @@ export function AdminLayout({
             {allowedManagement.length > 0 && (
               <>
                 <li class="menu-title text-xs font-bold uppercase tracking-wider text-base-content/50">
-                  Management
+                  {t("admin.nav.management", locale)}
                 </li>
-                {allowedManagement.map(([label, href]) => (
+                {allowedManagement.map(([key, href]) => (
                   <li key={href}>
                     <a href={href} class={currentPath === href ? "active font-semibold" : ""}>
-                      {label}
+                      {t(key as any, locale)}
                     </a>
                   </li>
                 ))}
@@ -92,12 +92,12 @@ export function AdminLayout({
             {allowedMailCenter.length > 0 && (
               <>
                 <li class="menu-title mt-4 text-xs font-bold uppercase tracking-wider text-base-content/50">
-                  Mail Center
+                  {t("admin.nav.mail_center", locale)}
                 </li>
-                {allowedMailCenter.map(([label, href]) => (
+                {allowedMailCenter.map(([key, href]) => (
                   <li key={href}>
                     <a href={href} class={currentPath === href ? "active font-semibold" : ""}>
-                      {label}
+                      {t(key as any, locale)}
                     </a>
                   </li>
                 ))}
@@ -107,12 +107,12 @@ export function AdminLayout({
             {allowedDatabaseCenter.length > 0 && (
               <>
                 <li class="menu-title mt-4 text-xs font-bold uppercase tracking-wider text-base-content/50">
-                  Database Center
+                  {t("admin.nav.database_center", locale)}
                 </li>
-                {allowedDatabaseCenter.map(([label, href]) => (
+                {allowedDatabaseCenter.map(([key, href]) => (
                   <li key={href}>
                     <a href={href} class={currentPath === href ? "active font-semibold" : ""}>
-                      {label}
+                      {t(key as any, locale)}
                     </a>
                   </li>
                 ))}
@@ -122,12 +122,12 @@ export function AdminLayout({
             {allowedWarehouseCenter.length > 0 && (
               <>
                 <li class="menu-title mt-4 text-xs font-bold uppercase tracking-wider text-base-content/50">
-                  Warehouse Center
+                  {t("admin.nav.warehouse_center", locale)}
                 </li>
-                {allowedWarehouseCenter.map(([label, href]) => (
+                {allowedWarehouseCenter.map(([key, href]) => (
                   <li key={href}>
                     <a href={href} class={currentPath === href ? "active font-semibold" : ""}>
-                      {label}
+                      {t(key as any, locale)}
                     </a>
                   </li>
                 ))}
@@ -137,12 +137,12 @@ export function AdminLayout({
             {allowedReports.length > 0 && (
               <>
                 <li class="menu-title mt-4 text-xs font-bold uppercase tracking-wider text-base-content/50">
-                  Reports & Tools
+                  {t("admin.nav.reports", locale)}
                 </li>
-                {allowedReports.map(([label, href]) => (
+                {allowedReports.map(([key, href]) => (
                   <li key={href}>
                     <a href={href} class={currentPath === href ? "active font-semibold" : ""}>
-                      {label}
+                      {t(key as any, locale)}
                     </a>
                   </li>
                 ))}
@@ -246,10 +246,10 @@ export function CrudTable({
       <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 class="text-2xl font-bold tracking-tight text-base-content capitalize sm:text-3xl">
-            {resource}
+            {t(`admin.nav.${resource}` as any, locale) || resource}
           </h1>
           <p class="text-sm text-base-content/60">
-            Manage, filter, and inspect {resource} records.
+            {t("admin.crud.search_placeholder", locale)}
           </p>
         </div>
         <div class="flex flex-wrap gap-2">
@@ -258,7 +258,7 @@ export function CrudTable({
             hx-get={`/dashboard/admin/${resource}/new`}
             hx-target="#modal"
           >
-            + Add New
+            {t("admin.add_new", locale)}
           </button>
           <button
             class="btn btn-outline btn-error btn-sm"
@@ -280,7 +280,7 @@ export function CrudTable({
       >
         <div class="grid gap-3 sm:grid-cols-[180px_1fr_auto_auto] sm:items-end">
           <label class="form-control">
-            <span class="label-text font-medium text-xs">Search Field</span>
+            <span class="label-text font-medium text-xs">{t("admin.crud.search_field", locale)}</span>
             <select class="select select-bordered select-sm w-full" name="search_field">
               {searchFields.map((field) => (
                 <option value={field} selected={searchField === field} key={field}>
@@ -291,18 +291,18 @@ export function CrudTable({
           </label>
 
           <label class="form-control">
-            <span class="label-text font-medium text-xs">Search Query</span>
+            <span class="label-text font-medium text-xs">{t("admin.crud.search_query", locale)}</span>
             <input
               class="input input-bordered input-sm w-full"
               name="q"
               value={query.q ?? ""}
-              placeholder={`Search in ${resource}...`}
+              placeholder={`${t("admin.crud.search_placeholder", locale)}`}
             />
           </label>
 
-          <button class="btn btn-primary btn-sm">Search</button>
+          <button class="btn btn-primary btn-sm">{t("admin.search", locale)}</button>
           <a class="btn btn-ghost btn-sm" href={`/dashboard/admin/${resource}`}>
-            Reset
+            {t("admin.reset", locale)}
           </a>
         </div>
       </form>
@@ -335,7 +335,7 @@ export function CrudTable({
                     </button>
                   </th>
                 ))}
-                <th class="text-right">Actions</th>
+                <th class="text-right">{t("admin.actions", locale)}</th>
               </tr>
             </thead>
             <tbody>
@@ -363,7 +363,7 @@ export function CrudTable({
                           hx-get={`/dashboard/admin/${resource}/${row.id}/edit`}
                           hx-target="#modal"
                         >
-                          Edit
+                          {t("admin.edit", locale)}
                         </button>
                         <button
                           type="button"
@@ -371,7 +371,7 @@ export function CrudTable({
                           hx-get={`/dashboard/admin/${resource}/${row.id}/confirm`}
                           hx-target="#modal"
                         >
-                          Delete
+                          {t("admin.delete", locale)}
                         </button>
                       </div>
                     </td>
@@ -380,7 +380,7 @@ export function CrudTable({
               ) : (
                 <tr>
                   <td colSpan={columns.length + 2} class="py-12 text-center text-sm text-base-content/60">
-                    No matching {resource} found.
+                    {t("admin.crud.no_matching", locale)}
                   </td>
                 </tr>
               )}
@@ -429,21 +429,23 @@ export function MeetRelations({
   users,
   selectedTags,
   attendees,
+  locale = "en",
 }: {
   meetId: string;
   tags: { id: string; title: string; description: string | null }[];
   users: { id: string; email: string }[];
   selectedTags: { id: string; title: string; description: string | null }[];
   attendees: { id: string; email: string }[];
+  locale?: Locale;
 }) {
   return (
     <section id={`meet-relations-${meetId}`} class="mt-6 grid gap-4 border-t border-base-200 pt-5 md:grid-cols-2">
       <div class="card border border-base-300 bg-base-100 shadow-sm">
         <div class="card-body p-4 space-y-3">
-          <h4 class="card-title text-sm font-bold text-base-content">Associated Tags</h4>
+          <h4 class="card-title text-sm font-bold text-base-content">{t("admin.crud.associated_tags", locale)}</h4>
           <div class="flex gap-2">
             <select id={`meet-tag-${meetId}`} name="tag_id" class="select select-bordered select-sm min-w-0 flex-1">
-              <option value="">Choose tag</option>
+              <option value="">{t("admin.crud.choose_tag", locale)}</option>
               {tags
                 .filter((tag) => !selectedTags.some((item) => item.id === tag.id))
                 .map((tag) => (
@@ -460,7 +462,7 @@ export function MeetRelations({
               hx-target={`#meet-relations-${meetId}`}
               hx-swap="outerHTML"
             >
-              Add
+              {t("admin.crud.add", locale)}
             </button>
           </div>
           <div class="flex flex-wrap gap-1.5">
@@ -479,10 +481,10 @@ export function MeetRelations({
       </div>
       <div class="card border border-base-300 bg-base-100 shadow-sm">
         <div class="card-body p-4 space-y-3">
-          <h4 class="card-title text-sm font-bold text-base-content">Registered Attendees</h4>
+          <h4 class="card-title text-sm font-bold text-base-content">{t("admin.crud.registered_attendees", locale)}</h4>
           <div class="flex gap-2">
             <select id={`meet-attendee-${meetId}`} name="user_id" class="select select-bordered select-sm min-w-0 flex-1">
-              <option value="">Choose attendee</option>
+              <option value="">{t("admin.crud.choose_attendee", locale)}</option>
               {users
                 .filter((user) => !attendees.some((item) => item.id === user.id))
                 .map((user) => (
@@ -499,7 +501,7 @@ export function MeetRelations({
               hx-target={`#meet-relations-${meetId}`}
               hx-swap="outerHTML"
             >
-              Add
+              {t("admin.crud.add", locale)}
             </button>
           </div>
           <div class="space-y-1.5 max-h-48 overflow-y-auto">
@@ -513,7 +515,7 @@ export function MeetRelations({
                   hx-target={`#meet-relations-${meetId}`}
                   hx-swap="outerHTML"
                 >
-                  Remove
+                  {t("admin.crud.remove", locale)}
                 </button>
               </div>
             ))}
