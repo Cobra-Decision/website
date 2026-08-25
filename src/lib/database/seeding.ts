@@ -150,6 +150,11 @@ export const SYSTEM_ENDPOINTS = [
   "/dashboard/admin/database/import",
   "/dashboard/admin/database/backup-now",
   "/dashboard/admin/database/migrate",
+
+  // Warehouse Center
+  "/dashboard/admin/platforms-data",
+  "/dashboard/admin/platforms-data/delete-visit",
+  "/dashboard/admin/platforms-data/bulk-delete-visits",
 ] as const;
 
 export async function seedEndpoints(
@@ -165,8 +170,21 @@ export async function seedEndpoints(
   for (const endpoint of endpointsToRegister) {
     const existing = db.query<{ id: string }, [string]>("SELECT id FROM endpoints WHERE title = ?").get(endpoint);
     if (!existing) {
-      db.run("INSERT INTO endpoints (id, title, description) VALUES (?, ?, ?)", [generateId(), endpoint, "System endpoint"]);
+      const endpointId = generateId();
+      db.run("INSERT INTO endpoints (id, title, description) VALUES (?, ?, ?)", [endpointId, endpoint, "System endpoint"]);
       addReport(report, "endpoints", "endpoints", 1, 0, 0);
+
+      // Auto-bind new admin endpoints to Super Admin & admin roles so existing deployments get permission immediately
+      const adminRoles = db.query<{ id: string; title: string }, []>(
+        "SELECT id, title FROM roles WHERE title IN ('admin', 'Super Admin')"
+      ).all();
+      for (const r of adminRoles) {
+        if (r.title === "admin" && endpoint === "/dashboard/admin/report") continue;
+        db.run(
+          "INSERT OR IGNORE INTO role_endpoints (id, role_id, endpoint_id, description) VALUES (?, ?, ?, ?)",
+          [generateId(), r.id, endpointId, "Dashboard access"]
+        );
+      }
     } else {
       addReport(report, "endpoints", "endpoints", 0, 0, 1);
     }

@@ -24,6 +24,7 @@ import { getAllTags, normalizeTopics, parseTopics } from "../events/queries";
 import { logger } from "../../lib/logger";
 import { createDatabaseAdminRoutes } from "./database-routes";
 import { ImageCropEditor } from "../../ui/image-crop-editor";
+import { PlatformsDataView, getPlatformFunnelStats } from "./platforms-views";
 
 type AdminEnv = {
   Variables: {
@@ -1168,6 +1169,54 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
       )
       .all();
     return page(c, "Mail Editor", <MailEditorView templates={templates} />);
+  });
+
+  // Warehouse Center - Platforms Data & Funnel Routes
+  app.get("/platforms-data", async (c) => {
+    const pageNum = parseInt(c.req.query("page") ?? "1", 10);
+    const platform = c.req.query("platform") || undefined;
+    const q = c.req.query("q") || undefined;
+    const stats = getPlatformFunnelStats(db, { page: pageNum, platform, q });
+    const locale = getLocale(c);
+
+    const isHtmx = Boolean(c.req.header("hx-request"));
+    if (isHtmx) {
+      return c.html(<PlatformsDataView stats={stats} query={{ page: String(pageNum), platform, q }} locale={locale} />);
+    }
+
+    return page(
+      c,
+      "Platforms Data",
+      <PlatformsDataView stats={stats} query={{ page: String(pageNum), platform, q }} locale={locale} />
+    );
+  });
+
+  app.post("/platforms-data/delete-visit", async (c) => {
+    const id = c.req.query("id");
+    if (id) {
+      db.run("DELETE FROM meet_visits WHERE id = ?", [id]);
+    }
+    return c.body(null, 200);
+  });
+
+  app.post("/platforms-data/bulk-delete-visits", async (c) => {
+    const body = await c.req.parseBody({ all: true });
+    const rawIds = body["ids"] || body["ids[]"];
+    const ids = (Array.isArray(rawIds) ? rawIds : rawIds ? [rawIds] : []).map(String).filter(Boolean);
+
+    if (ids.length > 0) {
+      const placeholders = ids.map(() => "?").join(",");
+      db.run(`DELETE FROM meet_visits WHERE id IN (${placeholders})`, ids);
+    }
+
+    const stats = getPlatformFunnelStats(db);
+    const locale = getLocale(c);
+    return c.html(
+      <>
+        <PlatformsDataView stats={stats} locale={locale} />
+        {toast("admin.deleted", `${ids.length} visit record(s) deleted.`)}
+      </>
+    );
   });
 
   app.post("/mail-editor/save", async (c) => {
