@@ -72,23 +72,13 @@ export function createTelegramRoutes(
                   method: "POST",
                   headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({ initData }),
-                  redirect: "follow"
                 }).then(async (res) => {
-                  if (res.redirected) {
-                    window.location.href = res.url;
-                  } else if (res.ok) {
-                    const html = await res.text();
-                    if (html) {
-                      document.body.innerHTML = html;
-                      if (window.htmx) window.htmx.process(document.body);
+                  if (res.ok) {
+                    const data = await res.json().catch(() => null);
+                    if (data && data.redirectUrl) {
+                      window.location.replace(data.redirectUrl);
                     } else {
-                      const startParam = tg?.initDataUnsafe?.start_param || "";
-                      if (startParam.startsWith("meet_")) {
-                        const meetId = startParam.slice(5);
-                        window.location.href = "/meets/" + encodeURIComponent(meetId) + "?platform=telegram";
-                      } else {
-                        window.location.href = "/dashboard/user";
-                      }
+                      window.location.replace("/dashboard/user");
                     }
                   } else {
                     const err = await res.text();
@@ -163,7 +153,7 @@ export function createTelegramRoutes(
         actor: { userId: existingUser.id, email: existingUser.email, role: existingUser.role_title },
         data: { telegramId: tgId, redirectUrl },
       });
-      return c.redirect(redirectUrl);
+      return c.json({ ok: true, redirectUrl });
     }
 
     // User is NOT linked -> Save tg_link_id cookie for later linking
@@ -177,10 +167,10 @@ export function createTelegramRoutes(
 
     // If a specific meet was requested, redirect directly to it as guest; otherwise go to /auth
     if (startParam.startsWith("meet_")) {
-      return c.redirect(redirectUrl);
+      return c.json({ ok: true, redirectUrl });
     }
 
-    return c.redirect("/auth");
+    return c.json({ ok: true, redirectUrl: "/auth" });
   });
 
   return app;
