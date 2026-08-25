@@ -99,11 +99,12 @@ test("recordMeetVisit logs visit with or without platform slug and deduplicates 
   recordMeetVisit(database, meet.id, undefined, "ip-2");
   recordMeetVisit(database, meet.id, "unknown_platform", "ip-3");
 
-  const visits = database.query<{ meet_id: string; platform_id: string | null }, []>("SELECT meet_id, platform_id FROM meet_visits ORDER BY created_at ASC, id ASC").all();
+  const visits = database.query<{ meet_id: string; platform_id: string | null; created_at: string }, []>("SELECT meet_id, platform_id, created_at FROM meet_visits ORDER BY created_at ASC, id ASC").all();
   expect(visits).toHaveLength(3);
-  expect(visits[0]).toEqual({ meet_id: meet.id, platform_id: platformId });
-  expect(visits[1]).toEqual({ meet_id: meet.id, platform_id: null });
-  expect(visits[2]).toEqual({ meet_id: meet.id, platform_id: null });
+  expect(visits[0]).toMatchObject({ meet_id: meet.id, platform_id: platformId });
+  expect(visits[1]).toMatchObject({ meet_id: meet.id, platform_id: null });
+  expect(visits[2]).toMatchObject({ meet_id: meet.id, platform_id: null });
+  expect(visits[0].created_at).toBeTruthy();
 });
 
 test("getUserPreferredTags and setUserPreferredTags manages user_tags table", () => {

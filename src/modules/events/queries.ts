@@ -276,7 +276,7 @@ export function recordMeetVisit(database: Database, meetId: string, platformSlug
     }
 
     database.run(
-      "INSERT INTO meet_visits (id, meet_id, platform_id, created_at) VALUES (?, ?, ?, datetime('now', 'localtime'))",
+      "INSERT INTO meet_visits (id, meet_id, platform_id, created_at) VALUES (?, ?, ?, CURRENT_TIMESTAMP)",
       [generateId(), meetId, platformId]
     );
   } catch (error) {
