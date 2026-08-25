@@ -18,48 +18,43 @@ export function formatTehran(utc: string) {
   return { date, time };
 }
 
-export function formatLocalizedDate(dateString: string, locale: Locale = "en"): string {
+export function formatLocalizedDate(dateString: string, locale: Locale = "en", timeZone = "Asia/Tehran"): string {
   if (!dateString) return "";
   try {
     const cleanDate = toEnglishDigits(dateString);
-    // If dateString is YYYY-MM-DD
     const parts = cleanDate.split("-");
+    let dateObj: Date;
     if (parts.length === 3) {
       const [year, month, day] = parts.map(Number);
-      const dateObj = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
-      if (locale === "fa") {
-        return new Intl.DateTimeFormat("fa-IR", {
-          year: "numeric",
-          month: "long",
-          day: "numeric",
-          timeZone: "UTC",
-        }).format(dateObj);
-      }
-      return new Intl.DateTimeFormat("en-US", {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-        timeZone: "UTC",
-      }).format(dateObj);
+      dateObj = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
+    } else {
+      dateObj = new Date(cleanDate);
     }
+    if (isNaN(dateObj.getTime())) return dateString;
 
-    const parsed = new Date(cleanDate);
-    if (isNaN(parsed.getTime())) return dateString;
+    const tzOption = (() => {
+      try {
+        Intl.DateTimeFormat(undefined, { timeZone });
+        return timeZone;
+      } catch {
+        return "Asia/Tehran";
+      }
+    })();
 
     if (locale === "fa") {
       return new Intl.DateTimeFormat("fa-IR", {
         year: "numeric",
         month: "long",
         day: "numeric",
-        timeZone: "UTC",
-      }).format(parsed);
+        timeZone: tzOption,
+      }).format(dateObj);
     }
     return new Intl.DateTimeFormat("en-US", {
       year: "numeric",
       month: "short",
       day: "numeric",
-      timeZone: "UTC",
-    }).format(parsed);
+      timeZone: tzOption,
+    }).format(dateObj);
   } catch {
     return dateString;
   }
@@ -69,6 +64,50 @@ export function formatLocalizedTime(timeStr: string, locale: Locale = "en"): str
   if (!timeStr) return "";
   const cleanTime = toEnglishDigits(timeStr);
   return locale === "fa" ? toPersianDigits(cleanTime) : cleanTime;
+}
+
+/**
+ * Formats a UTC ISO/SQL timestamp string (e.g. `2026-08-25 15:10:00` or `2026-08-25T15:10:00Z`)
+ * to localized date and time in the user's timezone.
+ */
+export function formatUtcDateTime(
+  utcTimestamp: string | null | undefined,
+  locale: Locale = "en",
+  timeZone = "Asia/Tehran"
+): { date: string; time: string; full: string } {
+  if (!utcTimestamp) return { date: "", time: "", full: "" };
+  try {
+    const clean = utcTimestamp.replace(" ", "T") + (utcTimestamp.includes("Z") || utcTimestamp.includes("+") ? "" : "Z");
+    const dateObj = new Date(clean);
+    if (isNaN(dateObj.getTime())) return { date: utcTimestamp, time: "", full: utcTimestamp };
+
+    const tz = (() => {
+      try {
+        Intl.DateTimeFormat(undefined, { timeZone });
+        return timeZone;
+      } catch {
+        return "Asia/Tehran";
+      }
+    })();
+
+    const date = new Intl.DateTimeFormat(locale === "fa" ? "fa-IR" : "en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      timeZone: tz,
+    }).format(dateObj);
+
+    const time = new Intl.DateTimeFormat(locale === "fa" ? "fa-IR" : "en-GB", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+      timeZone: tz,
+    }).format(dateObj);
+
+    return { date, time, full: `${date} ${time}` };
+  } catch {
+    return { date: utcTimestamp, time: "", full: utcTimestamp };
+  }
 }
 
 /**

@@ -16,6 +16,17 @@ export function getLocale(c?: Context): Locale {
   return "en";
 }
 
+export function getTimezone(c?: Context, defaultTz = "Asia/Tehran"): string {
+  if (!c) return defaultTz;
+  const headerTz = c.req.header("hx-timezone") || c.req.header("x-timezone");
+  if (headerTz && headerTz.trim()) return decodeURIComponent(headerTz.trim());
+
+  const cookieTz = getCookie(c, "tz") ?? getCookie(c, "timezone");
+  if (cookieTz && cookieTz.trim()) return decodeURIComponent(cookieTz.trim());
+
+  return defaultTz;
+}
+
 export function isRtl(locale: Locale): boolean {
   return locale === "fa";
 }

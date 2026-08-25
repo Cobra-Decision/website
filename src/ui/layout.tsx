@@ -90,6 +90,8 @@ export const Layout = ({
         <script src="/htmx.js" />
         <script async defer src="/altcha.js" type="module" />
         <script defer src="/alpine.js" />
+        <script dangerouslySetInnerHTML={{ __html: "try{const tz=Intl.DateTimeFormat().resolvedOptions().timeZone;if(tz&&!document.cookie.includes('tz='+encodeURIComponent(tz))){document.cookie='tz='+encodeURIComponent(tz)+';path=/;max-age=31536000;SameSite=Lax';}}catch(e){}" }} />
+        <script dangerouslySetInnerHTML={{ __html: "document.addEventListener('htmx:configRequest',(evt)=>{try{const tz=Intl.DateTimeFormat().resolvedOptions().timeZone;if(tz)evt.detail.headers['HX-Timezone']=tz;}catch(e){}});" }} />
         <script dangerouslySetInnerHTML={{ __html: "if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('/sw.js');});}" }} />
         <script dangerouslySetInnerHTML={{ __html: "document.addEventListener('htmx:beforeSwap',(event)=>{const status=event.detail.xhr.status;if(status>=400&&status<500){event.detail.shouldSwap=true;event.detail.isError=false}});document.addEventListener('htmx:afterSettle',()=>document.querySelectorAll('#toast-container > div').forEach((el)=>{if(!el.dataset.toastTimer){el.dataset.toastTimer='true';setTimeout(()=>{el.classList.add('opacity-0','transition-opacity','duration-300');setTimeout(()=>el.remove(),300)},5000);}}))" }} />
       </head>
