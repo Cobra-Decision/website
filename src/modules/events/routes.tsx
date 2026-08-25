@@ -24,9 +24,18 @@ export function createEventsRoutes(database: Database, jwtSecret = process.env.J
   };
 
   app.get("/:id", async (c) => {
+    // Skip prefetch / crawler preview requests to prevent phantom visits
+    const purpose = c.req.header("purpose") || c.req.header("sec-purpose") || c.req.header("x-purpose");
     const id = c.req.param("id");
     const platformSlug = c.req.query("platform");
-    recordMeetVisit(database, id, platformSlug);
+    const rawIp = c.req.header("cf-connecting-ip") || c.req.header("x-forwarded-for") || c.req.header("x-real-ip") || "local";
+    const visitorIp = rawIp.split(",")[0].trim();
+    const userAgent = c.req.header("user-agent") || "";
+    const visitorKey = `${visitorIp}:${userAgent.slice(0, 40)}`;
+
+    if (purpose !== "prefetch" && purpose !== "preview") {
+      recordMeetVisit(database, id, platformSlug, visitorKey);
+    }
 
     const meet = getMeetById(database, id);
     if (!meet) return c.notFound();

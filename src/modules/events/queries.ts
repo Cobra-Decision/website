@@ -247,14 +247,38 @@ export function setUserPreferredTags(database: Database, userId: string, tagIds:
   })();
 }
 
-export function recordMeetVisit(database: Database, meetId: string, platformSlug?: string) {
+// In-memory cooldown cache: key = `${meetId}:${platformId ?? 'none'}:${visitorKey ?? 'ip'}` -> timestamp
+export const visitCooldowns = new Map<string, number>();
+export const VISIT_COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes
+
+export function recordMeetVisit(database: Database, meetId: string, platformSlug?: string, visitorKey?: string) {
   try {
     let platformId: string | null = null;
     if (platformSlug) {
       const row = database.query<{ id: string }, [string]>("SELECT id FROM platforms WHERE slug = ? AND deleted_at IS NULL").get(platformSlug);
       if (row) platformId = row.id;
     }
-    database.run("INSERT INTO meet_visits (id, meet_id, platform_id) VALUES (?, ?, ?)", [generateId(), meetId, platformId]);
+
+    const now = Date.now();
+    const cacheKey = `${meetId}:${platformId ?? "none"}:${visitorKey || "anonymous"}`;
+    const lastVisit = visitCooldowns.get(cacheKey);
+
+    if (lastVisit && now - lastVisit < VISIT_COOLDOWN_MS) {
+      return;
+    }
+    visitCooldowns.set(cacheKey, now);
+
+    // ponytail: in-memory map bound by periodic sweep
+    if (visitCooldowns.size > 10000) {
+      for (const [k, time] of visitCooldowns) {
+        if (now - time > VISIT_COOLDOWN_MS) visitCooldowns.delete(k);
+      }
+    }
+
+    database.run(
+      "INSERT INTO meet_visits (id, meet_id, platform_id, created_at) VALUES (?, ?, ?, datetime('now', 'localtime'))",
+      [generateId(), meetId, platformId]
+    );
   } catch (error) {
     console.error("Failed to record meet visit:", error);
   }

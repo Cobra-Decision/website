@@ -89,14 +89,15 @@ test("filterMeets filters by tag, date range, search query, and user attendance"
   expect(filteredAttended[0].id).toBe(meet1.id);
 });
 
-test("recordMeetVisit logs visit with or without platform slug", () => {
+test("recordMeetVisit logs visit with or without platform slug and deduplicates by cooldown", () => {
   const platformId = generateId();
   database.run("INSERT INTO platforms (id, slug, name) VALUES (?, 'telegram', 'Telegram')", [platformId]);
   const meet = createMeet(database, { title: "Analytics Meet", topics: [], scheduledDate: "2099-01-01", scheduledTime: "18:00", tagIds: [] });
 
-  recordMeetVisit(database, meet.id, "telegram");
-  recordMeetVisit(database, meet.id);
-  recordMeetVisit(database, meet.id, "unknown_platform");
+  recordMeetVisit(database, meet.id, "telegram", "ip-1");
+  recordMeetVisit(database, meet.id, "telegram", "ip-1"); // duplicate in cooldown window, should be ignored
+  recordMeetVisit(database, meet.id, undefined, "ip-2");
+  recordMeetVisit(database, meet.id, "unknown_platform", "ip-3");
 
   const visits = database.query<{ meet_id: string; platform_id: string | null }, []>("SELECT meet_id, platform_id FROM meet_visits ORDER BY created_at ASC, id ASC").all();
   expect(visits).toHaveLength(3);
