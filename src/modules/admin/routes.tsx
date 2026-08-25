@@ -13,7 +13,7 @@ import { handleImageUpload, handlePresentationUpload, handleVideoUpload } from "
 import { createFileAdminRoutes } from "./files/routes";
 import { MeetingLinkGenerator } from "../../ui/dashboard";
 import { MarkdownEditor } from "../../ui/markdown-editor";
-import { getLocale, toEnglishDigits } from "../../lib/i18n/context";
+import { getLocale, getTimezone, toEnglishDigits } from "../../lib/i18n/context";
 import { toUtcIso } from "../events/datetime";
 import { mailService } from "../mailer/service";
 import { MailerDashboardView } from "./mailer-views";
@@ -646,7 +646,19 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
   for (const resource of Object.keys(config) as (keyof typeof config)[]) {
     const { table, columns, fields } = config[resource];
     app.get(`/${resource}`, (c) => {
-      const tableComponent = <CrudTable resource={resource} columns={[...columns]} searchFields={[...config[resource].searchFields]} rows={rowsFor(resource, c.req.query())} query={c.req.query()} />;
+      const locale = getLocale(c);
+      const tz = getTimezone(c);
+      const tableComponent = (
+        <CrudTable
+          resource={resource}
+          columns={[...columns]}
+          searchFields={[...config[resource].searchFields]}
+          rows={rowsFor(resource, c.req.query())}
+          query={c.req.query()}
+          locale={locale}
+          timeZone={tz}
+        />
+      );
       return c.req.header("HX-Request") ? c.html(tableComponent) : page(c, resource, tableComponent);
     });
 
@@ -1163,12 +1175,14 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
 
   // Mail Editor Dashboard Routes
   app.get("/mail-editor", async (c) => {
+    const locale = getLocale(c);
+    const tz = getTimezone(c);
     const templates = db
       .query<EmailTemplateRow, []>(
         "SELECT id, title, subject, format, value, description, created_at, updated_at, deleted_at FROM emails_schema WHERE deleted_at IS NULL ORDER BY updated_at DESC"
       )
       .all();
-    return page(c, "Mail Editor", <MailEditorView templates={templates} />);
+    return page(c, "Mail Editor", <MailEditorView templates={templates} locale={locale} timeZone={tz} />);
   });
 
   // Warehouse Center - Platforms Data & Funnel Routes
@@ -1178,16 +1192,17 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
     const q = c.req.query("q") || undefined;
     const stats = getPlatformFunnelStats(db, { page: pageNum, platform, q });
     const locale = getLocale(c);
+    const tz = getTimezone(c);
 
     const isHtmx = Boolean(c.req.header("hx-request"));
     if (isHtmx) {
-      return c.html(<PlatformsDataView stats={stats} query={{ page: String(pageNum), platform, q }} locale={locale} />);
+      return c.html(<PlatformsDataView stats={stats} query={{ page: String(pageNum), platform, q }} locale={locale} timeZone={tz} />);
     }
 
     return page(
       c,
       "Platforms Data",
-      <PlatformsDataView stats={stats} query={{ page: String(pageNum), platform, q }} locale={locale} />
+      <PlatformsDataView stats={stats} query={{ page: String(pageNum), platform, q }} locale={locale} timeZone={tz} />
     );
   });
 
@@ -1281,11 +1296,13 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
 
   const renderMailScheduler = (c: Context, toastElement?: ReturnType<typeof toast>) => {
     const data = getMailSchedulerState();
+    const locale = getLocale(c);
+    const tz = getTimezone(c);
     return page(
       c,
       "Mail Automation & Scheduler",
       <>
-        <MailSchedulerView {...data} />
+        <MailSchedulerView {...data} locale={locale} timeZone={tz} />
         {toastElement}
       </>
     );

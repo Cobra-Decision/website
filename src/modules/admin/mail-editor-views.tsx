@@ -1,13 +1,19 @@
 import type { EmailTemplateRow } from "../mailer/database";
 import { PREBUILT_EMAIL_TEMPLATES } from "../mailer/database";
 import { MailPlaceholdersToolbar } from "./mail-placeholders-component";
+import { formatUtcDateTime } from "../events/datetime";
+import type { Locale } from "../../lib/i18n/translations";
 
 export const MailEditorView = ({
   templates,
   currentTemplate,
+  locale = "en",
+  timeZone = "Asia/Tehran",
 }: {
   templates: EmailTemplateRow[];
   currentTemplate?: EmailTemplateRow | null;
+  locale?: Locale;
+  timeZone?: string;
 }) => {
   const initialTitle = currentTemplate?.title ?? "";
   const initialSubject = currentTemplate?.subject ?? "";
@@ -153,8 +159,8 @@ export const MailEditorView = ({
                         <p class="text-2xs text-base-content/50 line-clamp-1">{tpl.description}</p>
                       )}
                       <div class="flex items-center justify-between pt-1 border-t border-base-300/40 mt-1">
-                        <span class="text-2xs text-base-content/40">
-                          {new Date(tpl.updated_at).toLocaleDateString()}
+                        <span class="text-2xs text-base-content/40" title={tpl.updated_at}>
+                          {formatUtcDateTime(tpl.updated_at, locale, timeZone).full || tpl.updated_at}
                         </span>
                         <div class="flex gap-1">
                           <button

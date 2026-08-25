@@ -1,6 +1,7 @@
 import type { Database } from "bun:sqlite";
 import type { Locale } from "../../lib/i18n/translations";
 import { t } from "../../lib/i18n/context";
+import { formatUtcDateTime } from "../events/datetime";
 
 export interface PlatformFunnelStats {
   totalVisits: number;
@@ -147,10 +148,12 @@ export function PlatformsDataView({
   stats,
   query = {},
   locale = "en",
+  timeZone = "Asia/Tehran",
 }: {
   stats: PlatformFunnelStats;
   query?: { platform?: string; q?: string; page?: string };
   locale?: Locale;
+  timeZone?: string;
 }) {
   return (
     <div id="platforms-data-view" class="space-y-8">
@@ -381,7 +384,9 @@ export function PlatformsDataView({
                       <td>
                         <span class="badge badge-sm badge-ghost">{v.platform_name}</span>
                       </td>
-                      <td class="font-mono text-xs text-base-content/70">{v.created_at}</td>
+                      <td class="font-mono text-xs text-base-content/70" title={v.created_at}>
+                        {formatUtcDateTime(v.created_at, locale, timeZone).full || v.created_at}
+                      </td>
                       <td class="text-right">
                         <button
                           type="button"

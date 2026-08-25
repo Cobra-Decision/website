@@ -1,6 +1,8 @@
 import type { ScheduledEmailRow, EmailTemplateRow, EmailAutomationRuleRow } from "../mailer/database";
 import type { Tag } from "../events/types";
 import { MailPlaceholdersToolbar } from "./mail-placeholders-component";
+import { formatUtcDateTime } from "../events/datetime";
+import type { Locale } from "../../lib/i18n/translations";
 
 export const AutomationRuleCard = ({
   rule,
@@ -169,12 +171,16 @@ export const MailSchedulerView = ({
   templates,
   tags,
   users,
+  locale = "en",
+  timeZone = "Asia/Tehran",
 }: {
   scheduledList: ScheduledEmailRow[];
   automationRules: EmailAutomationRuleRow[];
   templates: EmailTemplateRow[];
   tags: Tag[];
   users: { id: string; email: string; first_name: string | null; last_name: string | null; username: string | null }[];
+  locale?: Locale;
+  timeZone?: string;
 }) => {
   return (
     <div
@@ -604,8 +610,8 @@ export const MailSchedulerView = ({
                       <td>
                         <span class="badge badge-ghost badge-xs uppercase font-mono">{job.format}</span>
                       </td>
-                      <td class="text-xs">
-                        {new Date(job.scheduled_for).toLocaleString()}
+                      <td class="text-xs" title={job.scheduled_for}>
+                        {formatUtcDateTime(job.scheduled_for, locale, timeZone).full || new Date(job.scheduled_for).toLocaleString()}
                       </td>
                       <td class="text-xs font-bold text-center">
                         {job.sent_count}

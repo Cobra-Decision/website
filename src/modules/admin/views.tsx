@@ -3,6 +3,7 @@ import { DashboardNavbar, type DashboardUser } from "../../ui/dashboard";
 import { TagBadge } from "../../ui/tag-badge";
 import type { Locale } from "../../lib/i18n/translations";
 import { t } from "../../lib/i18n/context";
+import { formatUtcDateTime, formatLocalizedDate, formatLocalizedTime } from "../events/datetime";
 
 export type Row = Record<string, string | number | null>;
 const managementLinks = [
@@ -154,12 +155,31 @@ export function AdminLayout({
   );
 }
 
-function renderCellContent(column: string, rawVal: string | number | null) {
+function renderCellContent(column: string, rawVal: string | number | null, locale: Locale = "en", timeZone = "Asia/Tehran") {
   if (rawVal === null || rawVal === undefined || rawVal === "") {
     return <span class="text-base-content/40">—</span>;
   }
 
   const str = String(rawVal);
+
+  if (column === "created_at" || column === "updated_at" || column === "deleted_at") {
+    const formatted = formatUtcDateTime(str, locale, timeZone);
+    return (
+      <span class="font-mono text-xs text-base-content/80 whitespace-nowrap" title={str}>
+        {formatted.full || str}
+      </span>
+    );
+  }
+
+  if (column === "scheduled_date") {
+    const formattedDate = formatLocalizedDate(str, locale, timeZone);
+    return <span class="font-medium text-xs whitespace-nowrap">{formattedDate}</span>;
+  }
+
+  if (column === "scheduled_time") {
+    const formattedTime = formatLocalizedTime(str, locale);
+    return <span class="font-mono text-xs whitespace-nowrap">{formattedTime}</span>;
+  }
 
   if (column === "status") {
     const badgeColor = str === "live" ? "badge-success" : str === "completed" ? "badge-ghost" : "badge-primary";
@@ -206,6 +226,7 @@ export function CrudTable({
   searchFields = columns,
   query = {},
   locale = "en",
+  timeZone = "Asia/Tehran",
 }: {
   resource: string;
   rows: Row[];
@@ -213,6 +234,7 @@ export function CrudTable({
   searchFields?: string[];
   query?: Record<string, string>;
   locale?: Locale;
+  timeZone?: string;
 }) {
   const searchField = searchFields.includes(query.search_field ?? "") ? query.search_field! : searchFields[0]!;
   const sortUrl = (column: string) =>
@@ -330,7 +352,7 @@ export function CrudTable({
                     </td>
                     {columns.map((column) => (
                       <td key={column} class="max-h-16 align-middle">
-                        {renderCellContent(column, row[column])}
+                        {renderCellContent(column, row[column], locale, timeZone)}
                       </td>
                     ))}
                     <td class="text-right align-middle">
