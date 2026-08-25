@@ -52,8 +52,9 @@ describe("Telegram Mini App Integration & Auth Routes", () => {
       body: JSON.stringify({ initData }),
     });
 
-    expect(res.status).toBe(302);
-    expect(res.headers.get("location")).toBe("/auth");
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.redirectUrl).toBe("/auth");
     expect(res.headers.get("set-cookie")).toContain("tg_link_id=999000111");
   });
 
@@ -78,8 +79,9 @@ describe("Telegram Mini App Integration & Auth Routes", () => {
       body: JSON.stringify({ initData }),
     });
 
-    expect(res.status).toBe(302);
-    expect(res.headers.get("location")).toBe("/dashboard/user");
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.redirectUrl).toBe("/dashboard/user");
     expect(res.headers.get("set-cookie")).toContain("session=");
   });
 
