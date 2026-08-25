@@ -70,3 +70,31 @@ export function formatLocalizedTime(timeStr: string, locale: Locale = "en"): str
   const cleanTime = toEnglishDigits(timeStr);
   return locale === "fa" ? toPersianDigits(cleanTime) : cleanTime;
 }
+
+/**
+ * Returns true if the current time is within or past windowMinutes (default 15) before scheduled start time.
+ */
+export function isMeetLinkActive(
+  scheduledDate: string,
+  scheduledTime: string,
+  scheduledAtUtc?: string | null,
+  windowMinutes = 15
+): boolean {
+  try {
+    let startTimestamp: number;
+    if (scheduledAtUtc) {
+      startTimestamp = new Date(scheduledAtUtc).getTime();
+    } else if (scheduledDate && scheduledTime) {
+      startTimestamp = new Date(toUtcIso(scheduledDate, scheduledTime)).getTime();
+    } else {
+      return true;
+    }
+    if (isNaN(startTimestamp)) return true;
+    const now = Date.now();
+    const windowMs = windowMinutes * 60 * 1000;
+    return now >= startTimestamp - windowMs;
+  } catch {
+    return true;
+  }
+}
+

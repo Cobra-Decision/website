@@ -56,7 +56,7 @@ test("dynamic meeting detail page renders meet details and tracks platform visit
     title: "TypeScript Deep Dive",
     description: "In-depth TypeScript tour",
     topics: ["TypeScript", "Compiler"],
-    scheduledDate: "2099-01-01",
+    scheduledDate: "2020-01-01",
     scheduledTime: "18:00",
     durationMinutes: 90,
     meetUrl: "https://meet.example.com/ts",

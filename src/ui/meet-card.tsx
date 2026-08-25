@@ -50,10 +50,10 @@ export const UnifiedMeetCard = ({
   const isCarousel = variant === "carousel";
 
   const cardClasses = isCarousel
-    ? "carousel-item w-[85vw] max-w-[340px] sm:w-80 md:w-96 flex-shrink-0 flex flex-col relative overflow-hidden rounded-2xl border border-base-300 bg-base-100 shadow-sm transition hover:-translate-y-1 hover:shadow-xl group"
+    ? "carousel-item w-[85vw] max-w-[340px] sm:w-80 md:w-96 flex-shrink-0 flex flex-col relative overflow-hidden rounded-2xl border border-base-300 bg-base-100 shadow-sm transition hover:-translate-y-1 hover:shadow-xl group cursor-pointer"
     : isFeatured
-    ? "relative overflow-hidden rounded-3xl border border-base-300 bg-base-100 p-3 shadow-2xl transition hover:shadow-3xl group"
-    : "flex flex-col relative overflow-hidden rounded-2xl border border-base-300 bg-base-100 shadow-sm transition hover:shadow-md group";
+    ? "relative overflow-hidden rounded-3xl border border-base-300 bg-base-100 p-3 shadow-2xl transition hover:shadow-3xl group cursor-pointer"
+    : "flex flex-col relative overflow-hidden rounded-2xl border border-base-300 bg-base-100 shadow-sm transition hover:shadow-md group cursor-pointer";
 
   const tagLimit = isFeatured ? 4 : 3;
 

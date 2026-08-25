@@ -139,7 +139,7 @@ test("GET /meets/:id renders public meeting with direct room URL and markdown", 
     title: "Public Rust Talk",
     description: "## Deep dive\n\n- **Safety**\n- *Concurrency*",
     topics: ["Rust"],
-    scheduledDate: "2099-01-01",
+    scheduledDate: "2020-01-01",
     scheduledTime: "18:00",
     meetUrl: "https://meet.jit.si/rust-room",
     fileUrl: "/uploads/rust_slides.pdf",
@@ -186,7 +186,7 @@ test("GET /meets/:id hides private meeting room URL for non-attendees and shows 
     title: "Private Exec Sync",
     description: "Confidential roadmap discussion",
     topics: ["Strategy"],
-    scheduledDate: "2099-01-01",
+    scheduledDate: "2020-01-01",
     scheduledTime: "18:00",
     meetUrl: "https://meet.jit.si/secret-room",
     accessStatus: "private",
@@ -370,10 +370,10 @@ test("hydrateMeets batch queries correctly associate tags, attendee counts, and 
   expect(hydrated2.tags.map((t) => t.id).sort()).toEqual([tag1, tag2].sort());
 });
 
-test("runMigrations applies performance index migration 004 and video_url migration 005", async () => {
+test("runMigrations applies performance index migration 004, video_url migration 005, and mailer automation migration 007", async () => {
   const memDb = new Database(":memory:");
   const result = await runMigrations(memDb);
-  expect(result.currentVersion).toBe(6);
+  expect(result.currentVersion).toBe(7);
 
   const indexNames = memDb
     .query<{ name: string }, []>("SELECT name FROM sqlite_master WHERE type='index'")

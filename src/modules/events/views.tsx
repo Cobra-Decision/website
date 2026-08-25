@@ -3,7 +3,7 @@ import { TagBadge } from "../../ui/tag-badge";
 import { renderMarkdown } from "../../lib/markdown";
 import type { Locale } from "../../lib/i18n/translations";
 import { t, formatLocalizedNumber } from "../../lib/i18n/context";
-import { formatLocalizedDate, formatLocalizedTime } from "./datetime";
+import { formatLocalizedDate, formatLocalizedTime, isMeetLinkActive } from "./datetime";
 import { LanguageSwitch } from "../../ui/language-switch";
 import { MeetStatusBadge, MeetAccessBadge } from "../../ui/meet-badges";
 import { VideoIcon, FileTextIcon, DownloadIcon, ChevronDownIcon, ChevronUpIcon } from "../../ui/icons";
@@ -162,24 +162,36 @@ export const MeetAccessBanner = ({
 
   const isPublic = meet.access_status === "public";
   const canAccessMeetUrl = Boolean(isPublic || isAttending);
+  const isLinkActive = isMeetLinkActive(meet.scheduled_date, meet.scheduled_time, meet.scheduled_at_utc, 15);
 
   return (
     <div id="meet-access-box" class="w-full">
       {canAccessMeetUrl ? (
-        <div class="rounded-2xl border border-primary/20 bg-primary/5 p-6 text-center sm:text-start sm:flex sm:items-center sm:justify-between shadow-sm transition-all">
-          <div>
-            <h3 class="text-lg font-bold text-base-content">{t("meet.ready_to_join", locale)}</h3>
-            <p class="text-sm text-base-content/70">{t("meet.room_live", locale)}</p>
+        isLinkActive ? (
+          <div class="rounded-2xl border border-primary/20 bg-primary/5 p-6 text-center sm:text-start sm:flex sm:items-center sm:justify-between shadow-sm transition-all">
+            <div>
+              <h3 class="text-lg font-bold text-base-content">{t("meet.ready_to_join", locale)}</h3>
+              <p class="text-sm text-base-content/70">{t("meet.room_live", locale)}</p>
+            </div>
+            <a
+              class="btn btn-primary mt-4 sm:mt-0 shadow-md font-semibold"
+              href={meet.meet_url}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              {t("meet.join_url", locale)}
+            </a>
           </div>
-          <a
-            class="btn btn-primary mt-4 sm:mt-0 shadow-md font-semibold"
-            href={meet.meet_url}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            {t("meet.join_url", locale)}
-          </a>
-        </div>
+        ) : (
+          <div class="rounded-2xl border border-info/20 bg-info/5 p-6 text-center sm:text-start sm:flex sm:items-center sm:justify-between shadow-sm transition-all">
+            <div class="space-y-1">
+              <h3 class="text-base font-bold text-base-content">{t("meet.link_available_soon_title", locale)}</h3>
+              <p class="text-xs text-base-content/70">
+                {t("meet.link_available_soon_desc", locale)}
+              </p>
+            </div>
+          </div>
+        )
       ) : (
         <div class="rounded-2xl border border-warning/30 bg-warning/5 p-6 text-center sm:text-start sm:flex sm:items-center sm:justify-between shadow-sm transition-all">
           <div class="space-y-1">
