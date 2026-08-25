@@ -93,10 +93,12 @@ export const MeetsGrid = ({
   meets,
   userId,
   locale = "en",
+  timeZone = "Asia/Tehran",
 }: {
   meets: MeetWithDetails[];
   userId: string;
   locale?: Locale;
+  timeZone?: string;
 }) => (
   <div id="meets-grid" class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
     {meets.length ? (
@@ -107,6 +109,7 @@ export const MeetsGrid = ({
             key={meet.id}
             meet={meet}
             locale={locale}
+            timeZone={timeZone}
             variant="grid"
             actionSlot={<RsvpButton meet={meet} isAttending={isAttending} locale={locale} />}
           />
@@ -127,6 +130,7 @@ export const UserDashboard = ({
   activeTab = "all",
   selectedStatus,
   locale = "en",
+  timeZone = "Asia/Tehran",
 }: {
   user: Profile;
   meets: MeetWithDetails[];
@@ -134,6 +138,7 @@ export const UserDashboard = ({
   activeTab?: "all" | "attended";
   selectedStatus?: string;
   locale?: Locale;
+  timeZone?: string;
 }) => {
   const name = [user.first_name, user.last_name].filter(Boolean).join(" ") || user.username || user.email;
   const isSuperAdmin = user.role_title === "Super Admin" || user.role_title === "admin";
@@ -231,7 +236,7 @@ export const UserDashboard = ({
             </div>
 
             {/* Meets Grid */}
-            <MeetsGrid meets={meets} userId={user.id!} locale={locale} />
+            <MeetsGrid meets={meets} userId={user.id!} locale={locale} timeZone={timeZone} />
           </main>
         </div>
 

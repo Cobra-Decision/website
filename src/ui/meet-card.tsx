@@ -29,17 +29,19 @@ export function getMarkdownExcerpt(markdown: string | null | undefined, maxLengt
 export const UnifiedMeetCard = ({
   meet,
   locale = "en",
+  timeZone = "Asia/Tehran",
   variant = "carousel",
   actionSlot,
   imagePriority = false,
 }: {
   meet: MeetWithDetails;
   locale?: Locale;
+  timeZone?: string;
   variant?: "carousel" | "grid" | "featured";
   actionSlot?: any;
   imagePriority?: boolean;
 }) => {
-  const formattedDate = formatLocalizedDate(meet.scheduled_date, locale);
+  const formattedDate = formatLocalizedDate(meet.scheduled_date, locale, timeZone);
   const formattedTime = formatLocalizedTime(meet.scheduled_time, locale);
   const formattedDuration = formatLocalizedNumber(meet.duration_minutes, locale);
   const formattedAttendeeCount = formatLocalizedNumber(meet.attendee_count, locale);
