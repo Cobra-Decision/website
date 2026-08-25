@@ -35,10 +35,12 @@ export function startMailerScheduler(
 
         if (rule.rule_key === "tag_reminder") {
           const daysAhead = typeof config.days_ahead === "number" ? config.days_ahead : 1;
-          await mailService.sendFavoriteTagMeetReminders(database, daysAhead);
+          const templateTitle = rule.template_title || undefined;
+          await mailService.sendFavoriteTagMeetReminders(database, daysAhead, undefined, templateTitle);
           database.run("UPDATE email_automation_rules SET last_run_at = CURRENT_TIMESTAMP WHERE id = ?", [rule.id]);
         } else if (rule.rule_key === "rsvp_reminder") {
           const daysAhead = typeof config.days_ahead === "number" ? config.days_ahead : 0;
+          const templateTitle = rule.template_title || undefined;
           const target = new Date();
           target.setDate(target.getDate() + daysAhead);
           const targetDateStr = target.toISOString().slice(0, 10);
@@ -51,7 +53,7 @@ export function startMailerScheduler(
             .all(targetDateStr);
 
           for (const { id } of upcomingMeets) {
-            await mailService.sendMeetAttendeesReminder(database, id);
+            await mailService.sendMeetAttendeesReminder(database, id, undefined, templateTitle);
           }
           database.run("UPDATE email_automation_rules SET last_run_at = CURRENT_TIMESTAMP WHERE id = ?", [rule.id]);
         }

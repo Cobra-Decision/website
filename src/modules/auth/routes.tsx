@@ -237,11 +237,15 @@ export function createAuthRoutes(database: Database, captcha: Captcha, jwtSecret
           actor: { userId, email: input.email, ip: c.req.header("x-forwarded-for") ?? "local", userAgent: c.req.header("user-agent") },
           data: { username: input.username, tagCount: input.tagIds.length },
         });
-        mailService.sendWelcomeEmail({
-          email: input.email,
-          firstName: input.firstName,
-          username: input.username,
-        }).catch((err) => console.error("[Auth] Welcome email failed:", err));
+        mailService.sendWelcomeEmail(
+          {
+            email: input.email,
+            firstName: input.firstName,
+            username: input.username,
+          },
+          undefined,
+          database
+        ).catch((err) => console.error("[Auth] Welcome email failed:", err));
 
         c.header("HX-Redirect", "/auth");
         return c.body(null);

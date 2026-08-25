@@ -1310,9 +1310,11 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
         config = JSON.parse(rule.schedule_config || "{}");
       } catch {}
 
+      const templateTitle = rule.template_title || undefined;
+
       if (rule.rule_key === "tag_reminder") {
         const daysAhead = typeof config.days_ahead === "number" ? config.days_ahead : 1;
-        await mailService.sendFavoriteTagMeetReminders(db, daysAhead);
+        await mailService.sendFavoriteTagMeetReminders(db, daysAhead, undefined, templateTitle);
       } else if (rule.rule_key === "rsvp_reminder") {
         const daysAhead = typeof config.days_ahead === "number" ? config.days_ahead : 0;
         const target = new Date();
@@ -1320,7 +1322,23 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
         const targetDateStr = target.toISOString().slice(0, 10);
         const meets = db.query<{ id: string }, [string]>("SELECT id FROM meets WHERE scheduled_date = ? AND status = 'upcoming' AND deleted_at IS NULL").all(targetDateStr);
         for (const { id: meetId } of meets) {
-          await mailService.sendMeetAttendeesReminder(db, meetId);
+          await mailService.sendMeetAttendeesReminder(db, meetId, undefined, templateTitle);
+        }
+      } else if (rule.rule_key === "welcome_email") {
+        const auth = c.get("auth");
+        const adminUser = auth?.sub
+          ? db
+              .query<{ email: string; first_name: string | null; username: string | null }, [string]>(
+                "SELECT email, first_name, username FROM users WHERE id = ? AND deleted_at IS NULL"
+              )
+              .get(auth.sub)
+          : null;
+        if (adminUser?.email) {
+          await mailService.sendWelcomeEmail(
+            { email: adminUser.email, firstName: adminUser.first_name || "Admin", username: adminUser.username || "admin" },
+            undefined,
+            db
+          );
         }
       }
       db.run("UPDATE email_automation_rules SET last_run_at = CURRENT_TIMESTAMP WHERE id = ?", [id]);

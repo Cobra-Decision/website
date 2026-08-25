@@ -171,7 +171,8 @@ export function renderDynamicTemplate(
 export function renderWelcomeTemplate(
   user: { firstName?: string | null; username?: string | null; email: string },
   baseUrl = "http://localhost:3000",
-  database?: Database
+  database?: Database,
+  templateTitle = "welcome_email"
 ) {
   const name = user.firstName || user.username || user.email;
   const dashboardUrl = `${baseUrl}/dashboard/user`;
@@ -184,7 +185,7 @@ export function renderWelcomeTemplate(
     date: new Date().toLocaleDateString(),
   };
 
-  return renderDynamicTemplate(database, "welcome_email", vars, () => {
+  return renderDynamicTemplate(database, templateTitle, vars, () => {
     const subject = "Welcome to CobraDecision | خوش آمدید";
 
     const faContent = `
@@ -294,7 +295,8 @@ export function renderAttendeesReminderTemplate(
   meet: MeetEmailData,
   user: { firstName?: string | null; username?: string | null; email: string },
   baseUrl = "http://localhost:3000",
-  database?: Database
+  database?: Database,
+  templateTitle = "attendees_reminder"
 ) {
   const name = user.firstName || user.username || user.email;
   const meetLink = `${baseUrl}/meets/${meet.id}?ref=gmail`;
@@ -316,7 +318,7 @@ export function renderAttendeesReminderTemplate(
     date_shamsi: getShamsiToday(),
   };
 
-  return renderDynamicTemplate(database, "attendees_reminder", vars, () => {
+  return renderDynamicTemplate(database, templateTitle, vars, () => {
     const subject = `یادآوری رویداد: ${meet.title} | Event Reminder: ${meet.title}`;
 
     const faContent = `
@@ -352,7 +354,8 @@ export function renderTagReminderTemplate(
   user: { firstName?: string | null; username?: string | null; email: string },
   matchedTags: string[],
   baseUrl = "http://localhost:3000",
-  database?: Database
+  database?: Database,
+  templateTitle = "tag_reminder"
 ) {
   const name = user.firstName || user.username || user.email;
   const meetLink = `${baseUrl}/meets/${meet.id}?ref=gmail`;
@@ -368,7 +371,7 @@ export function renderTagReminderTemplate(
     meet_link: meetLink,
   };
 
-  return renderDynamicTemplate(database, "tag_reminder", vars, () => {
+  return renderDynamicTemplate(database, templateTitle, vars, () => {
     const subject = `یادآوری: جلسه مرتبط با علایق شما (${meet.title})`;
 
     const faContent = `

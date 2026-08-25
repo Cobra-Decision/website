@@ -19,7 +19,7 @@ export const AutomationRuleCard = ({
   return (
     <div
       id={`rule-card-${rule.id}`}
-      class={`card border transition-all duration-200 shadow-sm ${
+      class={`card border transition-all duration-200 shadow-sm relative focus-within:z-30 ${
         isEnabled
           ? "border-primary/40 bg-base-100 ring-1 ring-primary/20"
           : "border-base-300 bg-base-200/60 opacity-80"
@@ -51,13 +51,15 @@ export const AutomationRuleCard = ({
               hx-swap="outerHTML"
               class="flex items-center shrink-0"
             >
-              <input
-                type="checkbox"
-                class="toggle toggle-primary toggle-sm cursor-pointer"
-                checked={isEnabled}
-                onchange="this.form.requestSubmit()"
-                aria-label={`Toggle status for ${rule.title}`}
-              />
+              <label class="label cursor-pointer p-0">
+                <input
+                  type="checkbox"
+                  class="toggle toggle-primary toggle-sm cursor-pointer"
+                  checked={isEnabled}
+                  onchange="this.form.requestSubmit()"
+                  aria-label={`Toggle status for ${rule.title}`}
+                />
+              </label>
             </form>
           </div>
 
@@ -105,17 +107,16 @@ export const AutomationRuleCard = ({
           >
             <button
               type="submit"
-              class="btn btn-xs btn-outline btn-primary gap-1"
+              class="btn btn-xs btn-outline btn-primary"
               title="Force run this automated trigger now"
             >
-              <span>⚡</span>
-              <span>Run Now</span>
+              Run Now
             </button>
           </form>
 
-          <details class="dropdown dropdown-end">
-            <summary class="btn btn-xs btn-ghost gap-1">Configure ⚙</summary>
-            <div class="dropdown-content z-20 menu p-4 shadow-xl bg-base-100 border border-base-300 rounded-box w-72 space-y-3">
+          <details class="dropdown dropdown-end dropdown-top sm:dropdown-bottom relative z-50">
+            <summary class="btn btn-xs btn-ghost">Configure</summary>
+            <div class="dropdown-content z-50 menu p-4 shadow-2xl bg-base-100 border border-base-300 rounded-box w-72 space-y-3">
               <h4 class="font-bold text-xs text-base-content">Configure {rule.title}</h4>
               <form
                 hx-post={`/dashboard/admin/mail-scheduler/rules/${rule.id}/update`}
@@ -260,37 +261,37 @@ export const MailSchedulerView = ({
           hx-get="/dashboard/admin/mail-scheduler"
           hx-target="main"
           hx-select="main > *"
-          class="btn btn-sm btn-outline gap-2"
+          class="btn btn-sm btn-outline"
         >
-          ↻ Refresh
+          Refresh
         </button>
       </div>
 
       {/* Navigation Tabs */}
-      <div class="tabs tabs-boxed bg-base-200 p-1 w-fit">
+      <div class="tabs tabs-boxed bg-base-200 p-1 w-full sm:w-fit overflow-x-auto flex-nowrap">
         <button
           type="button"
-          class="tab tab-sm font-semibold transition-all"
+          class="tab tab-sm font-semibold transition-all whitespace-nowrap flex-1 sm:flex-initial"
           x-bind:class="activeTab === 'rules' ? 'tab-active' : ''"
           x-on:click="activeTab = 'rules'"
         >
-          ⚡ Automated Email Triggers ({automationRules.length})
+          Automated Triggers ({automationRules.length})
         </button>
         <button
           type="button"
-          class="tab tab-sm font-semibold transition-all"
+          class="tab tab-sm font-semibold transition-all whitespace-nowrap flex-1 sm:flex-initial"
           x-bind:class="activeTab === 'schedule' ? 'tab-active' : ''"
           x-on:click="activeTab = 'schedule'"
         >
-          📅 Schedule One-Time Broadcast
+          Schedule Broadcast
         </button>
         <button
           type="button"
-          class="tab tab-sm font-semibold transition-all"
+          class="tab tab-sm font-semibold transition-all whitespace-nowrap flex-1 sm:flex-initial"
           x-bind:class="activeTab === 'queue' ? 'tab-active' : ''"
           x-on:click="activeTab = 'queue'"
         >
-          📋 Broadcast Queue ({scheduledList.length})
+          Broadcast Queue ({scheduledList.length})
         </button>
       </div>
 
@@ -495,7 +496,7 @@ export const MailSchedulerView = ({
                       />
                       <span class="label-text text-xs truncate">
                         <strong x-text="u.email"></strong>
-                        <span class="text-base-content/60 text-2xs ml-1" x-text="'(' + u.name + ')'"></span>
+                        <span class="text-base-content/60 text-2xs ms-1" x-text="'(' + u.name + ')'"></span>
                       </span>
                     </label>
                   </template>
@@ -638,7 +639,7 @@ export const MailSchedulerView = ({
                             hx-select="main > *"
                           >
                             <button type="submit" class="btn btn-xs btn-ghost text-error">
-                              ✕
+                              Delete
                             </button>
                           </form>
                         </div>

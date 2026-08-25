@@ -119,9 +119,6 @@ export class MailService {
   }
 
   private async processQueue(payload: EmailPayload, msg: EmailMessage): Promise<void> {
-    if (this.isProcessing) return;
-    this.isProcessing = true;
-
     try {
       await this.provider.send(payload);
       msg.status = "sent";
@@ -144,7 +141,6 @@ export class MailService {
     } finally {
       const idx = this.queue.indexOf(msg);
       if (idx !== -1) this.queue.splice(idx, 1);
-      this.isProcessing = false;
     }
   }
 
@@ -153,6 +149,19 @@ export class MailService {
     baseUrl?: string,
     database?: Database
   ) {
+    if (database) {
+      const rule = database
+        .query<{ is_enabled: number; template_title: string | null }, [string]>(
+          "SELECT is_enabled, template_title FROM email_automation_rules WHERE rule_key = ? AND deleted_at IS NULL"
+        )
+        .get("welcome_email");
+      if (rule && !rule.is_enabled) {
+        return;
+      }
+      const tplTitle = rule?.template_title || "welcome_email";
+      const { subject, html, text } = renderWelcomeTemplate(user, baseUrl, database, tplTitle);
+      return this.enqueueEmail({ to: user.email, subject, html, text });
+    }
     const { subject, html, text } = renderWelcomeTemplate(user, baseUrl, database);
     return this.enqueueEmail({ to: user.email, subject, html, text });
   }
@@ -175,7 +184,8 @@ export class MailService {
   public async sendFavoriteTagMeetReminders(
     database: Database,
     daysAhead = Number(process.env.MEET_REMINDER_DAYS_BEFORE ?? 1),
-    baseUrl = process.env.BASE_URL ?? "http://localhost:3000"
+    baseUrl = process.env.BASE_URL ?? "http://localhost:3000",
+    templateTitle?: string
   ): Promise<number> {
     const target = new Date();
     target.setDate(target.getDate() + daysAhead);
@@ -217,8 +227,8 @@ export class MailService {
 
       const placeholders = tagIds.map(() => "?").join(",");
       const matchingUsers = database
-        .query<{ email: string; first_name: string | null; username: string | null }, any[]>(
-          `SELECT DISTINCT u.email, u.first_name, u.username
+        .query<{ id: string; email: string; first_name: string | null; username: string | null }, any[]>(
+          `SELECT DISTINCT u.id, u.email, u.first_name, u.username
            FROM users u
            JOIN user_tags ut ON ut.user_id = u.id
            WHERE ut.tag_id IN (${placeholders}) AND u.deleted_at IS NULL`
@@ -237,8 +247,28 @@ export class MailService {
       };
 
       for (const user of matchingUsers) {
-        const { subject, html, text } = renderTagReminderTemplate(meetData, user, tagTitles, baseUrl, database);
+        // Check if reminder was already sent for this meet and user
+        const alreadySent = database
+          .query<{ id: string }, [string, string, string]>(
+            "SELECT id FROM email_reminder_logs WHERE rule_key = ? AND meet_id = ? AND user_id = ?"
+          )
+          .get("tag_reminder", meet.id, user.id);
+
+        if (alreadySent) continue;
+
+        const { subject, html, text } = renderTagReminderTemplate(
+          meetData,
+          user,
+          tagTitles,
+          baseUrl,
+          database,
+          templateTitle || "tag_reminder"
+        );
         await this.enqueueEmail({ to: user.email, subject, html, text });
+        database.run(
+          "INSERT OR IGNORE INTO email_reminder_logs (id, rule_key, meet_id, user_id) VALUES (?, ?, ?, ?)",
+          [generateId(), "tag_reminder", meet.id, user.id]
+        );
         count++;
       }
     }
@@ -248,7 +278,8 @@ export class MailService {
   public async sendMeetAttendeesReminder(
     database: Database,
     meetId: string,
-    baseUrl = process.env.BASE_URL ?? "http://localhost:3000"
+    baseUrl = process.env.BASE_URL ?? "http://localhost:3000",
+    templateTitle?: string
   ): Promise<number> {
     const meet = database
       .query<{
@@ -273,8 +304,8 @@ export class MailService {
     if (!meet) return 0;
 
     const attendees = database
-      .query<{ email: string; first_name: string | null; username: string | null }, [string]>(
-        `SELECT DISTINCT u.email, u.first_name, u.username
+      .query<{ id: string; email: string; first_name: string | null; username: string | null }, [string]>(
+        `SELECT DISTINCT u.id, u.email, u.first_name, u.username
          FROM users u
          JOIN meet_attendees ma ON ma.user_id = u.id
          WHERE ma.meet_id = ? AND u.deleted_at IS NULL`
@@ -294,8 +325,27 @@ export class MailService {
 
     let count = 0;
     for (const attendee of attendees) {
-      const { subject, html, text } = renderAttendeesReminderTemplate(meetData, attendee, baseUrl, database);
+      // Check if reminder was already sent for this meet and attendee
+      const alreadySent = database
+        .query<{ id: string }, [string, string, string]>(
+          "SELECT id FROM email_reminder_logs WHERE rule_key = ? AND meet_id = ? AND user_id = ?"
+        )
+        .get("rsvp_reminder", meet.id, attendee.id);
+
+      if (alreadySent) continue;
+
+      const { subject, html, text } = renderAttendeesReminderTemplate(
+        meetData,
+        attendee,
+        baseUrl,
+        database,
+        templateTitle || "attendees_reminder"
+      );
       await this.enqueueEmail({ to: attendee.email, subject, html, text });
+      database.run(
+        "INSERT OR IGNORE INTO email_reminder_logs (id, rule_key, meet_id, user_id) VALUES (?, ?, ?, ?)",
+        [generateId(), "rsvp_reminder", meet.id, attendee.id]
+      );
       count++;
     }
     return count;

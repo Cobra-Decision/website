@@ -50,3 +50,14 @@ CREATE TABLE IF NOT EXISTS email_automation_rules (
   deleted_at DATETIME
 );
 
+-- Email Reminder Logs (Deduplication for Meet & Tag Reminders)
+CREATE TABLE IF NOT EXISTS email_reminder_logs (
+  id TEXT PRIMARY KEY,
+  rule_key TEXT NOT NULL,
+  meet_id TEXT NOT NULL REFERENCES meets(id) ON DELETE CASCADE,
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  sent_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(rule_key, meet_id, user_id)
+);
+
+

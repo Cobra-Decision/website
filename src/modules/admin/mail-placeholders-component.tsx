@@ -34,7 +34,7 @@ export const MailPlaceholdersToolbar = ({
 }) => {
   return (
     <div class="flex flex-wrap items-center gap-1.5 py-1">
-      <span class="text-2xs font-semibold uppercase text-base-content/60 mr-1">Variables:</span>
+      <span class="text-2xs font-semibold uppercase text-base-content/60 me-1">Variables:</span>
       {placeholders.map((p) => (
         <button
           key={p.tag}

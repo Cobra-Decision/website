@@ -3,6 +3,7 @@ import { Database } from "bun:sqlite";
 import { initializeDatabase } from "../src/modules/auth/database";
 import { initializeEventsDatabase } from "../src/modules/events/database";
 import { initializeLandingDatabase } from "../src/modules/landing/database";
+import { initializeMailerDatabase } from "../src/modules/mailer/database";
 import { seedSampleData } from "../src/lib/seed";
 import { MailService } from "../src/modules/mailer/service";
 import { FallbackProvider } from "../src/modules/mailer/providers";
@@ -17,6 +18,7 @@ describe("Mailer Integration & Batching", () => {
     await initializeDatabase(database);
     initializeEventsDatabase(database);
     initializeLandingDatabase(database);
+    initializeMailerDatabase(database);
     await seedSampleData(database);
 
     // Verify Gmail platform seeded
