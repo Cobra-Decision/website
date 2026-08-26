@@ -147,6 +147,7 @@ export type Profile = {
   first_name: string | null;
   last_name: string | null;
   role_title: string;
+  timezone?: string;
   telegram_id?: string | null;
 };
 

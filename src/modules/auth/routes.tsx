@@ -8,7 +8,7 @@ import { Document } from "../../ui/layout";
 import { FormMessage } from "../../ui/form-message";
 import { refreshLandingCache } from "../../lib/cache";
 import { generateId } from "../../lib/id";
-import { getLocale, t } from "../../lib/i18n/context";
+import { getLocale, getTimezone, t } from "../../lib/i18n/context";
 import { normalizeRegistration } from "./service";
 import { getAllTags, setUserPreferredTags } from "../events/queries";
 import { mailService } from "../mailer/service";
@@ -103,9 +103,12 @@ export function createAuthRoutes(database: Database, captcha: Captcha, jwtSecret
         return c.html(<FormMessage message="Invalid credentials." />, 401);
       }
       const tgLinkId = getCookie(c, "tg_link_id");
+      const clientTz = getTimezone(c);
       if (tgLinkId) {
-        database.run("UPDATE users SET telegram_id = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?", [tgLinkId, user.id]);
+        database.run("UPDATE users SET telegram_id = ?, timezone = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?", [tgLinkId, clientTz, user.id]);
         deleteCookie(c, "tg_link_id", cookieOptions);
+      } else {
+        database.run("UPDATE users SET timezone = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?", [clientTz, user.id]);
       }
 
       const now = Math.floor(Date.now() / 1000);
@@ -220,12 +223,13 @@ export function createAuthRoutes(database: Database, captcha: Captcha, jwtSecret
         const input = JSON.parse(record.payload);
         const userId = generateId();
         const tgLinkId = getCookie(c, "tg_link_id");
+        const clientTz = getTimezone(c);
 
         database.transaction(() => {
           database.run(
-            `INSERT INTO users (id, username, email, phone, password_hash, first_name, last_name, telegram_id, role_id)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [userId, input.username, input.email, input.phone, Bun.password.hashSync(input.password), input.firstName, input.lastName, tgLinkId || null, role.id]
+            `INSERT INTO users (id, username, email, phone, password_hash, first_name, last_name, telegram_id, role_id, timezone)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [userId, input.username, input.email, input.phone, Bun.password.hashSync(input.password), input.firstName, input.lastName, tgLinkId || null, role.id, clientTz]
           );
           setUserPreferredTags(database, userId, input.tagIds);
           database.run("DELETE FROM registration_otps WHERE email = ?", [email]);

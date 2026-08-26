@@ -3,6 +3,7 @@ import type { Database } from "bun:sqlite";
 import { getCookie } from "hono/cookie";
 import { verify } from "hono/jwt";
 import { database } from "../../lib/database";
+import { getTimezone } from "../../lib/i18n/context";
 
 export type Claims = { sub: string; username: string; role_title: string; role_id: string };
 const permissionCache = new Map<string, Set<string>>();
@@ -95,6 +96,16 @@ export const authGuard = (jwtSecret = process.env.JWT_SECRET ?? "development-sec
     try {
       const claims = (await verify(token, jwtSecret, "HS256")) as unknown as Claims;
       c.set("auth", claims);
+
+      // Lazily sync user timezone if client passes a different valid timezone
+      const reqTz = getTimezone(c, "");
+      if (reqTz) {
+        database.run(
+          "UPDATE users SET timezone = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND timezone != ?",
+          [reqTz, claims.sub, reqTz]
+        );
+      }
+
       return next();
     } catch {
       return c.redirect("/auth");

@@ -19,7 +19,7 @@ export function createAccountRoutes(database: Database, jwtSecret = process.env.
   const loadUser = (userId: string): Profile | null => {
     return database
       .query<Profile, [string]>(
-        `SELECT u.id, u.email, u.username, u.phone, u.first_name, u.last_name, u.telegram_id, r.title role_title
+        `SELECT u.id, u.email, u.username, u.phone, u.first_name, u.last_name, u.timezone, u.telegram_id, r.title role_title
          FROM users u JOIN roles r ON r.id = u.role_id
          WHERE u.id = ? AND u.deleted_at IS NULL AND r.deleted_at IS NULL`
       )

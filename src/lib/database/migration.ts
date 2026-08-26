@@ -331,6 +331,39 @@ export const migrations: MigrationStep[] = [
       }
     },
   },
+  {
+    version: 9,
+    name: "009_update_automation_rules_send_time",
+    up: (db: Database) => {
+      const hasTable = db.query<{ name: string }, [string]>("SELECT name FROM sqlite_master WHERE type='table' AND name=?").get("email_automation_rules");
+      if (!hasTable) return;
+
+      const rules = db.query<{ id: string; rule_key: string; schedule_config: string }, []>("SELECT id, rule_key, schedule_config FROM email_automation_rules").all();
+      for (const r of rules) {
+        try {
+          const cfg = JSON.parse(r.schedule_config || "{}");
+          if (!cfg.send_time) {
+            cfg.send_time = "06:00";
+            db.run("UPDATE email_automation_rules SET schedule_config = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?", [JSON.stringify(cfg), r.id]);
+          }
+        } catch {}
+      }
+    },
+  },
+  {
+    version: 10,
+    name: "010_add_user_timezone",
+    up: (db: Database) => {
+      const hasTable = db.query<{ name: string }, [string]>("SELECT name FROM sqlite_master WHERE type='table' AND name=?").get("users");
+      if (!hasTable) return;
+
+      const tableInfo = db.query<{ name: string }, []>("PRAGMA table_info(users)").all();
+      const hasTimezone = tableInfo.some((col) => col.name === "timezone");
+      if (!hasTimezone) {
+        db.run("ALTER TABLE users ADD COLUMN timezone TEXT NOT NULL DEFAULT 'Asia/Tehran'");
+      }
+    },
+  },
 ];
 
 export function ensureMigrationTable(db: Database) {

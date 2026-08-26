@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS users (
   first_name TEXT,
   last_name TEXT,
   role_id TEXT NOT NULL REFERENCES roles(id),
+  timezone TEXT NOT NULL DEFAULT 'Asia/Tehran',
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   deleted_at TEXT

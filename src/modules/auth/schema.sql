@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS users (
   last_name TEXT,
   telegram_id TEXT UNIQUE,
   role_id TEXT NOT NULL REFERENCES roles(id),
+  timezone TEXT NOT NULL DEFAULT 'Asia/Tehran',
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   deleted_at TEXT
