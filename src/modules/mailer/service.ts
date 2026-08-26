@@ -190,13 +190,13 @@ export class MailService {
     database: Database,
     daysAhead = Number(process.env.MEET_REMINDER_DAYS_BEFORE ?? 1),
     baseUrl?: string,
-    templateTitle?: string
+    templateTitle?: string,
+    sendTime = "06:00"
   ): Promise<number> {
     const cleanBase = normalizeBaseUrl(baseUrl);
-    const target = new Date();
-    target.setDate(target.getDate() + daysAhead);
-    const targetDateStr = target.toISOString().slice(0, 10);
+    const { isTimeToRun } = require("./scheduler");
 
+    // Query upcoming meets that could potentially match any timezone window (e.g. within daysAhead +- 2 days)
     const upcomingMeets = database
       .query<{
         id: string;
@@ -208,14 +208,14 @@ export class MailService {
         access_status: string;
         presenter_first_name: string | null;
         presenter_last_name: string | null;
-      }, [string]>(
+      }, []>(
         `SELECT m.id, m.title, m.scheduled_date, m.scheduled_time, m.duration_minutes, m.status, m.access_status,
                 u.first_name as presenter_first_name, u.last_name as presenter_last_name
          FROM meets m
          LEFT JOIN users u ON u.id = m.presenter_id
-         WHERE m.scheduled_date = ? AND m.status = 'upcoming' AND m.deleted_at IS NULL`
+         WHERE m.status = 'upcoming' AND m.deleted_at IS NULL`
       )
-      .all(targetDateStr);
+      .all();
 
     let count = 0;
     for (const meet of upcomingMeets) {
@@ -233,8 +233,8 @@ export class MailService {
 
       const placeholders = tagIds.map(() => "?").join(",");
       const matchingUsers = database
-        .query<{ id: string; email: string; first_name: string | null; username: string | null }, any[]>(
-          `SELECT DISTINCT u.id, u.email, u.first_name, u.username
+        .query<{ id: string; email: string; first_name: string | null; username: string | null; timezone: string | null }, any[]>(
+          `SELECT DISTINCT u.id, u.email, u.first_name, u.username, u.timezone
            FROM users u
            JOIN user_tags ut ON ut.user_id = u.id
            WHERE ut.tag_id IN (${placeholders}) AND u.deleted_at IS NULL`
@@ -253,6 +253,24 @@ export class MailService {
       };
 
       for (const user of matchingUsers) {
+        const userTz = user.timezone || "Asia/Tehran";
+
+        // Check if user's local clock reached scheduled send_time (e.g. 06:00)
+        if (!isTimeToRun(sendTime, userTz)) {
+          continue;
+        }
+
+        // Calculate target meet date according to user's timezone + daysAhead
+        const now = new Date();
+        const userDateStr = new Intl.DateTimeFormat("en-CA", { timeZone: userTz }).format(now); // YYYY-MM-DD
+        const userTargetDate = new Date(`${userDateStr}T00:00:00Z`);
+        userTargetDate.setUTCDate(userTargetDate.getUTCDate() + daysAhead);
+        const expectedMeetDateStr = userTargetDate.toISOString().slice(0, 10);
+
+        if (meet.scheduled_date !== expectedMeetDateStr) {
+          continue;
+        }
+
         // Check if reminder was already sent for this meet and user
         const alreadySent = database
           .query<{ id: string }, [string, string, string]>(
@@ -285,9 +303,13 @@ export class MailService {
     database: Database,
     meetId: string,
     baseUrl?: string,
-    templateTitle?: string
+    templateTitle?: string,
+    daysAhead = 0,
+    sendTime = "06:00"
   ): Promise<number> {
     const cleanBase = normalizeBaseUrl(baseUrl);
+    const { isTimeToRun } = require("./scheduler");
+
     const meet = database
       .query<{
         id: string;
@@ -311,8 +333,8 @@ export class MailService {
     if (!meet) return 0;
 
     const attendees = database
-      .query<{ id: string; email: string; first_name: string | null; username: string | null }, [string]>(
-        `SELECT DISTINCT u.id, u.email, u.first_name, u.username
+      .query<{ id: string; email: string; first_name: string | null; username: string | null; timezone: string | null }, [string]>(
+        `SELECT DISTINCT u.id, u.email, u.first_name, u.username, u.timezone
          FROM users u
          JOIN meet_attendees ma ON ma.user_id = u.id
          WHERE ma.meet_id = ? AND u.deleted_at IS NULL`
@@ -332,6 +354,24 @@ export class MailService {
 
     let count = 0;
     for (const attendee of attendees) {
+      const userTz = attendee.timezone || "Asia/Tehran";
+
+      // Check if user's local clock reached scheduled send_time
+      if (!isTimeToRun(sendTime, userTz)) {
+        continue;
+      }
+
+      // Calculate target meet date for user's timezone + daysAhead
+      const now = new Date();
+      const userDateStr = new Intl.DateTimeFormat("en-CA", { timeZone: userTz }).format(now); // YYYY-MM-DD
+      const userTargetDate = new Date(`${userDateStr}T00:00:00Z`);
+      userTargetDate.setUTCDate(userTargetDate.getUTCDate() + daysAhead);
+      const expectedMeetDateStr = userTargetDate.toISOString().slice(0, 10);
+
+      if (meet.scheduled_date !== expectedMeetDateStr) {
+        continue;
+      }
+
       // Check if reminder was already sent for this meet and attendee
       const alreadySent = database
         .query<{ id: string }, [string, string, string]>(

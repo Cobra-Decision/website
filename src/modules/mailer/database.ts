@@ -56,7 +56,7 @@ export const PREBUILT_AUTOMATION_RULES = [
     is_enabled: 1,
     template_title: "tag_reminder",
     trigger_type: "daily_cron",
-    schedule_config: JSON.stringify({ days_ahead: 1 }),
+    schedule_config: JSON.stringify({ days_ahead: 1, send_time: "06:00" }),
   },
   {
     rule_key: "rsvp_reminder",
@@ -65,7 +65,7 @@ export const PREBUILT_AUTOMATION_RULES = [
     is_enabled: 1,
     template_title: "attendees_reminder",
     trigger_type: "daily_cron",
-    schedule_config: JSON.stringify({ days_ahead: 0 }),
+    schedule_config: JSON.stringify({ days_ahead: 0, send_time: "06:00" }),
   },
   {
     rule_key: "welcome_email",

@@ -1379,6 +1379,10 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
       if (typeof body.daysAhead !== "undefined") {
         config.days_ahead = Number(body.daysAhead) || 0;
       }
+      if (typeof body.sendTime !== "undefined" && typeof body.sendTime === "string") {
+        const timeMatch = body.sendTime.trim().match(/^([01]\d|2[0-3]):([0-5]\d)$/);
+        config.send_time = timeMatch ? body.sendTime.trim() : (config.send_time || "06:00");
+      }
 
       db.run(
         "UPDATE email_automation_rules SET template_title = ?, schedule_config = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",

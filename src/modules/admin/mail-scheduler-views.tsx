@@ -92,6 +92,7 @@ export const AutomationRuleCard = ({
                   {config.days_ahead === 0
                     ? (locale === "fa" ? "روز برگزاری رویداد" : "Day of event")
                     : (locale === "fa" ? `${formatLocalizedNumber(config.days_ahead, locale)} روز قبل` : `${config.days_ahead} day(s) before`)}
+                  {config.send_time ? ` (${config.send_time})` : " (06:00)"}
                 </span>
               </div>
             )}
@@ -146,17 +147,29 @@ export const AutomationRuleCard = ({
                 </div>
 
                 {typeof config.days_ahead !== "undefined" && (
-                  <div class="form-control">
-                    <label class="label py-0.5"><span class="label-text text-2xs font-semibold">{locale === "fa" ? "روزهای قبل" : "Days Ahead"}</span></label>
-                    <input
-                      type="number"
-                      name="daysAhead"
-                      min="0"
-                      max="30"
-                      value={config.days_ahead}
-                      class="input input-bordered input-xs w-full"
-                    />
-                  </div>
+                  <>
+                    <div class="form-control">
+                      <label class="label py-0.5"><span class="label-text text-2xs font-semibold">{locale === "fa" ? "روزهای قبل" : "Days Ahead"}</span></label>
+                      <input
+                        type="number"
+                        name="daysAhead"
+                        min="0"
+                        max="30"
+                        value={config.days_ahead}
+                        class="input input-bordered input-xs w-full"
+                      />
+                    </div>
+
+                    <div class="form-control">
+                      <label class="label py-0.5"><span class="label-text text-2xs font-semibold">{locale === "fa" ? "ساعت ارسال" : "Send Time (HH:MM)"}</span></label>
+                      <input
+                        type="time"
+                        name="sendTime"
+                        value={config.send_time || "06:00"}
+                        class="input input-bordered input-xs w-full"
+                      />
+                    </div>
+                  </>
                 )}
 
                 <button type="submit" class="btn btn-primary btn-xs w-full">{t("admin.save", locale)}</button>
