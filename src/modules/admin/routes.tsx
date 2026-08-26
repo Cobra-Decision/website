@@ -13,7 +13,9 @@ import { handleImageUpload, handlePresentationUpload, handleVideoUpload } from "
 import { createFileAdminRoutes } from "./files/routes";
 import { MeetingLinkGenerator } from "../../ui/dashboard";
 import { MarkdownEditor } from "../../ui/markdown-editor";
+import { DatePicker } from "../../ui/date-picker";
 import { getLocale, getTimezone, toEnglishDigits } from "../../lib/i18n/context";
+import { t } from "../../lib/i18n/translations";
 import { toUtcIso } from "../events/datetime";
 import { mailService } from "../mailer/service";
 import { MailerDashboardView } from "./mailer-views";
@@ -146,7 +148,7 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
     );
   };
 
-  const form = (resource: keyof typeof config, id?: string, values: Row = {}, error?: string) => {
+  const form = (resource: keyof typeof config, id?: string, values: Row = {}, error?: string, locale: import("../../lib/i18n/translations").Locale = "en") => {
     const roles = db.query<{ id: string; title: string }, []>("SELECT id,title FROM roles WHERE deleted_at IS NULL ORDER BY title").all();
     const users = db.query<{ id: string; email: string }, []>("SELECT id,email FROM users WHERE deleted_at IS NULL ORDER BY email").all();
     const allTags = resource === "meets" ? db.query<{ id: string; title: string }, []>("SELECT id,title FROM tags WHERE deleted_at IS NULL ORDER BY title").all() : [];
@@ -171,8 +173,21 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
         ? "number"
         : "text";
 
+    const fieldLabel = (field: string) => {
+      const key = `admin.field.${field}` as any;
+      const translated = t(key, locale);
+      return translated !== key ? translated : field.replaceAll("_", " ");
+    };
+
     const fieldInput = (field: string) =>
-      field === "description" && resource === "meets" ? (
+      field === "scheduled_date" && resource === "meets" ? (
+        <DatePicker
+          name="scheduled_date"
+          value={String(values.scheduled_date ?? "")}
+          locale={locale}
+          required
+        />
+      ) : field === "description" && resource === "meets" ? (
         <div class="sm:col-span-2">
           <MarkdownEditor name="description" value={String(values[field] ?? "")} />
         </div>
@@ -187,27 +202,27 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
       ) : field === "status" && resource === "meets" ? (
         <select class="select select-bordered w-full" name={field} value={String(values[field] ?? "upcoming")}>
           <option value="upcoming" selected={String(values[field] ?? "upcoming") === "upcoming"}>
-            Upcoming
+            {locale === "fa" ? "پیش‌رو" : "Upcoming"}
           </option>
           <option value="live" selected={String(values[field]) === "live"}>
-            Live / Presenting
+            {locale === "fa" ? "در حال برگزاری" : "Live / Presenting"}
           </option>
           <option value="completed" selected={String(values[field]) === "completed"}>
-            Presented / Completed
+            {locale === "fa" ? "برگزار شده" : "Presented / Completed"}
           </option>
         </select>
       ) : field === "access_status" && resource === "meets" ? (
         <select class="select select-bordered w-full" name={field} value={String(values[field] ?? "public")}>
           <option value="public" selected={String(values[field] ?? "public") === "public"}>
-            Public (Open URL)
+            {locale === "fa" ? "عمومی (لینک آزاد)" : "Public (Open URL)"}
           </option>
           <option value="private" selected={String(values[field]) === "private"}>
-            Private (Attendees Only)
+            {locale === "fa" ? "خصوصی (فقط ثبت‌نام‌شدگان)" : "Private (Attendees Only)"}
           </option>
         </select>
       ) : field === "role_id" ? (
         <select class="select select-bordered w-full" name={field} required value={String(values[field] ?? "")}>
-          <option value="">Choose role</option>
+          <option value="">{t("admin.crud.choose_role", locale)}</option>
           {roles.map((role) => (
             <option value={role.id} selected={String(values[field]) === role.id}>
               {role.title}
@@ -216,7 +231,7 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
         </select>
       ) : field === "presenter_id" ? (
         <select class="select select-bordered w-full" name={field} value={String(values[field] ?? "")}>
-          <option value="">Free discussion</option>
+          <option value="">{t("admin.crud.free_discussion", locale)}</option>
           {users.map((user) => (
             <option value={user.id} selected={String(values[field]) === user.id}>
               {user.email}
@@ -234,10 +249,18 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
         />
       );
 
+    const resourceTitle = () => {
+      const navKey = `admin.nav.${resource}` as any;
+      const trans = t(navKey, locale);
+      return trans !== navKey ? trans : resource;
+    };
+
     return (
       <dialog id="record-modal" class="modal modal-open">
         <div class="modal-box max-w-2xl">
-          <h3 class="font-bold text-lg">{id ? "Edit" : "Add"} {resource}</h3>
+          <h3 class="font-bold text-lg">
+            {id ? t("admin.crud.edit_title", locale) : t("admin.crud.add_title", locale)} {resourceTitle()}
+          </h3>
           <form
             hx-post={`/dashboard/admin/${resource}${id ? `/${id}` : ""}`}
             hx-target={`#${resource}-table`}
@@ -252,7 +275,7 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
             )}
             {config[resource].fields.map((field) => (
               <label class={`form-control ${field === "description" && resource === "meets" ? "sm:col-span-2" : ""}`} key={field}>
-                <span class="label-text capitalize font-medium">{field.replaceAll("_", " ")}</span>
+                <span class="label-text capitalize font-medium">{fieldLabel(field)}</span>
                 {fieldInput(field)}
               </label>
             ))}
@@ -260,21 +283,21 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
             {resource === "meets" && (
               <>
                 <label class="form-control sm:col-span-2">
-                  <span class="label-text font-medium">Or Upload Presentation / Reading Material (PDF, PPT, DOC, ZIP - max 25MB)</span>
+                  <span class="label-text font-medium">{t("admin.crud.upload_presentation", locale)}</span>
                   <input class="file-input file-input-bordered w-full" name="presentation_file" type="file" />
                   {values.file_url && (
                     <span class="mt-1 text-xs text-primary">
-                      Current file attached: <a href={String(values.file_url)} target="_blank" class="underline">{String(values.file_url)}</a>
+                      {t("admin.crud.current_file_attached", locale)} <a href={String(values.file_url)} target="_blank" class="underline">{String(values.file_url)}</a>
                     </span>
                   )}
                 </label>
 
                 <label class="form-control sm:col-span-2">
-                  <span class="label-text font-medium">Or Upload Video Recording (MP4, WebM, MOV - max 100MB)</span>
+                  <span class="label-text font-medium">{t("admin.crud.upload_video", locale)}</span>
                   <input class="file-input file-input-bordered w-full" name="video_file" type="file" accept="video/mp4,video/webm,video/quicktime,video/ogg" />
                   {values.video_url && (
                     <span class="mt-1 text-xs text-primary">
-                      Current video attached: <a href={String(values.video_url)} target="_blank" class="underline">{String(values.video_url)}</a>
+                      {t("admin.crud.current_video_attached", locale)} <a href={String(values.video_url)} target="_blank" class="underline">{String(values.video_url)}</a>
                     </span>
                   )}
                 </label>
@@ -303,16 +326,16 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
                 >
                   <div class="flex items-center justify-between">
                     <span class="label-text font-medium">
-                      Tags (<span x-text="selectedTagIds.length"></span> selected)
+                      {t("admin.crud.associated_tags", locale)} (<span x-text="selectedTagIds.length"></span> {t("admin.crud.assigned", locale)})
                     </span>
                     <div class="flex gap-1">
-                      <button type="button" class="btn btn-xs btn-ghost" x-on:click="selectAllFilteredTags()">Select All</button>
-                      <button type="button" class="btn btn-xs btn-ghost" x-on:click="clearSelectedTags()">Clear</button>
+                      <button type="button" class="btn btn-xs btn-ghost" x-on:click="selectAllFilteredTags()">{t("admin.select_all", locale)}</button>
+                      <button type="button" class="btn btn-xs btn-ghost" x-on:click="clearSelectedTags()">{t("admin.reset", locale)}</button>
                     </div>
                   </div>
                   <input
                     type="text"
-                    placeholder="Search tags..."
+                    placeholder={locale === "fa" ? "جستجوی برچسب‌ها..." : "Search tags..."}
                     x-model="tagSearch"
                     class="input input-bordered input-xs w-full"
                   />
@@ -334,9 +357,9 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
 
                 {!id && (
                   <label class="form-control sm:col-span-2">
-                    <span class="label-text font-medium">Initial Attendee (optional)</span>
+                    <span class="label-text font-medium">{t("admin.crud.initial_attendee", locale)}</span>
                     <select class="select select-bordered w-full" name="initial_user_id">
-                      <option value="">Select initial attendee...</option>
+                      <option value="">{t("admin.crud.select_initial_attendee", locale)}</option>
                       {users.map((user) => (
                         <option value={user.id} key={user.id}>{user.email}</option>
                       ))}
@@ -352,9 +375,9 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
 
             <div class="modal-action sm:col-span-2">
               <button type="button" class="btn" onclick="this.closest('dialog').remove()">
-                Cancel
+                {t("admin.cancel", locale)}
               </button>
-              <button class="btn btn-primary">Save</button>
+              <button class="btn btn-primary">{t("admin.save", locale)}</button>
             </div>
           </form>
 
@@ -365,9 +388,9 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
             </div>
           )}
 
-          {resource === "meets" && id && relationPanel(id)}
+          {resource === "meets" && id && relationPanel(id, locale)}
 
-          {resource === "roles" && id && roleEndpointsSection(id, endpoints, mappings)}
+          {resource === "roles" && id && roleEndpointsSection(id, endpoints, mappings, locale)}
         </div>
       </dialog>
     );
@@ -379,13 +402,14 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
     return <Toast type={message.type} title={message.title} description={message.description} />;
   };
 
-  const relationPanel = (meetId: string) => (
+  const relationPanel = (meetId: string, locale: import("../../lib/i18n/translations").Locale = "en") => (
     <MeetRelations
       meetId={meetId}
       tags={db.query("SELECT id,title,description FROM tags WHERE deleted_at IS NULL ORDER BY title").all() as { id: string; title: string; description: string | null }[]}
       users={db.query("SELECT id,email FROM users WHERE deleted_at IS NULL ORDER BY email").all() as { id: string; email: string }[]}
       selectedTags={db.query("SELECT t.id,t.title,t.description FROM tags t JOIN meet_tags mt ON mt.tag_id=t.id WHERE mt.meet_id=? AND t.deleted_at IS NULL ORDER BY t.title").all(meetId) as { id: string; title: string; description: string | null }[]}
       attendees={db.query("SELECT u.id,u.email FROM users u JOIN meet_attendees ma ON ma.user_id=u.id WHERE ma.meet_id=? AND u.deleted_at IS NULL ORDER BY u.email").all(meetId) as { id: string; email: string }[]}
+      locale={locale}
     />
   );
 
@@ -399,11 +423,11 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
     return { endpoints, mappings };
   };
 
-  const roleEndpointsResponse = (roleId: string, toastTitle?: string, toastFallback?: string, toastType: "info" | "error" | "success" | "warning" = "success") => {
+  const roleEndpointsResponse = (roleId: string, toastTitle?: string, toastFallback?: string, toastType: "info" | "error" | "success" | "warning" = "success", locale: import("../../lib/i18n/translations").Locale = "en") => {
     const { endpoints, mappings } = getRoleEndpointsData(roleId);
     return (
       <>
-        {roleEndpointsSection(roleId, endpoints, mappings)}
+        {roleEndpointsSection(roleId, endpoints, mappings, locale)}
         {toastTitle && toastFallback && toast(toastTitle, toastFallback, toastType)}
       </>
     );
@@ -412,7 +436,8 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
   const roleEndpointsSection = (
     roleId: string,
     endpoints: { id: string; title: string }[],
-    mappings: { endpoint_id: string; title: string }[]
+    mappings: { endpoint_id: string; title: string }[],
+    locale: import("../../lib/i18n/translations").Locale = "en"
   ) => {
     const unassigned = endpoints.filter((e) => !mappings.some((m) => m.endpoint_id === e.id));
     return (
@@ -475,20 +500,20 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
       >
         <div class="flex items-center justify-between">
           <div>
-            <h4 class="font-semibold text-base">Endpoint Access Permissions</h4>
-            <p class="text-xs text-base-content/70">Assign and remove granular route permissions for this role.</p>
+            <h4 class="font-semibold text-base">{t("admin.crud.endpoint_permissions", locale)}</h4>
+            <p class="text-xs text-base-content/70">{t("admin.crud.endpoint_permissions_desc", locale)}</p>
           </div>
-          <span class="badge badge-sm badge-outline">{mappings.length} assigned</span>
+          <span class="badge badge-sm badge-outline">{mappings.length} {t("admin.crud.assigned", locale)}</span>
         </div>
 
         {/* Searchable Add Endpoint Section */}
         <div class="bg-base-200/50 p-3 rounded-box border border-base-300 space-y-2">
-          <span class="text-xs font-semibold text-base-content/80">Add Endpoint Access</span>
+          <span class="text-xs font-semibold text-base-content/80">{t("admin.crud.add_endpoint", locale)}</span>
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
             <div class="sm:col-span-1">
               <input
                 type="text"
-                placeholder="Filter endpoints..."
+                placeholder={t("admin.crud.filter_endpoints", locale)}
                 class="input input-bordered input-sm w-full"
                 x-model="epSearch"
               />
@@ -500,7 +525,7 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
                 name="endpoint_id"
                 x-model="selectedNewEp"
               >
-                <option value="">Select an available endpoint...</option>
+                <option value="">{t("admin.crud.select_endpoint", locale)}</option>
                 <template x-for="ep in filteredAvailable" x-bind:key="ep.id">
                   <option x-bind:value="ep.id" x-text="ep.title"></option>
                 </template>
@@ -514,7 +539,7 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
                 hx-swap="outerHTML"
                 x-bind:disabled="!selectedNewEp"
               >
-                Add
+                {t("admin.crud.add", locale)}
               </button>
             </div>
           </div>
@@ -526,7 +551,7 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
             <div class="w-full max-w-xs">
               <input
                 type="text"
-                placeholder="Search assigned endpoints..."
+                placeholder={t("admin.crud.search_assigned_endpoints", locale)}
                 class="input input-bordered input-xs w-full"
                 x-model="assignedSearch"
               />
@@ -538,7 +563,7 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
               x-cloak
               x-on:click="deleteSelected()"
             >
-              Remove Selected (<span x-text="selectedToDelete.length"></span>)
+              {t("admin.crud.remove_selected", locale)} (<span x-text="selectedToDelete.length"></span>)
             </button>
           </div>
 
@@ -554,8 +579,8 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
                       x-bind:checked="isAllAssignedSelected()"
                     />
                   </th>
-                  <th>Endpoint Route</th>
-                  <th class="w-16 text-right">Action</th>
+                  <th>{t("admin.crud.endpoint_route", locale)}</th>
+                  <th class="w-16 text-right">{t("admin.crud.action", locale)}</th>
                 </tr>
               </thead>
               <tbody>
@@ -582,7 +607,7 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
                         hx-target={`#role-endpoints-section-${roleId}`}
                         hx-swap="outerHTML"
                       >
-                        Delete
+                        {t("admin.crud.delete", locale)}
                       </button>
                     </td>
                   </tr>
@@ -590,7 +615,7 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
                 {mappings.length === 0 && (
                   <tr>
                     <td colSpan={3} class="text-center py-4 text-xs text-base-content/60">
-                      No assigned endpoints for this role.
+                      {t("admin.crud.no_assigned_endpoints", locale)}
                     </td>
                   </tr>
                 )}
@@ -616,17 +641,18 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
       ])
     ) as Row;
 
-  const formFailure = (resource: keyof typeof config, message: string, values: Row, id?: string) => (
+  const formFailure = (resource: keyof typeof config, message: string, values: Row, id?: string, locale: import("../../lib/i18n/translations").Locale = "en") => (
     <>
-      {form(resource, id, values, message)}
+      {form(resource, id, values, message, locale)}
       {toast("admin.error", message, "error")}
     </>
   );
 
   const failForm = (c: Context, resource: keyof typeof config, message: string, values: Row, id?: string, status: 400 | 403 = 400) => {
+    const locale = getLocale(c);
     c.header("HX-Retarget", "#modal");
     c.header("HX-Reswap", "innerHTML");
-    return c.html(formFailure(resource, message, values, id), status);
+    return c.html(formFailure(resource, message, values, id, locale), status);
   };
 
   const validate = (resource: keyof typeof config, values: Row, editing = false) => {
@@ -662,12 +688,16 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
       return c.req.header("HX-Request") ? c.html(tableComponent) : page(c, resource, tableComponent);
     });
 
-    app.get(`/${resource}/new`, (c) => c.html(form(resource)));
+    app.get(`/${resource}/new`, (c) => {
+      const locale = getLocale(c);
+      return c.html(form(resource, undefined, {}, undefined, locale));
+    });
 
     app.get(`/${resource}/:id/edit`, (c) => {
+      const locale = getLocale(c);
       const editable = resource === "users" ? fields.filter((field) => field !== "password") : fields;
       const row = db.query(`SELECT ${editable.join(", ")} FROM ${table} WHERE id=? AND deleted_at IS NULL`).get(c.req.param("id")) as Row | null;
-      return row ? c.html(form(resource, c.req.param("id"), row)) : c.notFound();
+      return row ? c.html(form(resource, c.req.param("id"), row, undefined, locale)) : c.notFound();
     });
 
     app.get(`/${resource}/:id/confirm`, (c) => {
@@ -977,20 +1007,21 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
     const rawIds = body["endpoint_ids"] ?? body["endpoint_ids[]"] ?? body["endpoint_id"] ?? body["endpoint_id[]"];
     const endpointIds = (Array.isArray(rawIds) ? rawIds : rawIds ? [rawIds] : []).filter(Boolean).map(String);
     const role = db.query("SELECT title,description FROM roles WHERE id=? AND deleted_at IS NULL").get(roleId) as Row | null;
+    const locale = getLocale(c);
     if (!role) return c.notFound();
     if (db.query("SELECT 1 FROM roles WHERE id=? AND title='Super Admin'").get(roleId)) {
-      return c.html(<>{roleEndpointsResponse(roleId)}{toast("admin.error", "The Super Admin role is managed by the system.", "error")}</>, 403);
+      return c.html(<>{roleEndpointsResponse(roleId, undefined, undefined, undefined, locale)}{toast("admin.error", "The Super Admin role is managed by the system.", "error")}</>, 403);
     }
     const validEndpoints = endpointIds.filter((epId) => db.query("SELECT 1 FROM endpoints WHERE id=? AND deleted_at IS NULL").get(epId));
     if (validEndpoints.length === 0) {
-      return c.html(<>{roleEndpointsResponse(roleId)}{toast("admin.invalid_relation", "Choose a valid endpoint.", "error")}</>, 400);
+      return c.html(<>{roleEndpointsResponse(roleId, undefined, undefined, undefined, locale)}{toast("admin.invalid_relation", "Choose a valid endpoint.", "error")}</>, 400);
     }
 
     for (const endpointId of validEndpoints) {
       db.run("INSERT OR IGNORE INTO role_endpoints (id,role_id,endpoint_id,description) VALUES (?,?,?,?)", [generateId(), roleId, endpointId, "Assigned by admin"]);
     }
     clearPermissionCache(roleId);
-    return c.html(roleEndpointsResponse(roleId, "admin.created", `${validEndpoints.length > 1 ? "Endpoints" : "Endpoint"} assigned.`));
+    return c.html(roleEndpointsResponse(roleId, "admin.created", `${validEndpoints.length > 1 ? "Endpoints" : "Endpoint"} assigned.`, undefined, locale));
   });
 
   app.delete("/roles/:id/endpoints/bulk-delete", async (c) => {
@@ -1010,30 +1041,32 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
     }
     const endpointIds = (Array.isArray(rawIds) ? rawIds : rawIds ? [rawIds] : []).filter(Boolean).map(String);
     const role = db.query("SELECT title,description FROM roles WHERE id=? AND deleted_at IS NULL").get(roleId) as Row | null;
+    const locale = getLocale(c);
     if (!role) return c.notFound();
     if (db.query("SELECT 1 FROM roles WHERE id=? AND title='Super Admin'").get(roleId)) {
-      return c.html(<>{roleEndpointsResponse(roleId)}{toast("admin.error", "The Super Admin role is managed by the system.", "error")}</>, 403);
+      return c.html(<>{roleEndpointsResponse(roleId, undefined, undefined, undefined, locale)}{toast("admin.error", "The Super Admin role is managed by the system.", "error")}</>, 403);
     }
     if (endpointIds.length === 0) {
-      return c.html(<>{roleEndpointsResponse(roleId)}{toast("admin.nothing_selected", "Select at least one endpoint to remove.", "warning")}</>, 400);
+      return c.html(<>{roleEndpointsResponse(roleId, undefined, undefined, undefined, locale)}{toast("admin.nothing_selected", "Select at least one endpoint to remove.", "warning")}</>, 400);
     }
 
     const placeholders = endpointIds.map(() => "?").join(",");
     db.run(`DELETE FROM role_endpoints WHERE role_id=? AND endpoint_id IN (${placeholders})`, [roleId, ...endpointIds]);
     clearPermissionCache(roleId);
-    return c.html(roleEndpointsResponse(roleId, "admin.deleted", `${endpointIds.length} endpoint${endpointIds.length > 1 ? "s" : ""} removed.`));
+    return c.html(roleEndpointsResponse(roleId, "admin.deleted", `${endpointIds.length} endpoint${endpointIds.length > 1 ? "s" : ""} removed.`, undefined, locale));
   });
 
   app.delete("/roles/:id/endpoints/:endpointId", (c) => {
+    const locale = getLocale(c);
     const roleId = c.req.param("id");
     const role = db.query("SELECT title,description FROM roles WHERE id=? AND deleted_at IS NULL").get(roleId) as Row | null;
     if (!role) return c.notFound();
     if (db.query("SELECT 1 FROM roles WHERE id=? AND title='Super Admin'").get(roleId)) {
-      return c.html(<>{roleEndpointsResponse(roleId)}{toast("admin.error", "The Super Admin role is managed by the system.", "error")}</>, 403);
+      return c.html(<>{roleEndpointsResponse(roleId, undefined, undefined, undefined, locale)}{toast("admin.error", "The Super Admin role is managed by the system.", "error")}</>, 403);
     }
     db.run("DELETE FROM role_endpoints WHERE role_id=? AND endpoint_id=?", [roleId, c.req.param("endpointId")]);
     clearPermissionCache(roleId);
-    return c.html(roleEndpointsResponse(roleId, "admin.deleted", "Endpoint removed."));
+    return c.html(roleEndpointsResponse(roleId, "admin.deleted", "Endpoint removed.", undefined, locale));
   });
 
   app.get("/roles/:id/endpoints/new", (c) =>

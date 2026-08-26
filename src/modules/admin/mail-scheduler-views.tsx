@@ -4,6 +4,7 @@ import { MailPlaceholdersToolbar } from "./mail-placeholders-component";
 import { formatUtcDateTime } from "../events/datetime";
 import type { Locale } from "../../lib/i18n/translations";
 import { t, formatLocalizedNumber } from "../../lib/i18n/context";
+import { DatePicker } from "../../ui/date-picker";
 
 export const AutomationRuleCard = ({
   rule,
