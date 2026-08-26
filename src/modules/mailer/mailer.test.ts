@@ -77,3 +77,38 @@ test("All templates render properly with database fallback & dynamic schemas", a
   expect(tagRem.html).toContain("https://cobradecision.ir/meets/m-123?ref=gmail");
   expect(tagRem.html).not.toContain("//meets");
 });
+
+test("isTimeToRun correctly compares against target timezone and hour", () => {
+  const { isTimeToRun } = require("./scheduler");
+  expect(typeof isTimeToRun("06:00")).toBe("boolean");
+  expect(isTimeToRun("00:00", "UTC")).toBe(true);
+  expect(isTimeToRun("00:00", "Asia/Tehran")).toBe(true);
+  expect(isTimeToRun("00:00", "America/New_York")).toBe(true);
+  expect(isTimeToRun("23:59", "UTC")).toBeDefined();
+});
+
+test("general_announcement template renders markdown and includes variables correctly", async () => {
+  const db = new Database(":memory:");
+  await runMigrations(db);
+  initializeMailerDatabase(db);
+
+  const tpl = db
+    .query<{ value: string; subject: string; format: string }, [string]>(
+      "SELECT value, subject, format FROM emails_schema WHERE title = ?"
+    )
+    .get("general_announcement");
+
+  expect(tpl).toBeDefined();
+  expect(tpl?.format).toBe("markdown");
+  const interpolated = interpolateVariables(tpl!.value, {
+    name: "Mohammad",
+    dashboard_url: "https://cobradecision.ir/dashboard/user",
+    date: "2026-08-26",
+    date_shamsi: "۵ شهریور ۱۴۰۵",
+  });
+  expect(interpolated).toContain("Mohammad");
+  expect(interpolated).toContain("https://cobradecision.ir/dashboard/user");
+  expect(interpolated).toContain("۵ شهریور ۱۴۰۵");
+});
+
+
