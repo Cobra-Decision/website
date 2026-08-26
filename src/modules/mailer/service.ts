@@ -10,6 +10,7 @@ import {
   wrapEmailContainer,
   interpolateVariables,
   getShamsiToday,
+  normalizeBaseUrl,
   type MeetEmailData,
 } from "./templates";
 import { renderMarkdown } from "../../lib/markdown";
@@ -150,17 +151,21 @@ export class MailService {
     database?: Database
   ) {
     if (database) {
-      const rule = database
-        .query<{ is_enabled: number; template_title: string | null }, [string]>(
-          "SELECT is_enabled, template_title FROM email_automation_rules WHERE rule_key = ? AND deleted_at IS NULL"
-        )
-        .get("welcome_email");
-      if (rule && !rule.is_enabled) {
-        return;
+      try {
+        const rule = database
+          .query<{ is_enabled: number; template_title: string | null }, [string]>(
+            "SELECT is_enabled, template_title FROM email_automation_rules WHERE rule_key = ? AND deleted_at IS NULL"
+          )
+          .get("welcome_email");
+        if (rule && !rule.is_enabled) {
+          return;
+        }
+        const tplTitle = rule?.template_title || "welcome_email";
+        const { subject, html, text } = renderWelcomeTemplate(user, baseUrl, database, tplTitle);
+        return this.enqueueEmail({ to: user.email, subject, html, text });
+      } catch {
+        // Fallback if automation table not initialized
       }
-      const tplTitle = rule?.template_title || "welcome_email";
-      const { subject, html, text } = renderWelcomeTemplate(user, baseUrl, database, tplTitle);
-      return this.enqueueEmail({ to: user.email, subject, html, text });
     }
     const { subject, html, text } = renderWelcomeTemplate(user, baseUrl, database);
     return this.enqueueEmail({ to: user.email, subject, html, text });
@@ -184,9 +189,10 @@ export class MailService {
   public async sendFavoriteTagMeetReminders(
     database: Database,
     daysAhead = Number(process.env.MEET_REMINDER_DAYS_BEFORE ?? 1),
-    baseUrl = process.env.BASE_URL ?? "http://localhost:3000",
+    baseUrl?: string,
     templateTitle?: string
   ): Promise<number> {
+    const cleanBase = normalizeBaseUrl(baseUrl);
     const target = new Date();
     target.setDate(target.getDate() + daysAhead);
     const targetDateStr = target.toISOString().slice(0, 10);
@@ -260,7 +266,7 @@ export class MailService {
           meetData,
           user,
           tagTitles,
-          baseUrl,
+          cleanBase,
           database,
           templateTitle || "tag_reminder"
         );
@@ -278,9 +284,10 @@ export class MailService {
   public async sendMeetAttendeesReminder(
     database: Database,
     meetId: string,
-    baseUrl = process.env.BASE_URL ?? "http://localhost:3000",
+    baseUrl?: string,
     templateTitle?: string
   ): Promise<number> {
+    const cleanBase = normalizeBaseUrl(baseUrl);
     const meet = database
       .query<{
         id: string;
@@ -337,7 +344,7 @@ export class MailService {
       const { subject, html, text } = renderAttendeesReminderTemplate(
         meetData,
         attendee,
-        baseUrl,
+        cleanBase,
         database,
         templateTitle || "attendees_reminder"
       );
@@ -402,6 +409,7 @@ export class MailService {
 
     // Process batch in chunks to avoid large memory spikes
     const CHUNK_SIZE = 50;
+    const cleanBase = normalizeBaseUrl();
     for (let i = 0; i < users.length; i += CHUNK_SIZE) {
       const chunk = users.slice(i, i + CHUNK_SIZE);
       for (const u of chunk) {
@@ -412,6 +420,8 @@ export class MailService {
           first_name: u.first_name || "",
           last_name: u.last_name || "",
           username: u.username || "",
+          dashboard_url: `${cleanBase}/dashboard/user`,
+          unsubscribe_url: `${cleanBase}/dashboard/account`,
           date: new Date().toLocaleDateString(),
           date_shamsi: getShamsiToday(),
         };

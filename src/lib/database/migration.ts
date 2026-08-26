@@ -280,6 +280,57 @@ export const migrations: MigrationStep[] = [
       `);
     },
   },
+  {
+    version: 8,
+    name: "008_update_mailer_templates_and_variables",
+    up: (db: Database) => {
+      // Ensure emails_schema table exists before updating
+      const hasTable = db.query<{ name: string }, [string]>("SELECT name FROM sqlite_master WHERE type='table' AND name=?").get("emails_schema");
+      if (!hasTable) return;
+
+      const attendeesReminderValue = `<div style="font-family: system-ui, -apple-system, sans-serif; line-height: 1.6; max-width: 580px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 10px; overflow: hidden; background: #ffffff;">
+  <div style="background: #2563eb; color: #ffffff; padding: 20px; text-align: center; font-size: 20px; font-weight: bold;">
+    تصمیم کبرا | رویداد پیش‌رو
+  </div>
+  <div style="padding: 24px; color: #1e293b;">
+    <div dir="rtl" style="text-align: right; margin-bottom: 20px;">
+      <h2 style="margin-top: 0;">سلام {{name}} عزیز</h2>
+      <p>جلسه‌ای که در آن ثبت‌نام کرده‌اید به زودی برگزار می‌شود:</p>
+      <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin: 16px 0; font-size: 14px; line-height: 1.8;">
+        <div><strong>عنوان:</strong> {{meet_title}}</div>
+        <div><strong>تاریخ:</strong> {{meet_date_shamsi}} ({{meet_date}}) | <strong>زمان:</strong> {{meet_time}}</div>
+        <div><strong>ارائه‌دهنده:</strong> {{presenter_name}}</div>
+      </div>
+      <p style="text-align: center; margin: 24px 0;">
+        <a href="{{meet_link}}" style="background: #2563eb; color: #ffffff; padding: 10px 24px; border-radius: 6px; text-decoration: none; font-weight: 600; display: inline-block;">ورود به اتاق جلسه</a>
+      </p>
+    </div>
+    <hr style="border: none; border-top: 1px dashed #cbd5e1; margin: 24px 0;" />
+    <div dir="ltr" style="text-align: left;">
+      <h2 style="margin-top: 0;">Hello {{name}}</h2>
+      <p>A meeting you registered for is happening soon:</p>
+      <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin: 16px 0; font-size: 14px; line-height: 1.8;">
+        <div><strong>Title:</strong> {{meet_title}}</div>
+        <div><strong>Date:</strong> {{meet_date}} | <strong>Time:</strong> {{meet_time}}</div>
+        <div><strong>Presenter:</strong> {{presenter_name}}</div>
+      </div>
+      <p style="text-align: center; margin: 24px 0;">
+        <a href="{{meet_link}}" style="background: #2563eb; color: #ffffff; padding: 10px 24px; border-radius: 6px; text-decoration: none; font-weight: 600; display: inline-block;">Join Meeting</a>
+      </p>
+    </div>
+  </div>
+</div>`;
+
+      // Update attendees_reminder template in production if exists, or insert it
+      const existing = db.query<{ id: string }, [string]>("SELECT id FROM emails_schema WHERE title = ?").get("attendees_reminder");
+      if (existing) {
+        db.run(
+          "UPDATE emails_schema SET value=?, subject=?, format='html', description=?, updated_at=CURRENT_TIMESTAMP WHERE id=?",
+          [attendeesReminderValue, "یادآوری رویداد: {{meet_title}} | Event Reminder: {{meet_title}}", "Scheduled reminder for users who registered/attended a specific meeting", existing.id]
+        );
+      }
+    },
+  },
 ];
 
 export function ensureMigrationTable(db: Database) {

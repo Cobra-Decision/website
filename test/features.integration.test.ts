@@ -373,7 +373,7 @@ test("hydrateMeets batch queries correctly associate tags, attendee counts, and 
 test("runMigrations applies performance index migration 004, video_url migration 005, and mailer automation migration 007", async () => {
   const memDb = new Database(":memory:");
   const result = await runMigrations(memDb);
-  expect(result.currentVersion).toBe(7);
+  expect(result.currentVersion).toBe(8);
 
   const indexNames = memDb
     .query<{ name: string }, []>("SELECT name FROM sqlite_master WHERE type='index'")

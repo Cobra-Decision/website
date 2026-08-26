@@ -13,6 +13,10 @@ export interface MeetEmailData {
   accessStatus: string;
 }
 
+export function normalizeBaseUrl(url?: string): string {
+  return (url || process.env.BASE_URL || "http://localhost:3000").trim().replace(/\/+$/, "");
+}
+
 export function getShamsiToday(): string {
   try {
     return new Intl.DateTimeFormat("fa-IR", {
@@ -169,20 +173,24 @@ export function renderDynamicTemplate(
 }
 
 export function renderWelcomeTemplate(
-  user: { firstName?: string | null; username?: string | null; email: string },
+  user: { firstName?: string | null; lastName?: string | null; username?: string | null; email: string },
   baseUrl = "http://localhost:3000",
   database?: Database,
   templateTitle = "welcome_email"
 ) {
-  const name = user.firstName || user.username || user.email;
-  const dashboardUrl = `${baseUrl}/dashboard/user`;
+  const cleanBase = normalizeBaseUrl(baseUrl);
+  const name = [user.firstName, user.lastName].filter(Boolean).join(" ") || user.firstName || user.username || user.email;
+  const dashboardUrl = `${cleanBase}/dashboard/user`;
   const vars = {
     name,
     username: user.username || "",
     first_name: user.firstName || "",
+    last_name: user.lastName || "",
     email: user.email,
     dashboard_url: dashboardUrl,
+    unsubscribe_url: `${cleanBase}/dashboard/account`,
     date: new Date().toLocaleDateString(),
+    date_shamsi: getShamsiToday(),
   };
 
   return renderDynamicTemplate(database, templateTitle, vars, () => {
@@ -234,17 +242,21 @@ export function renderOtpEmailTemplate(otp: string, database?: Database) {
 
 export function renderAttendanceConfirmationTemplate(
   meet: MeetEmailData,
-  user: { firstName?: string | null; username?: string | null; email: string },
+  user: { firstName?: string | null; lastName?: string | null; username?: string | null; email: string },
   baseUrl = "http://localhost:3000",
   database?: Database
 ) {
-  const name = user.firstName || user.username || user.email;
-  const meetLink = `${baseUrl}/meets/${meet.id}?ref=gmail`;
+  const cleanBase = normalizeBaseUrl(baseUrl);
+  const name = [user.firstName, user.lastName].filter(Boolean).join(" ") || user.firstName || user.username || user.email;
+  const meetLink = `${cleanBase}/meets/${meet.id}?ref=gmail`;
   const meetDateShamsi = formatLocalizedDate(meet.scheduledDate, "fa");
+  const dashboardUrl = `${cleanBase}/dashboard/user`;
   const vars = {
     name,
     email: user.email,
     username: user.username || "",
+    first_name: user.firstName || "",
+    last_name: user.lastName || "",
     meet_id: meet.id,
     meet_title: meet.title,
     meet_date: meet.scheduledDate,
@@ -254,6 +266,8 @@ export function renderAttendanceConfirmationTemplate(
     presenter_name: meet.presenterName || "CobraDecision",
     access_status: meet.accessStatus,
     meet_link: meetLink,
+    dashboard_url: dashboardUrl,
+    unsubscribe_url: `${cleanBase}/dashboard/account`,
     date: new Date().toLocaleDateString(),
     date_shamsi: getShamsiToday(),
   };
@@ -293,18 +307,22 @@ export function renderAttendanceConfirmationTemplate(
 
 export function renderAttendeesReminderTemplate(
   meet: MeetEmailData,
-  user: { firstName?: string | null; username?: string | null; email: string },
+  user: { firstName?: string | null; lastName?: string | null; username?: string | null; email: string },
   baseUrl = "http://localhost:3000",
   database?: Database,
   templateTitle = "attendees_reminder"
 ) {
-  const name = user.firstName || user.username || user.email;
-  const meetLink = `${baseUrl}/meets/${meet.id}?ref=gmail`;
+  const cleanBase = normalizeBaseUrl(baseUrl);
+  const name = [user.firstName, user.lastName].filter(Boolean).join(" ") || user.firstName || user.username || user.email;
+  const meetLink = `${cleanBase}/meets/${meet.id}?ref=gmail`;
   const meetDateShamsi = formatLocalizedDate(meet.scheduledDate, "fa");
+  const dashboardUrl = `${cleanBase}/dashboard/user`;
   const vars = {
     name,
     email: user.email,
     username: user.username || "",
+    first_name: user.firstName || "",
+    last_name: user.lastName || "",
     meet_id: meet.id,
     meet_title: meet.title,
     meet_date: meet.scheduledDate,
@@ -314,6 +332,8 @@ export function renderAttendeesReminderTemplate(
     presenter_name: meet.presenterName || "CobraDecision",
     access_status: meet.accessStatus,
     meet_link: meetLink,
+    dashboard_url: dashboardUrl,
+    unsubscribe_url: `${cleanBase}/dashboard/account`,
     date: new Date().toLocaleDateString(),
     date_shamsi: getShamsiToday(),
   };
@@ -351,24 +371,37 @@ export function renderAttendeesReminderTemplate(
 
 export function renderTagReminderTemplate(
   meet: MeetEmailData,
-  user: { firstName?: string | null; username?: string | null; email: string },
+  user: { firstName?: string | null; lastName?: string | null; username?: string | null; email: string },
   matchedTags: string[],
   baseUrl = "http://localhost:3000",
   database?: Database,
   templateTitle = "tag_reminder"
 ) {
-  const name = user.firstName || user.username || user.email;
-  const meetLink = `${baseUrl}/meets/${meet.id}?ref=gmail`;
+  const cleanBase = normalizeBaseUrl(baseUrl);
+  const name = [user.firstName, user.lastName].filter(Boolean).join(" ") || user.firstName || user.username || user.email;
+  const meetLink = `${cleanBase}/meets/${meet.id}?ref=gmail`;
+  const meetDateShamsi = formatLocalizedDate(meet.scheduledDate, "fa");
+  const dashboardUrl = `${cleanBase}/dashboard/user`;
   const vars = {
     name,
     email: user.email,
     username: user.username || "",
+    first_name: user.firstName || "",
+    last_name: user.lastName || "",
     tags: matchedTags.join("، "),
     meet_id: meet.id,
     meet_title: meet.title,
     meet_date: meet.scheduledDate,
+    meet_date_shamsi: meetDateShamsi,
     meet_time: meet.scheduledTime,
+    meet_duration: meet.durationMinutes,
+    presenter_name: meet.presenterName || "CobraDecision",
+    access_status: meet.accessStatus,
     meet_link: meetLink,
+    dashboard_url: dashboardUrl,
+    unsubscribe_url: `${cleanBase}/dashboard/account`,
+    date: new Date().toLocaleDateString(),
+    date_shamsi: getShamsiToday(),
   };
 
   return renderDynamicTemplate(database, templateTitle, vars, () => {
