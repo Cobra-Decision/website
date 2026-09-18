@@ -1,6 +1,7 @@
 import type { EmailPayload, EmailProvider } from "./types";
 import { appendFileSync, mkdirSync } from "node:fs";
 import { dirname } from "node:path";
+import tls from "node:tls";
 
 export class FallbackProvider implements EmailProvider {
   name = "fallback-console-file";
@@ -55,7 +56,7 @@ export class SmtpProvider implements EmailProvider {
 
   private extractEmail(address: string): string {
     const match = address.match(/<([^>]+)>/);
-    return (match ? match[1] : address).trim();
+    return (match ? match[1] : address).replace(/[\r\n]/g, "").trim();
   }
 
   async send(message: EmailPayload): Promise<boolean> {
@@ -72,7 +73,7 @@ export class SmtpProvider implements EmailProvider {
       const cleanup = () => {
         if (socket) {
           try {
-            socket.end();
+            socket.destroy();
           } catch {}
         }
       };
@@ -82,7 +83,6 @@ export class SmtpProvider implements EmailProvider {
       };
 
       try {
-        const tls = require("node:tls");
         socket = tls.connect({ host: this.host, port: this.port, rejectUnauthorized: false }, () => {});
 
         let step = 0;

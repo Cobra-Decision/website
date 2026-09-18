@@ -17,14 +17,17 @@ import { renderMarkdown } from "../../lib/markdown";
 import type { BatchFilterOptions, EmailMessage, EmailPayload, EmailProvider, MailerStats } from "./types";
 import { generateId } from "../../lib/id";
 import { logger } from "../../lib/logger";
+import { isTimeToRun } from "./scheduler";
 
 export class MailService {
   private static instance: MailService | null = null;
   private ringBuffer: RingBuffer<EmailMessage>;
   private provider: EmailProvider;
   private hasCustomProvider = false;
-  private isProcessing = false;
-  private queue: EmailMessage[] = [];
+  private pendingQueue: { payload: EmailPayload; message: EmailMessage }[] = [];
+  private activeMessages = new Set<EmailMessage>();
+  private activeWorkers = 0;
+  private maxConcurrency = 5;
   private totalSent = 0;
   private totalFailed = 0;
 
@@ -67,7 +70,7 @@ export class MailService {
   public getStats(): MailerStats {
     this.refreshProvider();
     return {
-      queued: this.queue.length,
+      queued: this.pendingQueue.length + this.activeMessages.size,
       sent: this.totalSent,
       failed: this.totalFailed,
       totalProcessed: this.totalSent + this.totalFailed,
@@ -101,7 +104,7 @@ export class MailService {
 
     // Zero-overhead memory retention: RingBuffer stores lightweight metadata only
     this.ringBuffer.push(message);
-    this.queue.push(message);
+    this.pendingQueue.push({ payload, message });
 
     logger.email("EMAIL_QUEUED", {
       actor: { email: Array.isArray(payload.to) ? payload.to.join(",") : payload.to },
@@ -114,12 +117,25 @@ export class MailService {
       },
     });
 
-    // Process immediately in microtask, garbage-collecting payload buffer after execution
-    queueMicrotask(() => this.processQueue(payload, message));
+    queueMicrotask(() => this.drainQueue());
     return message;
   }
 
-  private async processQueue(payload: EmailPayload, msg: EmailMessage): Promise<void> {
+  private drainQueue(): void {
+    while (this.activeWorkers < this.maxConcurrency && this.pendingQueue.length > 0) {
+      const item = this.pendingQueue.shift();
+      if (!item) break;
+      this.activeWorkers++;
+      this.activeMessages.add(item.message);
+      this.processItem(item.payload, item.message).finally(() => {
+        this.activeWorkers--;
+        this.activeMessages.delete(item.message);
+        this.drainQueue();
+      });
+    }
+  }
+
+  private async processItem(payload: EmailPayload, msg: EmailMessage): Promise<void> {
     try {
       await this.provider.send(payload);
       msg.status = "sent";
@@ -139,9 +155,6 @@ export class MailService {
         data: { messageId: msg.id, subject: msg.subject, provider: this.provider.name },
         error: err,
       });
-    } finally {
-      const idx = this.queue.indexOf(msg);
-      if (idx !== -1) this.queue.splice(idx, 1);
     }
   }
 
@@ -194,7 +207,6 @@ export class MailService {
     sendTime = "06:00"
   ): Promise<number> {
     const cleanBase = normalizeBaseUrl(baseUrl);
-    const { isTimeToRun } = require("./scheduler");
 
     // Query upcoming meets that could potentially match any timezone window (e.g. within daysAhead +- 2 days)
     const upcomingMeets = database
@@ -228,18 +240,17 @@ export class MailService {
         .all(meet.id);
 
       if (!meetTags.length) continue;
-      const tagIds = meetTags.map((t) => t.id);
       const tagTitles = meetTags.map((t) => t.title);
 
-      const placeholders = tagIds.map(() => "?").join(",");
       const matchingUsers = database
-        .query<{ id: string; email: string; first_name: string | null; username: string | null; timezone: string | null }, any[]>(
+        .query<{ id: string; email: string; first_name: string | null; username: string | null; timezone: string | null }, [string]>(
           `SELECT DISTINCT u.id, u.email, u.first_name, u.username, u.timezone
            FROM users u
            JOIN user_tags ut ON ut.user_id = u.id
-           WHERE ut.tag_id IN (${placeholders}) AND u.deleted_at IS NULL`
+           JOIN meet_tags mt ON mt.tag_id = ut.tag_id
+           WHERE mt.meet_id = ? AND u.deleted_at IS NULL`
         )
-        .all(...tagIds);
+        .all(meet.id);
 
       const meetData: MeetEmailData = {
         id: meet.id,
@@ -308,7 +319,6 @@ export class MailService {
     sendTime = "06:00"
   ): Promise<number> {
     const cleanBase = normalizeBaseUrl(baseUrl);
-    const { isTimeToRun } = require("./scheduler");
 
     const meet = database
       .query<{
