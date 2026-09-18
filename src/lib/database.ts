@@ -3,6 +3,7 @@ import { Database } from "bun:sqlite";
 export const database = new Database(process.env.DATABASE_PATH ?? "data/app.sqlite");
 
 // Memory and performance pragmas
+database.run("PRAGMA foreign_keys = ON;");
 database.run("PRAGMA journal_mode = WAL;");
 database.run("PRAGMA synchronous = NORMAL;");
 database.run("PRAGMA cache_size = -8000;"); // 8MB cache limit

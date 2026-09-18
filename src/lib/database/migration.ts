@@ -364,6 +364,16 @@ export const migrations: MigrationStep[] = [
       }
     },
   },
+  {
+    version: 11,
+    name: "011_platform_visits_and_reminder_indexes",
+    up: (db: Database) => {
+      db.run("CREATE INDEX IF NOT EXISTS idx_meet_visits_platform ON meet_visits(platform_id);");
+      db.run("CREATE INDEX IF NOT EXISTS idx_meet_visits_meet ON meet_visits(meet_id);");
+      db.run("CREATE INDEX IF NOT EXISTS idx_email_reminder_logs_user ON email_reminder_logs(user_id);");
+      db.run("CREATE INDEX IF NOT EXISTS idx_email_reminder_logs_meet ON email_reminder_logs(meet_id);");
+    },
+  },
 ];
 
 export function ensureMigrationTable(db: Database) {

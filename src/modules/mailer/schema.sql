@@ -60,4 +60,7 @@ CREATE TABLE IF NOT EXISTS email_reminder_logs (
   UNIQUE(rule_key, meet_id, user_id)
 );
 
+CREATE INDEX IF NOT EXISTS idx_email_reminder_logs_user ON email_reminder_logs(user_id);
+CREATE INDEX IF NOT EXISTS idx_email_reminder_logs_meet ON email_reminder_logs(meet_id);
+
 

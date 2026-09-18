@@ -70,4 +70,6 @@ CREATE INDEX IF NOT EXISTS idx_meet_tags_tag_id ON meet_tags(tag_id);
 CREATE INDEX IF NOT EXISTS idx_meet_attendees_user_id ON meet_attendees(user_id);
 CREATE INDEX IF NOT EXISTS idx_user_tags_tag_id ON user_tags(tag_id);
 CREATE INDEX IF NOT EXISTS idx_meets_deleted_scheduled ON meets(deleted_at, scheduled_date, scheduled_time);
+CREATE INDEX IF NOT EXISTS idx_meet_visits_platform ON meet_visits(platform_id);
+CREATE INDEX IF NOT EXISTS idx_meet_visits_meet ON meet_visits(meet_id);
 
