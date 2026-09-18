@@ -36,21 +36,21 @@ export function getPlatformFunnelStats(
   const limit = Math.max(1, Math.min(100, options.limit ?? 20));
   const offset = (page - 1) * limit;
 
-  // 1. Total Visits
-  const totalVisitsRow = db.query<{ count: number }, []>("SELECT COUNT(*) as count FROM meet_visits").get();
-  const totalVisits = totalVisitsRow?.count ?? 0;
+  // 1-4. Consolidated Funnel Metrics
+  const summaryRow = db.query<{
+    totalVisits: number;
+    totalAttendees: number;
+    uniqueMeetsCount: number;
+  }, []>(`
+    SELECT
+      (SELECT COUNT(*) FROM meet_visits) AS totalVisits,
+      (SELECT COUNT(*) FROM meet_attendees) AS totalAttendees,
+      (SELECT COUNT(DISTINCT meet_id) FROM meet_visits) AS uniqueMeetsCount
+  `).get() ?? { totalVisits: 0, totalAttendees: 0, uniqueMeetsCount: 0 };
 
-  // 2. Total Attendees RSVPed
-  const totalAttendeesRow = db.query<{ count: number }, []>("SELECT COUNT(*) as count FROM meet_attendees").get();
-  const totalAttendees = totalAttendeesRow?.count ?? 0;
-
-  // 3. Unique Meets Tracked
-  const uniqueMeetsRow = db.query<{ count: number }, []>(
-    "SELECT COUNT(DISTINCT meet_id) as count FROM meet_visits"
-  ).get();
-  const uniqueMeetsCount = uniqueMeetsRow?.count ?? 0;
-
-  // 4. Overall conversion rate
+  const totalVisits = summaryRow.totalVisits;
+  const totalAttendees = summaryRow.totalAttendees;
+  const uniqueMeetsCount = summaryRow.uniqueMeetsCount;
   const overallConversionRate = totalVisits > 0 ? (totalAttendees / totalVisits) * 100 : 0;
 
   // 5. Platforms performance breakdown

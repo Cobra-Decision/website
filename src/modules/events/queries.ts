@@ -251,6 +251,14 @@ export function setUserPreferredTags(database: Database, userId: string, tagIds:
 export const visitCooldowns = new Map<string, number>();
 export const VISIT_COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes
 
+export function pruneExpiredVisits(now = Date.now()): void {
+  for (const [k, time] of visitCooldowns) {
+    if (now - time >= VISIT_COOLDOWN_MS) {
+      visitCooldowns.delete(k);
+    }
+  }
+}
+
 export function recordMeetVisit(database: Database, meetId: string, platformSlug?: string, visitorKey?: string) {
   try {
     let platformId: string | null = null;
@@ -268,11 +276,9 @@ export function recordMeetVisit(database: Database, meetId: string, platformSlug
     }
     visitCooldowns.set(cacheKey, now);
 
-    // ponytail: in-memory map bound by periodic sweep
-    if (visitCooldowns.size > 10000) {
-      for (const [k, time] of visitCooldowns) {
-        if (now - time > VISIT_COOLDOWN_MS) visitCooldowns.delete(k);
-      }
+    // Prune stale cache entries if threshold reached to prevent heap growth
+    if (visitCooldowns.size > 1000) {
+      pruneExpiredVisits(now);
     }
 
     database.run(

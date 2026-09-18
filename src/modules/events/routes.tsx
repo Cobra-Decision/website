@@ -10,6 +10,7 @@ import { RsvpButton } from "../dashboard/user/views";
 import { getLocale, formatLocalizedNumber } from "../../lib/i18n/context";
 import { mailService } from "../mailer/service";
 import { logger } from "../../lib/logger";
+import { isBotOrCrawler } from "../../lib/bot-detector";
 
 export function createEventsRoutes(database: Database, jwtSecret = process.env.JWT_SECRET ?? "development-secret") {
   const app = new Hono();
@@ -24,21 +25,20 @@ export function createEventsRoutes(database: Database, jwtSecret = process.env.J
   };
 
   app.get("/:id", async (c) => {
-    // Skip prefetch / crawler preview requests to prevent phantom visits
-    const purpose = c.req.header("purpose") || c.req.header("sec-purpose") || c.req.header("x-purpose");
     const id = c.req.param("id");
+    const meet = getMeetById(database, id);
+    if (!meet) return c.notFound();
+
     const platformSlug = c.req.query("platform");
     const rawIp = c.req.header("cf-connecting-ip") || c.req.header("x-forwarded-for") || c.req.header("x-real-ip") || "local";
     const visitorIp = rawIp.split(",")[0].trim();
     const userAgent = c.req.header("user-agent") || "";
     const visitorKey = `${visitorIp}:${userAgent.slice(0, 40)}`;
 
-    if (purpose !== "prefetch" && purpose !== "preview") {
+    // Skip bots, crawlers, and preview/prefetch requests to ensure accurate platform analytics
+    if (!isBotOrCrawler(c.req)) {
       recordMeetVisit(database, id, platformSlug, visitorKey);
     }
-
-    const meet = getMeetById(database, id);
-    if (!meet) return c.notFound();
 
     const locale = getLocale(c);
     const origin = new URL("/", c.req.url).origin;
