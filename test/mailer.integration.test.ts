@@ -35,10 +35,13 @@ describe("Mailer Integration & Batching", () => {
     MailService.resetInstance();
     const service = MailService.getInstance(100, new FallbackProvider());
 
-    // Target date 1 day from now
-    const targetDate = new Date();
-    targetDate.setDate(targetDate.getDate() + 1);
-    const targetDateStr = targetDate.toISOString().slice(0, 10);
+    // Target date 1 day from now in Noah's timezone (Asia/Tehran)
+    const userTz = "Asia/Tehran";
+    const now = new Date();
+    const userDateStr = new Intl.DateTimeFormat("en-CA", { timeZone: userTz }).format(now);
+    const userTargetDate = new Date(`${userDateStr}T00:00:00Z`);
+    userTargetDate.setUTCDate(userTargetDate.getUTCDate() + 1);
+    const targetDateStr = userTargetDate.toISOString().slice(0, 10);
 
     const devopsTag = database
       .query<{ id: string }, [string]>("SELECT id FROM tags WHERE title = ?")
@@ -71,7 +74,7 @@ describe("Mailer Integration & Batching", () => {
       devopsTag!.id,
     ]);
 
-    const count = await service.sendFavoriteTagMeetReminders(database, 1);
+    const count = await service.sendFavoriteTagMeetReminders(database, 1, undefined, undefined, "00:00");
     expect(count).toBeGreaterThan(0);
 
     // Test Batch Email to tag followers

@@ -77,6 +77,16 @@ CREATE TABLE IF NOT EXISTS user_tags (
   PRIMARY KEY (user_id, tag_id)
 );
 
+-- Meet Publish Status Types
+CREATE TABLE IF NOT EXISTS meet_publish_status_types (
+  id TEXT PRIMARY KEY,
+  title TEXT NOT NULL UNIQUE,
+  description TEXT NOT NULL DEFAULT '',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  deleted_at DATETIME
+);
+
 -- Meets
 CREATE TABLE IF NOT EXISTS meets (
   id TEXT PRIMARY KEY,
@@ -92,6 +102,7 @@ CREATE TABLE IF NOT EXISTS meets (
   image_url TEXT,
   status TEXT NOT NULL DEFAULT 'upcoming' CHECK (status IN ('upcoming', 'live', 'completed')),
   access_status TEXT NOT NULL DEFAULT 'public' CHECK (access_status IN ('public', 'private')),
+  publish_status TEXT NOT NULL DEFAULT 'public' REFERENCES meet_publish_status_types(id),
   presenter_id TEXT REFERENCES users(id) ON DELETE SET NULL,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -100,6 +111,14 @@ CREATE TABLE IF NOT EXISTS meets (
 
 -- Meet Attendees
 CREATE TABLE IF NOT EXISTS meet_attendees (
+  meet_id TEXT NOT NULL REFERENCES meets(id) ON DELETE CASCADE,
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (meet_id, user_id)
+);
+
+-- Meet Allowed Users
+CREATE TABLE IF NOT EXISTS meet_allowed_users (
   meet_id TEXT NOT NULL REFERENCES meets(id) ON DELETE CASCADE,
   user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,

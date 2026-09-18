@@ -16,6 +16,15 @@ CREATE TABLE IF NOT EXISTS user_tags (
   PRIMARY KEY (user_id, tag_id)
 );
 
+CREATE TABLE IF NOT EXISTS meet_publish_status_types (
+  id TEXT PRIMARY KEY,
+  title TEXT NOT NULL UNIQUE,
+  description TEXT NOT NULL DEFAULT '',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  deleted_at DATETIME
+);
+
 CREATE TABLE IF NOT EXISTS meets (
   id TEXT PRIMARY KEY,
   title TEXT NOT NULL,
@@ -31,6 +40,7 @@ CREATE TABLE IF NOT EXISTS meets (
   image_url TEXT,
   status TEXT NOT NULL DEFAULT 'upcoming' CHECK (status IN ('upcoming', 'live', 'completed')),
   access_status TEXT NOT NULL DEFAULT 'public' CHECK (access_status IN ('public', 'private')),
+  publish_status TEXT NOT NULL DEFAULT 'public' REFERENCES meet_publish_status_types(id),
   presenter_id TEXT REFERENCES users(id) ON DELETE SET NULL,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -38,6 +48,13 @@ CREATE TABLE IF NOT EXISTS meets (
 );
 
 CREATE TABLE IF NOT EXISTS meet_attendees (
+  meet_id TEXT NOT NULL REFERENCES meets(id) ON DELETE CASCADE,
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (meet_id, user_id)
+);
+
+CREATE TABLE IF NOT EXISTS meet_allowed_users (
   meet_id TEXT NOT NULL REFERENCES meets(id) ON DELETE CASCADE,
   user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -68,6 +85,8 @@ CREATE TABLE IF NOT EXISTS meet_visits (
 
 CREATE INDEX IF NOT EXISTS idx_meet_tags_tag_id ON meet_tags(tag_id);
 CREATE INDEX IF NOT EXISTS idx_meet_attendees_user_id ON meet_attendees(user_id);
+CREATE INDEX IF NOT EXISTS idx_meet_allowed_users_user ON meet_allowed_users(user_id);
+CREATE INDEX IF NOT EXISTS idx_meets_publish_status ON meets(publish_status);
 CREATE INDEX IF NOT EXISTS idx_user_tags_tag_id ON user_tags(tag_id);
 CREATE INDEX IF NOT EXISTS idx_meets_deleted_scheduled ON meets(deleted_at, scheduled_date, scheduled_time);
 CREATE INDEX IF NOT EXISTS idx_meet_visits_platform ON meet_visits(platform_id);

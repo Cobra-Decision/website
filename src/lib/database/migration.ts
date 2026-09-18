@@ -374,6 +374,56 @@ export const migrations: MigrationStep[] = [
       db.run("CREATE INDEX IF NOT EXISTS idx_email_reminder_logs_meet ON email_reminder_logs(meet_id);");
     },
   },
+  {
+    version: 12,
+    name: "012_meet_publish_status_and_allowed_users",
+    up: (db: Database) => {
+      db.run(`
+        CREATE TABLE IF NOT EXISTS meet_publish_status_types (
+          id TEXT PRIMARY KEY,
+          title TEXT NOT NULL UNIQUE,
+          description TEXT NOT NULL DEFAULT '',
+          created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          deleted_at DATETIME
+        );
+      `);
+
+      const defaultStatuses = [
+        { id: "public", title: "Public", description: "Visible to all visitors" },
+        { id: "private", title: "Private", description: "Visible only to Super Admins" },
+        { id: "restricted", title: "Restricted", description: "Visible only to assigned users and Super Admins" },
+      ];
+
+      for (const s of defaultStatuses) {
+        const existing = db.query<{ id: string }, [string]>("SELECT id FROM meet_publish_status_types WHERE id = ?").get(s.id);
+        if (!existing) {
+          db.run(
+            "INSERT INTO meet_publish_status_types (id, title, description) VALUES (?, ?, ?)",
+            [s.id, s.title, s.description]
+          );
+        }
+      }
+
+      const columns = db.query<{ name: string }, []>("PRAGMA table_info(meets)").all();
+      if (!columns.some((c) => c.name === "publish_status")) {
+        db.run("ALTER TABLE meets ADD COLUMN publish_status TEXT NOT NULL DEFAULT 'public';");
+        db.run("UPDATE meets SET publish_status = 'private' WHERE access_status = 'private';");
+      }
+
+      db.run(`
+        CREATE TABLE IF NOT EXISTS meet_allowed_users (
+          meet_id TEXT NOT NULL REFERENCES meets(id) ON DELETE CASCADE,
+          user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          PRIMARY KEY (meet_id, user_id)
+        );
+      `);
+
+      db.run("CREATE INDEX IF NOT EXISTS idx_meet_allowed_users_user ON meet_allowed_users(user_id);");
+      db.run("CREATE INDEX IF NOT EXISTS idx_meets_publish_status ON meets(publish_status);");
+    },
+  },
 ];
 
 export function ensureMigrationTable(db: Database) {

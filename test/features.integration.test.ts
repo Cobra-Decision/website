@@ -373,7 +373,7 @@ test("hydrateMeets batch queries correctly associate tags, attendee counts, and 
 test("runMigrations applies performance index migration 004, video_url migration 005, and mailer automation migration 007", async () => {
   const memDb = new Database(":memory:");
   const result = await runMigrations(memDb);
-  expect(result.currentVersion).toBe(11);
+  expect(result.currentVersion).toBe(12);
 
   const indexNames = memDb
     .query<{ name: string }, []>("SELECT name FROM sqlite_master WHERE type='index'")
@@ -382,6 +382,8 @@ test("runMigrations applies performance index migration 004, video_url migration
 
   expect(indexNames).toContain("idx_meet_tags_tag_id");
   expect(indexNames).toContain("idx_meet_attendees_user_id");
+  expect(indexNames).toContain("idx_meet_allowed_users_user");
+  expect(indexNames).toContain("idx_meets_publish_status");
   expect(indexNames).toContain("idx_user_tags_tag_id");
   expect(indexNames).toContain("idx_meets_deleted_scheduled");
   expect(indexNames).toContain("idx_users_email");
@@ -394,5 +396,6 @@ test("runMigrations applies performance index migration 004, video_url migration
     .all()
     .map((c) => c.name);
   expect(meetColumns).toContain("video_url");
+  expect(meetColumns).toContain("publish_status");
 });
 

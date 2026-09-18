@@ -26,6 +26,25 @@ function addReport(report: SeedReport, feature: string, table: string, created =
   }
 }
 
+export async function seedMeetPublishStatuses(db: Database, report: SeedReport = {}): Promise<SeedReport> {
+  const defaultStatuses = [
+    { id: "public", title: "Public", description: "Visible to all visitors" },
+    { id: "private", title: "Private", description: "Visible only to Super Admins" },
+    { id: "restricted", title: "Restricted", description: "Visible only to assigned users and Super Admins" },
+  ];
+
+  for (const s of defaultStatuses) {
+    const existing = db.query<{ id: string }, [string]>("SELECT id FROM meet_publish_status_types WHERE id = ?").get(s.id);
+    if (!existing) {
+      db.run("INSERT INTO meet_publish_status_types (id, title, description) VALUES (?, ?, ?)", [s.id, s.title, s.description]);
+      addReport(report, "meets", "meet_publish_status_types", 1, 0, 0);
+    } else {
+      addReport(report, "meets", "meet_publish_status_types", 0, 0, 1);
+    }
+  }
+  return report;
+}
+
 export async function seedRoles(db: Database, report: SeedReport = {}): Promise<SeedReport> {
   const roles = [
     { title: "member", description: "Default user role" },
@@ -293,9 +312,10 @@ export async function seedUsers(db: Database, report: SeedReport = {}): Promise<
 }
 
 export async function seedMeets(db: Database, report: SeedReport = {}): Promise<SeedReport> {
-  // Prerequisite: users and tags
+  // Prerequisite: users, tags and publish statuses
   await seedUsers(db, report);
   await seedTags(db, report);
+  await seedMeetPublishStatuses(db, report);
 
   const maya = db.query<{ id: string }, [string]>("SELECT id FROM users WHERE email = ?").get("maya@example.com");
   const noah = db.query<{ id: string }, [string]>("SELECT id FROM users WHERE email = ?").get("noah@example.com");
