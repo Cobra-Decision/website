@@ -38,9 +38,14 @@ services:
       - ./log:/app/log
       # Persistent backup directory
       - ./backups:/app/backups
+      # Named volume for node_modules cache
+      - website_node_modules:/app/node_modules
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:3000/ || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 10s
+
+volumes:
+  website_node_modules:
