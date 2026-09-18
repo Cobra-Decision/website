@@ -225,7 +225,7 @@ export class MailService {
                 u.first_name as presenter_first_name, u.last_name as presenter_last_name
          FROM meets m
          LEFT JOIN users u ON u.id = m.presenter_id
-         WHERE m.status = 'upcoming' AND m.deleted_at IS NULL`
+         WHERE m.status = 'upcoming' AND m.publish_status = 'public' AND m.deleted_at IS NULL`
       )
       .all();
 

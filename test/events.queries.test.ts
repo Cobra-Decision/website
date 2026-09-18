@@ -2,7 +2,7 @@ import { afterEach, beforeEach, expect, test } from "bun:test";
 import { Database } from "bun:sqlite";
 import { initializeDatabase } from "../src/modules/auth/database";
 import { initializeEventsDatabase } from "../src/modules/events/database";
-import { createMeet, filterMeets, getUpcomingMeets, recordMeetVisit, toggleAttendance, getUserPreferredTags, setUserPreferredTags, normalizeTopics, parseTopics } from "../src/modules/events/queries";
+import { createMeet, filterMeets, getMeetById, getUpcomingMeets, recordMeetVisit, toggleAttendance, getUserPreferredTags, setUserPreferredTags, normalizeTopics, parseTopics } from "../src/modules/events/queries";
 import { formatTehran, toUtcIso } from "../src/modules/events/datetime";
 import { generateId } from "../src/lib/id";
 
@@ -122,4 +122,75 @@ test("getUserPreferredTags and setUserPreferredTags manages user_tags table", ()
 
   setUserPreferredTags(database, userId, []);
   expect(getUserPreferredTags(database, userId)).toHaveLength(0);
+});
+
+test("publish_status visibility and allowed_user_ids behavior in queries", () => {
+  const role = database.query<{ id: string }, []>("SELECT id FROM roles WHERE title = 'member'").get()!;
+  const userA = generateId();
+  const userB = generateId();
+  database.run("INSERT INTO users (id, email, password_hash, role_id) VALUES (?, ?, 'hash', ?), (?, ?, 'hash', ?)", [
+    userA,
+    "userA@example.com",
+    role.id,
+    userB,
+    "userB@example.com",
+    role.id,
+  ]);
+
+  const publicMeet = createMeet(database, {
+    title: "Public Meet",
+    topics: [],
+    scheduledDate: "2099-01-01",
+    scheduledTime: "10:00",
+    publishStatus: "public",
+    tagIds: [],
+  });
+
+  const privateMeet = createMeet(database, {
+    title: "Private Meet",
+    topics: [],
+    scheduledDate: "2099-01-02",
+    scheduledTime: "10:00",
+    publishStatus: "private",
+    tagIds: [],
+  });
+
+  const restrictedMeet = createMeet(database, {
+    title: "Restricted Meet",
+    topics: [],
+    scheduledDate: "2099-01-03",
+    scheduledTime: "10:00",
+    publishStatus: "restricted",
+    tagIds: [],
+    allowedUserIds: [userA],
+  });
+
+  // Anonymous / Public viewer
+  const anonUpcoming = getUpcomingMeets(database, 10);
+  expect(anonUpcoming.map((m) => m.id)).toEqual([publicMeet.id]);
+
+  const anonGetPublic = getMeetById(database, publicMeet.id);
+  expect(anonGetPublic).not.toBeNull();
+  const anonGetPrivate = getMeetById(database, privateMeet.id);
+  expect(anonGetPrivate).toBeNull();
+  const anonGetRestricted = getMeetById(database, restrictedMeet.id);
+  expect(anonGetRestricted).toBeNull();
+
+  // User A (allowed on restricted meet)
+  const userAUpcoming = getUpcomingMeets(database, 10, { userId: userA });
+  expect(userAUpcoming.map((m) => m.id).sort()).toEqual([publicMeet.id, restrictedMeet.id].sort());
+
+  expect(getMeetById(database, restrictedMeet.id, { userId: userA })).not.toBeNull();
+  expect(getMeetById(database, privateMeet.id, { userId: userA })).toBeNull();
+
+  // User B (not allowed on restricted meet)
+  const userBUpcoming = getUpcomingMeets(database, 10, { userId: userB });
+  expect(userBUpcoming.map((m) => m.id)).toEqual([publicMeet.id]);
+  expect(getMeetById(database, restrictedMeet.id, { userId: userB })).toBeNull();
+
+  // SuperAdmin viewer
+  const adminUpcoming = getUpcomingMeets(database, 10, { isSuperAdmin: true });
+  expect(adminUpcoming.length).toBe(3);
+  expect(getMeetById(database, privateMeet.id, { isSuperAdmin: true })).not.toBeNull();
+  expect(getMeetById(database, restrictedMeet.id, { isSuperAdmin: true })).not.toBeNull();
 });

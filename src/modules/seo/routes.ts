@@ -25,7 +25,7 @@ export function createSeoRoutes(database: Database) {
 
       const meets = database
         .query<{ id: string; updated_at: string | null; created_at: string }, []>(
-          "SELECT id, updated_at, created_at FROM meets WHERE status != 'cancelled' ORDER BY created_at DESC"
+          "SELECT id, updated_at, created_at FROM meets WHERE publish_status = 'public' AND status != 'cancelled' AND deleted_at IS NULL ORDER BY created_at DESC"
         )
         .all();
 

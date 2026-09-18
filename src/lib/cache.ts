@@ -20,8 +20,8 @@ export function refreshLandingCache(database: Database) {
     setCache("landing", { totalUsers, totalMeetHours: 0, totalMeets: 0, meets: [] } satisfies LandingCache);
     return;
   }
-  const totalMeets = database.query<{ total: number }, []>("SELECT COUNT(*) total FROM meets WHERE deleted_at IS NULL").get()!.total;
-  const totalMinutes = database.query<{ total: number }, []>("SELECT COALESCE(SUM(duration_minutes), 0) total FROM meets WHERE deleted_at IS NULL").get()!.total;
+  const totalMeets = database.query<{ total: number }, []>("SELECT COUNT(*) total FROM meets WHERE publish_status = 'public' AND deleted_at IS NULL").get()!.total;
+  const totalMinutes = database.query<{ total: number }, []>("SELECT COALESCE(SUM(duration_minutes), 0) total FROM meets WHERE publish_status = 'public' AND deleted_at IS NULL").get()!.total;
   setCache("landing", { totalUsers, totalMeetHours: Math.ceil(totalMinutes / 60), totalMeets, meets: getUpcomingMeets(database, 5) } satisfies LandingCache);
 }
 

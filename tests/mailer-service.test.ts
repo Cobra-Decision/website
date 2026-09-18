@@ -65,6 +65,7 @@ describe("Mailer Service & Concurrency Spec", () => {
         duration_minutes INTEGER DEFAULT 60,
         status TEXT DEFAULT 'upcoming',
         access_status TEXT DEFAULT 'public',
+        publish_status TEXT DEFAULT 'public',
         presenter_id TEXT,
         deleted_at DATETIME
       );

@@ -9,6 +9,7 @@ export type Tag = {
 
 export type MeetStatus = "upcoming" | "live" | "completed";
 export type MeetAccessStatus = "public" | "private";
+export type MeetPublishStatus = "public" | "private" | "restricted";
 
 export type Meet = {
   id: string;
@@ -25,6 +26,7 @@ export type Meet = {
   image_url: string | null;
   status: MeetStatus;
   access_status: MeetAccessStatus;
+  publish_status: MeetPublishStatus;
   presenter_id: string | null;
   created_at: string;
   updated_at: string;
@@ -44,6 +46,7 @@ export type MeetWithDetails = Omit<Meet, "topics"> & {
   presenter: UserSummary | null;
   attendee_count: number;
   attendee_ids: string[];
+  allowed_user_ids: string[];
   tags: Tag[];
 };
 
@@ -61,6 +64,8 @@ export type CreateMeetInput = {
   imageUrl?: string | null;
   status?: MeetStatus;
   accessStatus?: MeetAccessStatus;
+  publishStatus?: MeetPublishStatus;
   presenterId?: string | null;
   tagIds: string[];
+  allowedUserIds?: string[];
 };

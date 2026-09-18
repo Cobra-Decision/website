@@ -7,8 +7,8 @@ import { generateId } from "../../lib/id";
 export function createMeet(database: Database, data: CreateMeetInput): Meet {
   const id = data.id ?? generateId();
   const normalizedTopics = normalizeTopics(data.topics);
-  const insert = database.query(`INSERT INTO meets (id, title, description, topics, scheduled_at_utc, scheduled_date, scheduled_time, duration_minutes, meet_url, video_url, file_url, image_url, status, access_status, presenter_id)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING *`);
+  const insert = database.query(`INSERT INTO meets (id, title, description, topics, scheduled_at_utc, scheduled_date, scheduled_time, duration_minutes, meet_url, video_url, file_url, image_url, status, access_status, publish_status, presenter_id)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING *`);
   const meet = database.transaction(() => {
     const row = insert.get(
       id,
@@ -25,10 +25,14 @@ export function createMeet(database: Database, data: CreateMeetInput): Meet {
       data.imageUrl ?? null,
       data.status ?? "upcoming",
       data.accessStatus ?? "public",
+      data.publishStatus ?? "public",
       data.presenterId ?? null
     ) as Meet;
     const map = database.query("INSERT INTO meet_tags (meet_id, tag_id) VALUES (?, ?)");
     for (const tagId of data.tagIds) map.run(row.id, tagId);
+    for (const uid of data.allowedUserIds ?? []) {
+      database.run("INSERT OR IGNORE INTO meet_allowed_users (meet_id, user_id) VALUES (?, ?)", [row.id, uid]);
+    }
     return row;
   })();
   refreshLandingCache(database);
@@ -62,18 +66,57 @@ export function leaveMeet(database: Database, meetId: string, userId: string): b
   return false;
 }
 
-export function getUpcomingMeets(database: Database, limit = 5): MeetWithDetails[] {
-  const meets = database.query<Meet, []>(`SELECT * FROM meets
-    WHERE deleted_at IS NULL
-    ORDER BY scheduled_date DESC, scheduled_time DESC
-    LIMIT ${limit}`).all();
+export function getUpcomingMeets(
+  database: Database,
+  limit = 5,
+  viewer?: { userId?: string; isSuperAdmin?: boolean }
+): MeetWithDetails[] {
+  let sql = `SELECT m.* FROM meets m WHERE m.deleted_at IS NULL`;
+  const args: any[] = [];
+
+  if (viewer?.isSuperAdmin) {
+    // no publish_status restriction
+  } else if (viewer?.userId) {
+    sql += ` AND (m.publish_status = 'public' OR (m.publish_status = 'restricted' AND (m.presenter_id = ? OR EXISTS (SELECT 1 FROM meet_allowed_users mau WHERE mau.meet_id = m.id AND mau.user_id = ?))))`;
+    args.push(viewer.userId, viewer.userId);
+  } else {
+    sql += ` AND m.publish_status = 'public'`;
+  }
+
+  sql += ` ORDER BY m.scheduled_date DESC, m.scheduled_time DESC LIMIT ?`;
+  args.push(limit);
+
+  const meets = database.query<Meet, any[]>(sql).all(...args);
   return hydrateMeets(database, meets);
 }
 
-export function getMeetById(database: Database, id: string): MeetWithDetails | null {
+export function getMeetById(
+  database: Database,
+  id: string,
+  viewer?: { userId?: string; isSuperAdmin?: boolean }
+): MeetWithDetails | null {
   const meet = database.query<Meet, [string]>("SELECT * FROM meets WHERE id = ? AND deleted_at IS NULL").get(id);
   if (!meet) return null;
-  return hydrateMeets(database, [meet])[0] ?? null;
+  const hydrated = hydrateMeets(database, [meet])[0] ?? null;
+  if (!hydrated) return null;
+
+  if (viewer?.isSuperAdmin) {
+    return hydrated;
+  }
+
+  if (hydrated.publish_status === "public") {
+    return hydrated;
+  }
+
+  if (hydrated.publish_status === "restricted") {
+    if (viewer?.userId && (hydrated.presenter_id === viewer.userId || hydrated.allowed_user_ids.includes(viewer.userId))) {
+      return hydrated;
+    }
+    return null;
+  }
+
+  // private: only superAdmin
+  return null;
 }
 
 export function filterMeets(database: Database, params: {
@@ -84,9 +127,20 @@ export function filterMeets(database: Database, params: {
   status?: string;
   userId?: string;
   attendedOnly?: boolean;
+  viewer?: { userId?: string; isSuperAdmin?: boolean };
 }): MeetWithDetails[] {
   let sql = `SELECT DISTINCT m.* FROM meets m WHERE m.deleted_at IS NULL`;
   const args: any[] = [];
+
+  const viewer = params.viewer;
+  if (viewer?.isSuperAdmin) {
+    // no publish_status restriction
+  } else if (viewer?.userId) {
+    sql += ` AND (m.publish_status = 'public' OR (m.publish_status = 'restricted' AND (m.presenter_id = ? OR EXISTS (SELECT 1 FROM meet_allowed_users mau WHERE mau.meet_id = m.id AND mau.user_id = ?))))`;
+    args.push(viewer.userId, viewer.userId);
+  } else {
+    sql += ` AND m.publish_status = 'public'`;
+  }
 
   if (params.attendedOnly && params.userId) {
     sql += ` AND EXISTS (SELECT 1 FROM meet_attendees ma WHERE ma.meet_id = m.id AND ma.user_id = ?)`;
@@ -170,6 +224,22 @@ function hydrateMeets(database: Database, meets: Meet[]): MeetWithDetails[] {
     list.push(row.user_id);
   }
 
+  const allowedRows = database
+    .query<{ meet_id: string; user_id: string }, string[]>(
+      `SELECT meet_id, user_id FROM meet_allowed_users WHERE meet_id IN (${placeholders})`
+    )
+    .all(...meetIds);
+
+  const allowedByMeet = new Map<string, string[]>();
+  for (const row of allowedRows) {
+    let list = allowedByMeet.get(row.meet_id);
+    if (!list) {
+      list = [];
+      allowedByMeet.set(row.meet_id, list);
+    }
+    list.push(row.user_id);
+  }
+
   const tagsRows = database
     .query<Tag & { meet_id: string }, string[]>(
       `SELECT t.*, mt.meet_id FROM tags t
@@ -211,12 +281,14 @@ function hydrateMeets(database: Database, meets: Meet[]): MeetWithDetails[] {
       ...meet,
       status: meet.status ?? "upcoming",
       access_status: meet.access_status ?? "public",
+      publish_status: meet.publish_status ?? "public",
       file_url: meet.file_url ?? null,
       video_url: meet.video_url ?? null,
       topics: parseTopics(meet.topics),
       presenter: meet.presenter_id ? presenterMap.get(meet.presenter_id) ?? null : null,
       attendee_count: attendeeIds.length,
       attendee_ids: attendeeIds,
+      allowed_user_ids: allowedByMeet.get(meet.id) ?? [],
       tags: tagsByMeet.get(meet.id) ?? [],
     };
   });
