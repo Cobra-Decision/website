@@ -36,6 +36,18 @@ describe("Landing & Content Pages", () => {
     expect(html).toContain("Direct Support via Yavar Platform");
   });
 
+  it("renders mobile menu and navigation links in the header", async () => {
+    const res = await app.request("/");
+    expect(res.status).toBe(200);
+    const html = await res.text();
+    expect(html).toContain("x-data=\"{ open: false }\"");
+    expect(html).toContain("aria-label=\"Toggle Navigation Menu\"");
+    expect(html).toContain("How it works");
+    expect(html).toContain("Meets");
+    expect(html).toContain("/about");
+    expect(html).toContain("/support");
+  });
+
   it("redirects /donate to /support", async () => {
     const res = await app.request("/donate");
     expect(res.status).toBe(302);

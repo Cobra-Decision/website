@@ -1,21 +1,18 @@
 import type { LandingCache } from "../../lib/cache";
 import type { Locale } from "../../lib/i18n/translations";
-import { t, formatLocalizedNumber } from "../../lib/i18n/context";
-import { LanguageSwitch } from "../../ui/language-switch";
+import { t } from "../../lib/i18n/context";
+import { PublicHeader } from "../../ui/public-header";
+import { StatsBar } from "../../ui/stats-bar";
 import { Footer } from "../../ui/footer";
 
 export const AboutView = ({ data, locale = "en" }: { data: LandingCache; locale?: Locale }) => {
-  const totalUsersFormatted = formatLocalizedNumber(data.totalUsers, locale);
-  const totalHoursFormatted = formatLocalizedNumber(data.totalMeetHours, locale);
-  const totalMeetsFormatted = formatLocalizedNumber(data.totalMeets, locale);
-
   const tracks = [
-    { title: t("about.tracks.backend", locale), desc: locale === "fa" ? "طراحی سیستم، پایگاه‌های داده توزیع‌شده، میکروسرویس‌ها و پرفورمنس" : "Distributed systems, database design, microservices, and performance." },
-    { title: t("about.tracks.ai", locale), desc: locale === "fa" ? "مدل‌های زبانی بزرگ، یادگیری ماشین در پروداکشن و زیرساخت داده" : "LLMs, production machine learning, vector search, and data pipelines." },
-    { title: t("about.tracks.devops", locale), desc: locale === "fa" ? "زیرساخت لینوکسی، کانتینرها، CI/CD، پایش و امنیت شبکه" : "Linux servers, containers, CI/CD, observability, and network security." },
-    { title: t("about.tracks.craftsmanship", locale), desc: locale === "fa" ? "معماری تمیز، تست‌نویسی خودکار، ریفکتور و طراحی ماژولار" : "Clean architecture, automated testing, refactoring, and modular design." },
-    { title: t("about.tracks.softskills", locale), desc: locale === "fa" ? "رهبری تیم، مدیریت محصول، منتورینگ و رشد فردی و شغلی" : "Technical leadership, product management, mentoring, and professional growth." },
-    { title: t("about.tracks.opensource_culture", locale), desc: locale === "fa" ? "مشارکت در پروژه‌های آزاد، معرفی و نقد کتاب و همکاری‌های جمعی" : "Open-source collaboration, technical book reviews, and collective engineering." },
+    { title: t("about.tracks.backend", locale), desc: t("about.tracks.backend_desc", locale) },
+    { title: t("about.tracks.ai", locale), desc: t("about.tracks.ai_desc", locale) },
+    { title: t("about.tracks.devops", locale), desc: t("about.tracks.devops_desc", locale) },
+    { title: t("about.tracks.craftsmanship", locale), desc: t("about.tracks.craftsmanship_desc", locale) },
+    { title: t("about.tracks.softskills", locale), desc: t("about.tracks.softskills_desc", locale) },
+    { title: t("about.tracks.opensource_culture", locale), desc: t("about.tracks.opensource_culture_desc", locale) },
   ];
 
   const faqs = [
@@ -44,28 +41,7 @@ export const AboutView = ({ data, locale = "en" }: { data: LandingCache; locale?
 
   return (
     <div class="overflow-x-hidden bg-base-100 min-h-screen">
-      {/* Sticky Header Navbar */}
-      <header class="border-b border-base-200 bg-base-100/90 sticky top-0 z-30 backdrop-blur">
-        <nav class="navbar mx-auto min-h-20 max-w-7xl px-5 sm:px-8">
-          <div class="flex-1">
-            <a class="inline-flex items-center gap-3 text-xl font-bold tracking-tight" href="/">
-              <img src="/favicon.svg" alt="CobraDecision" width="32" height="32" class="h-8 w-8" />
-              <span>{t("brand.name", locale)}<span class="text-primary">.</span></span>
-            </a>
-          </div>
-          <div class="hidden gap-7 text-sm font-medium md:flex">
-            <a class="link-hover" href="/#how-it-works">{t("nav.how_it_works", locale)}</a>
-            <a class="link-hover" href="/#meets">{t("nav.meets", locale)}</a>
-            <a class="text-primary font-bold" href="/about">{t("nav.about", locale)}</a>
-            <a class="link-hover" href="/support">{t("nav.support", locale)}</a>
-            <a class="link-hover" href="/#contact">{t("nav.contact", locale)}</a>
-          </div>
-          <div class="flex-none gap-3 ps-4">
-            <LanguageSwitch currentLocale={locale} size="xs" />
-            <a class="btn btn-primary btn-sm px-5" href="/auth">{t("nav.sign_in", locale)}</a>
-          </div>
-        </nav>
-      </header>
+      <PublicHeader locale={locale} activePage="about" />
 
       <main class="space-y-24 py-12 sm:py-20">
         {/* Hero & Manifesto */}
@@ -98,7 +74,7 @@ export const AboutView = ({ data, locale = "en" }: { data: LandingCache; locale?
               <div class="badge badge-primary badge-sm mb-4 font-bold">{t("about.mission_title", locale)}</div>
               <h2 class="text-2xl font-bold text-base-content">
                 <a href="#mission" class="hover:text-primary transition-colors inline-flex items-center gap-2 group">
-                  <span>{locale === "fa" ? "گفتگوی عمیق بدون هیاهو" : "Focused Conversations Without Noise"}</span>
+                  <span>{t("about.mission_subtitle", locale)}</span>
                   <span class="text-base-content/30 group-hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity text-lg font-mono">#</span>
                 </a>
               </h2>
@@ -110,7 +86,7 @@ export const AboutView = ({ data, locale = "en" }: { data: LandingCache; locale?
               <div class="badge badge-secondary badge-sm mb-4 font-bold">{t("about.vision_title", locale)}</div>
               <h2 class="text-2xl font-bold text-base-content">
                 <a href="#vision" class="hover:text-primary transition-colors inline-flex items-center gap-2 group">
-                  <span>{locale === "fa" ? "مرجع همتا-به-همتای توسعه‌دهندگان" : "Peer-to-Peer Engineering Reference"}</span>
+                  <span>{t("about.vision_subtitle", locale)}</span>
                   <span class="text-base-content/30 group-hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity text-lg font-mono">#</span>
                 </a>
               </h2>
@@ -131,7 +107,7 @@ export const AboutView = ({ data, locale = "en" }: { data: LandingCache; locale?
               </a>
             </h2>
             <p class="mt-3 text-base-content/65">
-              {locale === "fa" ? "اصولی که جلسات، تعاملات و فرهنگ تصمیم کبرا را شکل می‌دهند." : "The core pillars guiding our meetings, discussions, and community culture."}
+              {t("about.values_subtitle", locale)}
             </p>
           </div>
           <div class="grid gap-8 md:grid-cols-3">
@@ -166,19 +142,19 @@ export const AboutView = ({ data, locale = "en" }: { data: LandingCache; locale?
               </a>
             </h2>
             <p class="mt-3 text-base-content/65">
-              {locale === "fa" ? "جلسات آنلاین هفتگی ما در دو فرمت مکمل و مشخص برگزار می‌شوند." : "Weekly online gatherings hosted in two complementary formats."}
+              {t("about.formats_subtitle", locale)}
             </p>
           </div>
           <div class="grid gap-8 md:grid-cols-2 max-w-4xl mx-auto">
             <div class="card bg-base-100 border border-base-300 p-8 shadow-sm">
-              <span class="badge badge-primary badge-sm font-semibold mb-3">{locale === "fa" ? "Weekly • چهارشنبه‌ها" : "Weekly • Wednesdays"}</span>
+              <span class="badge badge-primary badge-sm font-semibold mb-3">{t("about.formats.roundtables_badge", locale)}</span>
               <h3 class="text-2xl font-bold">{t("about.formats.roundtables", locale)}</h3>
               <p class="mt-4 text-base-content/75 leading-relaxed">
                 {t("about.formats.roundtables_desc", locale)}
               </p>
             </div>
             <div class="card bg-base-100 border border-base-300 p-8 shadow-sm">
-              <span class="badge badge-secondary badge-sm font-semibold mb-3">{locale === "fa" ? "Deep-Dive • ارائه‌های تخصصی" : "Deep-Dive • Specialized Talks"}</span>
+              <span class="badge badge-secondary badge-sm font-semibold mb-3">{t("about.formats.talks_badge", locale)}</span>
               <h3 class="text-2xl font-bold">{t("about.formats.talks", locale)}</h3>
               <p class="mt-4 text-base-content/75 leading-relaxed">
                 {t("about.formats.talks_desc", locale)}
@@ -197,7 +173,7 @@ export const AboutView = ({ data, locale = "en" }: { data: LandingCache; locale?
               </a>
             </h2>
             <p class="mt-3 text-base-content/65">
-              {locale === "fa" ? "سرفصل‌ها و موضوعات محوری که در جلسات به بحث گذاشته می‌شوند." : "Core tracks and specialized domains explored in our community sessions."}
+              {t("about.tracks_subtitle", locale)}
             </p>
           </div>
           <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
@@ -219,26 +195,12 @@ export const AboutView = ({ data, locale = "en" }: { data: LandingCache; locale?
                 <span class="text-base-content/30 group-hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity text-xl font-mono">#</span>
               </a>
             </h2>
-            <div class="flex flex-wrap items-center justify-center gap-8 sm:gap-16">
-              {data.totalUsers >= 50 && (
-                <>
-                  <div class="px-4">
-                    <p class="text-sm font-medium text-base-content/60">{t("stats.members", locale)}</p>
-                    <p class="mt-1 text-3xl font-extrabold text-primary sm:text-4xl">{totalUsersFormatted}</p>
-                  </div>
-                  <div class="h-10 w-px bg-base-300 hidden sm:block"></div>
-                </>
-              )}
-              <div class="px-4">
-                <p class="text-sm font-medium text-base-content/60">{t("stats.hours", locale)}</p>
-                <p class="mt-1 text-3xl font-extrabold text-primary sm:text-4xl">{totalHoursFormatted}</p>
-              </div>
-              <div class="h-10 w-px bg-base-300 hidden sm:block"></div>
-              <div class="px-4">
-                <p class="text-sm font-medium text-base-content/60">{t("stats.meets", locale)}</p>
-                <p class="mt-1 text-3xl font-extrabold text-primary sm:text-4xl">{totalMeetsFormatted}</p>
-              </div>
-            </div>
+            <StatsBar
+              totalUsers={data.totalUsers}
+              totalMeetHours={data.totalMeetHours}
+              totalMeets={data.totalMeets}
+              locale={locale}
+            />
           </div>
         </section>
 
@@ -285,10 +247,10 @@ export const AboutView = ({ data, locale = "en" }: { data: LandingCache; locale?
         <section id="join" class="mx-auto max-w-4xl px-5 sm:px-8 text-center scroll-mt-24">
           <div class="rounded-3xl border border-base-300 bg-gradient-to-b from-base-200/60 to-base-100 p-10 shadow-sm">
             <h2 class="text-3xl font-bold">
-              {locale === "fa" ? "هم‌اکنون به گفتگو بپیوندید" : "Join the Conversation Today"}
+              {t("about.join_title", locale)}
             </h2>
             <p class="mt-4 text-base-content/70 max-w-xl mx-auto">
-              {locale === "fa" ? "در جلسات بعدی شرکت کنید، ارائه‌ای به اشتراک بگذارید، یا به گفتگوهای آزاد بپیوندید." : "Attend upcoming meets, propose your technical talk, or take part in our weekly roundtables."}
+              {t("about.join_desc", locale)}
             </p>
             <div class="mt-8 flex flex-wrap justify-center gap-4">
               <a class="btn btn-primary px-6" href="/#meets">

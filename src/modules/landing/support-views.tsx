@@ -1,6 +1,6 @@
 import type { Locale } from "../../lib/i18n/translations";
 import { t } from "../../lib/i18n/context";
-import { LanguageSwitch } from "../../ui/language-switch";
+import { PublicHeader } from "../../ui/public-header";
 import { Footer } from "../../ui/footer";
 
 export const SupportView = ({ locale = "en" }: { locale?: Locale }) => {
@@ -12,52 +12,7 @@ export const SupportView = ({ locale = "en" }: { locale?: Locale }) => {
 
   return (
     <div class="overflow-x-hidden bg-base-100 min-h-screen">
-      {/* Sticky Header Navbar */}
-      <header class="border-b border-base-200 bg-base-100/90 sticky top-0 z-30 backdrop-blur">
-        <nav class="navbar mx-auto min-h-20 max-w-7xl px-5 sm:px-8">
-          <div class="flex-1">
-            <a
-              class="inline-flex items-center gap-3 text-xl font-bold tracking-tight"
-              href="/"
-            >
-              <img
-                src="/favicon.svg"
-                alt="CobraDecision"
-                width="32"
-                height="32"
-                class="h-8 w-8"
-              />
-              <span>
-                {t("brand.name", locale)}
-                <span class="text-primary">.</span>
-              </span>
-            </a>
-          </div>
-          <div class="hidden gap-7 text-sm font-medium md:flex">
-            <a class="link-hover" href="/#how-it-works">
-              {t("nav.how_it_works", locale)}
-            </a>
-            <a class="link-hover" href="/#meets">
-              {t("nav.meets", locale)}
-            </a>
-            <a class="link-hover" href="/about">
-              {t("nav.about", locale)}
-            </a>
-            <a class="text-primary font-bold" href="/support">
-              {t("nav.support", locale)}
-            </a>
-            <a class="link-hover" href="/#contact">
-              {t("nav.contact", locale)}
-            </a>
-          </div>
-          <div class="flex-none gap-3 ps-4">
-            <LanguageSwitch currentLocale={locale} size="xs" />
-            <a class="btn btn-primary btn-sm px-5" href="/auth">
-              {t("nav.sign_in", locale)}
-            </a>
-          </div>
-        </nav>
-      </header>
+      <PublicHeader locale={locale} activePage="support" />
 
       <main class="space-y-24 py-12 sm:py-20">
         {/* Hero Section */}
@@ -108,13 +63,13 @@ export const SupportView = ({ locale = "en" }: { locale?: Locale }) => {
                   {t("support.yavar_desc", locale)}
                 </p>
 
-                <div style="display:flex;justify-content:center;width:100%">
+                <div class="flex justify-center w-full">
                   <iframe
                     src="https://donate.sudoshz.ir/embed/widget.php?slug=cobra-decision&theme=dark&lang=fa"
                     title={t("support.yavar_title", locale)}
                     loading="lazy"
                     referrerpolicy="strict-origin-when-cross-origin"
-                    style="width:100%;max-width:420px;height:287px;border:0;border-radius:16px;overflow:hidden;display:block;margin:0 auto"
+                    class="w-full max-w-[420px] h-[287px] border-0 rounded-2xl overflow-hidden block mx-auto"
                     sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"
                   ></iframe>
                 </div>

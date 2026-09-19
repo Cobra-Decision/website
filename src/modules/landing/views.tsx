@@ -1,41 +1,18 @@
 import type { LandingCache } from "../../lib/cache";
 import type { Locale } from "../../lib/i18n/translations";
-import { t, formatLocalizedNumber } from "../../lib/i18n/context";
-import { LanguageSwitch } from "../../ui/language-switch";
+import { t } from "../../lib/i18n/context";
+import { PublicHeader } from "../../ui/public-header";
 import { UnifiedMeetCard } from "../../ui/meet-card";
 import { Carousel } from "../../ui/carousel";
+import { StatsBar } from "../../ui/stats-bar";
 import { Footer } from "../../ui/footer";
 
 export const Landing = ({ data, locale = "en" }: { data: LandingCache; locale?: Locale }) => {
   const featured = data.meets[0];
-  const totalUsersFormatted = formatLocalizedNumber(data.totalUsers, locale);
-  const totalHoursFormatted = formatLocalizedNumber(data.totalMeetHours, locale);
-  const totalMeetsFormatted = formatLocalizedNumber(data.totalMeets, locale);
 
   return (
     <div class="overflow-x-hidden bg-base-100 min-h-screen">
-      {/* Sticky Header Navbar */}
-      <header class="border-b border-base-200 bg-base-100/90 sticky top-0 z-30 backdrop-blur">
-        <nav class="navbar mx-auto min-h-20 max-w-7xl px-5 sm:px-8">
-          <div class="flex-1">
-            <a class="inline-flex items-center gap-3 text-xl font-bold tracking-tight" href="/">
-              <img src="/favicon.svg" alt="CobraDecision" width="32" height="32" class="h-8 w-8" />
-              <span>{t("brand.name", locale)}<span class="text-primary">.</span></span>
-            </a>
-          </div>
-          <div class="hidden gap-7 text-sm font-medium md:flex">
-            <a class="link-hover" href="#how-it-works">{t("nav.how_it_works", locale)}</a>
-            <a class="link-hover" href="#meets">{t("nav.meets", locale)}</a>
-            <a class="link-hover" href="/about">{t("nav.about", locale)}</a>
-            <a class="link-hover" href="/support">{t("nav.support", locale)}</a>
-            <a class="link-hover" href="#contact">{t("nav.contact", locale)}</a>
-          </div>
-          <div class="flex-none gap-3 ps-4">
-            <LanguageSwitch currentLocale={locale} size="xs" />
-            <a class="btn btn-primary btn-sm px-5" href="/auth">{t("nav.sign_in", locale)}</a>
-          </div>
-        </nav>
-      </header>
+      <PublicHeader locale={locale} activePage="landing" />
 
       <main>
         {/* Hero Section */}
@@ -76,26 +53,12 @@ export const Landing = ({ data, locale = "en" }: { data: LandingCache; locale?: 
         {/* Centered Stats Bar */}
         <section class="border-b border-base-200 bg-base-100 py-10">
           <div class="mx-auto max-w-7xl px-5 sm:px-8">
-            <div class="flex flex-wrap items-center justify-center gap-8 text-center sm:gap-16">
-              {data.totalUsers >= 50 && (
-                <>
-                  <div class="px-4">
-                    <p class="text-sm font-medium text-base-content/60">{t("stats.members", locale)}</p>
-                    <p class="mt-1 text-3xl font-extrabold text-primary sm:text-4xl">{totalUsersFormatted}</p>
-                  </div>
-                  <div class="h-10 w-px bg-base-300 hidden sm:block"></div>
-                </>
-              )}
-              <div class="px-4">
-                <p class="text-sm font-medium text-base-content/60">{t("stats.hours", locale)}</p>
-                <p class="mt-1 text-3xl font-extrabold text-primary sm:text-4xl">{totalHoursFormatted}</p>
-              </div>
-              <div class="h-10 w-px bg-base-300 hidden sm:block"></div>
-              <div class="px-4">
-                <p class="text-sm font-medium text-base-content/60">{t("stats.meets", locale)}</p>
-                <p class="mt-1 text-3xl font-extrabold text-primary sm:text-4xl">{totalMeetsFormatted}</p>
-              </div>
-            </div>
+            <StatsBar
+              totalUsers={data.totalUsers}
+              totalMeetHours={data.totalMeetHours}
+              totalMeets={data.totalMeets}
+              locale={locale}
+            />
           </div>
         </section>
 

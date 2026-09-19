@@ -4,7 +4,7 @@ import { renderMarkdown } from "../../lib/markdown";
 import type { Locale } from "../../lib/i18n/translations";
 import { t, formatLocalizedNumber } from "../../lib/i18n/context";
 import { formatLocalizedDate, formatLocalizedTime, isMeetLinkActive } from "./datetime";
-import { LanguageSwitch } from "../../ui/language-switch";
+import { PublicHeader } from "../../ui/public-header";
 import { MeetStatusBadge, MeetAccessBadge, MeetPublishBadge } from "../../ui/meet-badges";
 import { VideoIcon, FileTextIcon, DownloadIcon, ChevronDownIcon, ChevronUpIcon } from "../../ui/icons";
 import { Footer } from "../../ui/footer";
@@ -235,21 +235,7 @@ export const MeetingDetailPage = ({
 
   return (
     <div class="min-h-screen bg-base-100 text-base-content overflow-x-hidden w-full max-w-full">
-      {/* Header / Nav */}
-      <header class="border-b border-base-200 bg-base-100">
-        <nav class="navbar mx-auto min-h-16 max-w-7xl px-3 sm:px-8 flex-wrap gap-2">
-          <a class="flex-1 inline-flex items-center gap-2.5 text-lg sm:text-xl font-bold tracking-tight shrink-0" href="/">
-            <img src="/favicon.svg" alt="CobraDecision" class="h-7 w-auto" />
-            <span>{t("brand.name", locale)}<span class="text-primary">.</span></span>
-          </a>
-          <div class="flex items-center gap-1 sm:gap-2">
-            <LanguageSwitch currentLocale={locale} size="xs" />
-            <a class="btn btn-ghost btn-xs sm:btn-sm px-2 sm:px-3" href="/dashboard/user/meets">
-              {t("nav.dashboard", locale)}
-            </a>
-          </div>
-        </nav>
-      </header>
+      <PublicHeader locale={locale} activePage="events" />
 
       {/* Hero / Header Section */}
       <div class="border-b border-base-200 bg-gradient-to-br from-base-100 via-base-100 to-primary/5 py-12">
