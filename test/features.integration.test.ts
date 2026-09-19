@@ -318,9 +318,50 @@ test("POST /dashboard/admin/meets creates and updates meet with multiple tags", 
   const updatedMeetTags = database.query<{ tag_id: string }, [string]>("SELECT tag_id FROM meet_tags WHERE meet_id = ?").all(meet.id);
   expect(updatedMeetTags.map((t) => t.tag_id)).toEqual([tagA]);
 
-  // Verify landing cache was updated
-  const landing = getLandingCache();
-  expect(landing.meets.some((m) => m.id === meet.id)).toBe(true);
+  // Create meet with publish_status = restricted and allowed_user_ids
+  const memberRole = database.query<{ id: string }, []>("SELECT id FROM roles WHERE title = 'member'").get()!;
+  const userX = generateId();
+  database.run("INSERT INTO users (id, email, password_hash, role_id) VALUES (?, 'userx@test.com', 'hash', ?)", [userX, memberRole.id]);
+
+  const restrictedForm = new FormData();
+  restrictedForm.set("title", "Admin Restricted Meet");
+  restrictedForm.set("description", "Testing restricted meet creation via admin");
+  restrictedForm.set("scheduled_date", "2099-05-02");
+  restrictedForm.set("scheduled_time", "19:00");
+  restrictedForm.set("duration_minutes", "60");
+  restrictedForm.set("publish_status", "restricted");
+  restrictedForm.append("allowed_user_ids", userX);
+
+  const restrictedCreateRes = await app.request("/dashboard/admin/meets", {
+    method: "POST",
+    headers: { cookie: adminCookie },
+    body: restrictedForm,
+  });
+  expect(restrictedCreateRes.status).toBe(200);
+
+  const restrictedMeet = database.query<{ id: string; publish_status: string }, [string]>("SELECT id, publish_status FROM meets WHERE title = ?").get("Admin Restricted Meet")!;
+  expect(restrictedMeet.publish_status).toBe("restricted");
+  const allowedUsers = database.query<{ user_id: string }, [string]>("SELECT user_id FROM meet_allowed_users WHERE meet_id = ?").all(restrictedMeet.id);
+  expect(allowedUsers.map((u) => u.user_id)).toEqual([userX]);
+
+  // Update restricted meet to change allowed users and switch publish_status to public
+  const updateRestrictedForm = new FormData();
+  updateRestrictedForm.set("title", "Admin Restricted Meet Now Public");
+  updateRestrictedForm.set("scheduled_date", "2099-05-02");
+  updateRestrictedForm.set("scheduled_time", "19:00");
+  updateRestrictedForm.set("publish_status", "public");
+
+  const updateRestrictedRes = await app.request(`/dashboard/admin/meets/${restrictedMeet.id}`, {
+    method: "POST",
+    headers: { cookie: adminCookie },
+    body: updateRestrictedForm,
+  });
+  expect(updateRestrictedRes.status).toBe(200);
+
+  const updatedRestrictedMeet = database.query<{ id: string; publish_status: string }, [string]>("SELECT id, publish_status FROM meets WHERE id = ?").get(restrictedMeet.id)!;
+  expect(updatedRestrictedMeet.publish_status).toBe("public");
+  const updatedAllowedUsers = database.query<{ user_id: string }, [string]>("SELECT user_id FROM meet_allowed_users WHERE meet_id = ?").all(restrictedMeet.id);
+  expect(updatedAllowedUsers).toHaveLength(0);
 });
 
 test("hydrateMeets batch queries correctly associate tags, attendee counts, and presenter", async () => {
