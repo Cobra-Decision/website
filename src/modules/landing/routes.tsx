@@ -4,6 +4,8 @@ import { getLandingCache } from "../../lib/cache";
 import { Document } from "../../ui/layout";
 import { FormMessage } from "../../ui/form-message";
 import { Landing } from "./views";
+import { AboutView } from "./about-views";
+import { SupportView } from "./support-views";
 import { getLocale, t } from "../../lib/i18n/context";
 
 export function createLandingRoutes(database: Database) {
@@ -32,6 +34,51 @@ export function createLandingRoutes(database: Database) {
         </Document>
       );
     })
+    .get("/about", (c) => {
+      const locale = getLocale(c);
+      const origin = new URL("/", c.req.url).origin;
+      const title = locale === "fa" ? "درباره تصمیم کبرا | CobraDecision" : "About Cobra Decision | CobraDecision";
+      const description = t("about.hero_subtitle", locale);
+
+      const jsonLd = {
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        name: "CobraDecision",
+        url: `${origin}/about`,
+        logo: `${origin}/favicon.svg`,
+        description,
+      };
+
+      return c.html(
+        <Document
+          title={title}
+          description={description}
+          canonicalUrl={`${origin}/about`}
+          locale={locale}
+          jsonLd={jsonLd}
+        >
+          <AboutView data={getLandingCache()} locale={locale} />
+        </Document>
+      );
+    })
+    .get("/support", (c) => {
+      const locale = getLocale(c);
+      const origin = new URL("/", c.req.url).origin;
+      const title = locale === "fa" ? "حمایت مالی از تصمیم کبرا | CobraDecision" : "Support Cobra Decision | CobraDecision";
+      const description = t("support.hero_subtitle", locale);
+
+      return c.html(
+        <Document
+          title={title}
+          description={description}
+          canonicalUrl={`${origin}/support`}
+          locale={locale}
+        >
+          <SupportView locale={locale} />
+        </Document>
+      );
+    })
+    .get("/donate", (c) => c.redirect("/support"))
     .post("/api/contact", async (c) => {
       const email = String((await c.req.parseBody()).email ?? "").trim().toLowerCase();
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return c.html(<FormMessage id="contact-result" message="Enter a valid email address." />, 400);
