@@ -186,6 +186,16 @@ function renderCellContent(column: string, rawVal: string | number | null, local
     return <span class={`badge ${badgeColor} badge-sm font-medium`}>{str}</span>;
   }
 
+  if (column === "publish_status") {
+    const badgeColor =
+      str === "restricted"
+        ? "badge-warning"
+        : str === "private"
+        ? "badge-neutral"
+        : "badge-success badge-outline";
+    return <span class={`badge ${badgeColor} badge-sm font-medium`}>{str}</span>;
+  }
+
   if (column === "access_status") {
     const badgeColor = str === "private" ? "badge-warning badge-outline" : "badge-ghost";
     return <span class={`badge ${badgeColor} badge-sm font-medium`}>{str}</span>;

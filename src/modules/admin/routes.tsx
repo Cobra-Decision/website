@@ -97,9 +97,9 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
     },
     meets: {
       table: "meets",
-      columns: ["id", "title", "status", "access_status", "description", "topics", "scheduled_date", "scheduled_time", "duration_minutes", "meet_url", "video_url", "file_url", "image_url", "presenter_id", "created_at", "updated_at"],
-      searchFields: ["id", "title", "status", "access_status", "description", "topics", "scheduled_date", "presenter_id"],
-      fields: ["title", "description", "topics", "scheduled_date", "scheduled_time", "duration_minutes", "meet_url", "video_url", "file_url", "image_url", "status", "access_status", "presenter_id"],
+      columns: ["id", "title", "status", "publish_status", "access_status", "description", "topics", "scheduled_date", "scheduled_time", "duration_minutes", "meet_url", "video_url", "file_url", "image_url", "presenter_id", "created_at", "updated_at"],
+      searchFields: ["id", "title", "status", "publish_status", "access_status", "description", "topics", "scheduled_date", "presenter_id"],
+      fields: ["title", "description", "topics", "scheduled_date", "scheduled_time", "duration_minutes", "meet_url", "video_url", "file_url", "image_url", "status", "publish_status", "access_status", "presenter_id"],
     },
     tags: {
       table: "tags",
@@ -121,7 +121,12 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
     },
   } as const;
 
-  const rowsFor = (resource: keyof typeof config, query: Record<string, string> = {}) => {
+  const isSuperAdmin = (c: Context) =>
+    (c.get("auth") as { role_id: string }).role_id === db.query<{ id: string }, []>("SELECT id FROM roles WHERE title='Super Admin' AND deleted_at IS NULL").get()?.id;
+
+  const validRelation = (table: "tags" | "users", id: string) => !!db.query(`SELECT 1 FROM ${table} WHERE id=? AND deleted_at IS NULL`).get(id);
+
+  const rowsFor = (resource: keyof typeof config, query: Record<string, string> = {}, isSuperAdminUser = true) => {
     const direction = query.direction === "asc" ? "ASC" : "DESC";
     const sort = query.sort && config[resource].columns.includes(query.sort as never) ? query.sort : "id";
     const q = query.q?.trim();
@@ -133,16 +138,17 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
       const sql = `SELECT u.id,u.email,u.username,u.phone,u.first_name,u.last_name,r.title role_title,u.created_at,u.updated_at FROM users u JOIN roles r ON r.id=u.role_id WHERE u.deleted_at IS NULL AND r.deleted_at IS NULL${q ? ` AND CAST(${field} AS TEXT) LIKE ?` : ""} ORDER BY ${userSort === "role_title" ? "r.title" : `u.${userSort}`} ${direction}`;
       return (q ? db.query(sql).all(`%${q}%`) : db.query(sql).all()) as Row[];
     }
-    const sql = `SELECT ${config[resource].columns.join(", ")} FROM ${config[resource].table} WHERE deleted_at IS NULL${q ? ` AND CAST(${searchField} AS TEXT) LIKE ?` : ""} ORDER BY ${sort} ${direction}`;
+    const rbacFilter = resource === "meets" && !isSuperAdminUser ? " AND publish_status != 'private'" : "";
+    const sql = `SELECT ${config[resource].columns.join(", ")} FROM ${config[resource].table} WHERE deleted_at IS NULL${rbacFilter}${q ? ` AND CAST(${searchField} AS TEXT) LIKE ?` : ""} ORDER BY ${sort} ${direction}`;
     return (q ? db.query(sql).all(`%${q}%`) : db.query(sql).all()) as Row[];
   };
 
-  const tableResponse = (resource: keyof typeof config, toastTitle?: string, fallback = "") => {
+  const tableResponse = (resource: keyof typeof config, toastTitle?: string, fallback = "", isSuper = true) => {
     refreshLandingCache(db);
     clearPermissionCache();
     return (
       <>
-        <CrudTable resource={resource} columns={[...config[resource].columns]} searchFields={[...config[resource].searchFields]} rows={rowsFor(resource)} />
+        <CrudTable resource={resource} columns={[...config[resource].columns]} searchFields={[...config[resource].searchFields]} rows={rowsFor(resource, {}, isSuper)} />
         {toastTitle && toast(toastTitle, fallback)}
       </>
     );
@@ -153,6 +159,10 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
     const users = db.query<{ id: string; email: string }, []>("SELECT id,email FROM users WHERE deleted_at IS NULL ORDER BY email").all();
     const allTags = resource === "meets" ? db.query<{ id: string; title: string }, []>("SELECT id,title FROM tags WHERE deleted_at IS NULL ORDER BY title").all() : [];
     const currentMeetTagIds = resource === "meets" && id ? db.query<{ tag_id: string }, [string]>("SELECT tag_id FROM meet_tags WHERE meet_id=?").all(id).map((r) => r.tag_id) : [];
+    const currentMeetAllowedUserIds =
+      resource === "meets" && id
+        ? db.query<{ user_id: string }, [string]>("SELECT user_id FROM meet_allowed_users WHERE meet_id=?").all(id).map((r) => r.user_id)
+        : [];
     const endpoints = resource === "roles" ? db.query<{ id: string; title: string }, []>("SELECT id,title FROM endpoints WHERE deleted_at IS NULL ORDER BY title").all() : [];
     const mappings =
       resource === "roles" && id
@@ -211,6 +221,18 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
             {locale === "fa" ? "برگزار شده" : "Presented / Completed"}
           </option>
         </select>
+      ) : field === "publish_status" && resource === "meets" ? (
+        <select class="select select-bordered w-full" name="publish_status" x-model="publishStatus">
+          <option value="public" selected={String(values[field] ?? "public") === "public"}>
+            {t("publish_status.public", locale)}
+          </option>
+          <option value="private" selected={String(values[field]) === "private"}>
+            {t("publish_status.private", locale)}
+          </option>
+          <option value="restricted" selected={String(values[field]) === "restricted"}>
+            {t("publish_status.restricted", locale)}
+          </option>
+        </select>
       ) : field === "access_status" && resource === "meets" ? (
         <select class="select select-bordered w-full" name={field} value={String(values[field] ?? "public")}>
           <option value="public" selected={String(values[field] ?? "public") === "public"}>
@@ -267,6 +289,24 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
             hx-swap="outerHTML"
             hx-encoding="multipart/form-data"
             class="grid gap-3 mt-4 sm:grid-cols-2"
+            x-data={`{
+              publishStatus: '${values.publish_status ?? "public"}',
+              userSearch: '',
+              allUsers: ${JSON.stringify(users.map((u) => ({ id: u.id, email: u.email })))},
+              selectedUserIds: ${JSON.stringify(currentMeetAllowedUserIds ?? [])},
+              get filteredUsers() {
+                if (!this.userSearch.trim()) return this.allUsers;
+                const q = this.userSearch.toLowerCase();
+                return this.allUsers.filter(u => u.email.toLowerCase().includes(q));
+              },
+              selectAllFilteredUsers() {
+                const ids = this.filteredUsers.map(u => u.id);
+                this.selectedUserIds = Array.from(new Set([...this.selectedUserIds, ...ids]));
+              },
+              clearSelectedUsers() {
+                this.selectedUserIds = [];
+              }
+            }`}
           >
             {error && (
               <div class="sm:col-span-2">
@@ -282,6 +322,43 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
 
             {resource === "meets" && (
               <>
+                {/* Restricted Users Picker */}
+                <div
+                  class="form-control sm:col-span-2 space-y-2"
+                  x-show="publishStatus === 'restricted'"
+                  x-cloak
+                >
+                  <div class="flex items-center justify-between">
+                    <span class="label-text font-medium">
+                      {t("admin.crud.allowed_users", locale)} (<span x-text="selectedUserIds.length"></span> {t("admin.crud.assigned", locale)})
+                    </span>
+                    <div class="flex gap-1">
+                      <button type="button" class="btn btn-xs btn-ghost" x-on:click="selectAllFilteredUsers()">{t("admin.crud.select_all", locale)}</button>
+                      <button type="button" class="btn btn-xs btn-ghost" x-on:click="clearSelectedUsers()">{t("admin.crud.reset", locale)}</button>
+                    </div>
+                  </div>
+                  <input
+                    type="text"
+                    placeholder={t("admin.crud.search_users", locale)}
+                    x-model="userSearch"
+                    class="input input-bordered input-xs w-full"
+                  />
+                  <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-40 overflow-y-auto p-2 border border-base-300 rounded-lg bg-base-200/40">
+                    <template x-for="user in filteredUsers" x-bind:key="user.id">
+                      <label class="cursor-pointer label justify-start gap-2 py-1 px-2 rounded hover:bg-base-200 bg-base-100 border border-base-300/50">
+                        <input
+                          type="checkbox"
+                          name="allowed_user_ids"
+                          x-bind:value="user.id"
+                          x-model="selectedUserIds"
+                          class="checkbox checkbox-primary checkbox-xs"
+                        />
+                        <span class="label-text text-xs truncate" x-text="user.email"></span>
+                      </label>
+                    </template>
+                  </div>
+                </div>
+
                 <label class="form-control sm:col-span-2">
                   <span class="label-text font-medium">{t("admin.crud.upload_presentation", locale)}</span>
                   <input class="file-input file-input-bordered w-full" name="presentation_file" type="file" />
@@ -666,9 +743,6 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
     return null;
   };
 
-  const isSuperAdmin = (c: Context) =>
-    (c.get("auth") as { role_id: string }).role_id === db.query<{ id: string }, []>("SELECT id FROM roles WHERE title='Super Admin' AND deleted_at IS NULL").get()?.id;
-
   for (const resource of Object.keys(config) as (keyof typeof config)[]) {
     const { table, columns, fields } = config[resource];
     app.get(`/${resource}`, (c) => {
@@ -679,7 +753,7 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
           resource={resource}
           columns={[...columns]}
           searchFields={[...config[resource].searchFields]}
-          rows={rowsFor(resource, c.req.query())}
+          rows={rowsFor(resource, c.req.query(), isSuperAdmin(c))}
           query={c.req.query()}
           locale={locale}
           timeZone={tz}
@@ -785,6 +859,7 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
             const val = submitted[field];
             if (field === "topics") return JSON.stringify(normalizedTopics);
             if (field === "status") return String(val ?? "upcoming") || "upcoming";
+            if (field === "publish_status") return String(val ?? "public") || "public";
             if (field === "access_status") return String(val ?? "public") || "public";
             if (field === "duration_minutes") return Number(toEnglishDigits(val ?? 60)) || 60;
             if (field === "description") return String(val ?? "");
@@ -799,11 +874,22 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
           }
           const initialUserId = String(body.initial_user_id ?? "").trim();
 
+          const publishStatus = String(submitted.publish_status ?? "public");
+          const rawAllowedUserIds = body.allowed_user_ids || body["allowed_user_ids[]"];
+          const allowedUserIds = publishStatus === "restricted"
+            ? (Array.isArray(rawAllowedUserIds) ? rawAllowedUserIds : rawAllowedUserIds ? [rawAllowedUserIds] : []).map(String).map((u) => u.trim()).filter(Boolean)
+            : [];
+
           db.transaction(() => {
             db.run(`INSERT INTO meets (id,${meetFields.join(",")}) VALUES (?,${meetFields.map(() => "?").join(",")})`, [id, ...values, scheduledAtUtc]);
             for (const tagId of tagIds) {
               if (validRelation("tags", tagId)) {
                 db.run("INSERT OR IGNORE INTO meet_tags (meet_id,tag_id) VALUES (?,?)", [id, tagId]);
+              }
+            }
+            for (const uid of allowedUserIds) {
+              if (validRelation("users", uid)) {
+                db.run("INSERT OR IGNORE INTO meet_allowed_users (meet_id,user_id) VALUES (?,?)", [id, uid]);
               }
             }
             if (initialUserId && validRelation("users", initialUserId)) {
@@ -816,7 +902,7 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
           const adminAuth = c.get("auth") as { sub: string; role_id: string } | undefined;
           logger.meet("MEET_CREATED", {
             actor: { userId: adminAuth?.sub, role: adminAuth?.role_id, ip: c.req.header("x-forwarded-for") ?? "local" },
-            data: { meetId: id, title: submitted.title, scheduledDate: submitted.scheduled_date, scheduledTime: submitted.scheduled_time, presenterId: submitted.presenter_id },
+            data: { meetId: id, title: submitted.title, scheduledDate: submitted.scheduled_date, scheduledTime: submitted.scheduled_time, presenterId: submitted.presenter_id, publishStatus },
           });
         } else {
           const values = fields.map((field) => {
@@ -826,7 +912,7 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
           });
           db.run(`INSERT INTO ${table} (id,${fields.join(",")}) VALUES (?,${fields.map(() => "?").join(",")})`, [id, ...values]);
         }
-        return c.html(tableResponse(resource, "admin.created", "Created"));
+        return c.html(tableResponse(resource, "admin.created", "Created", isSuperAdmin(c)));
       } catch {
         return failForm(c, resource, resource === "users" ? "That email, username, or phone is already used." : "A record with that title already exists.", submitted);
       }
@@ -836,7 +922,7 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
       const body = await c.req.parseBody({ all: true });
       const rawIds = body["ids"] || body["ids[]"];
       const ids = (Array.isArray(rawIds) ? rawIds : rawIds ? [rawIds] : []).map(String).filter(Boolean);
-      if (!ids.length) return c.html(<><CrudTable resource={resource} columns={[...columns]} searchFields={[...config[resource].searchFields]} rows={rowsFor(resource)} />{toast("admin.nothing_selected", "Select at least one record.", "warning")}</>, 400);
+      if (!ids.length) return c.html(<><CrudTable resource={resource} columns={[...columns]} searchFields={[...config[resource].searchFields]} rows={rowsFor(resource, {}, isSuperAdmin(c))} />{toast("admin.nothing_selected", "Select at least one record.", "warning")}</>, 400);
       for (const id of ids) {
         if (!(resource === "roles" && db.query("SELECT 1 FROM roles WHERE id=? AND title='Super Admin'").get(id))) {
           db.run(`UPDATE ${table} SET deleted_at=CURRENT_TIMESTAMP, updated_at=CURRENT_TIMESTAMP WHERE id=?`, [id]);
@@ -850,7 +936,7 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
           }
         }
       }
-      return c.html(tableResponse(resource, "admin.deleted", "Deleted"));
+      return c.html(tableResponse(resource, "admin.deleted", "Deleted", isSuperAdmin(c)));
     });
 
     app.post(`/${resource}/:id`, async (c) => {
@@ -910,6 +996,7 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
             const val = submitted[field];
             if (field === "topics") return JSON.stringify(normalizedTopics);
             if (field === "status") return String(val ?? "upcoming") || "upcoming";
+            if (field === "publish_status") return String(val ?? "public") || "public";
             if (field === "access_status") return String(val ?? "public") || "public";
             if (field === "duration_minutes") return Number(toEnglishDigits(val ?? 60)) || 60;
             if (field === "description") return String(val ?? "");
@@ -920,12 +1007,24 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
           const rawTagIds = body.tag_ids || body["tag_ids[]"];
           const tagIds = (Array.isArray(rawTagIds) ? rawTagIds : rawTagIds ? [rawTagIds] : []).map(String).map((t) => t.trim()).filter(Boolean);
 
+          const publishStatus = String(submitted.publish_status ?? "public");
+          const rawAllowedUserIds = body.allowed_user_ids || body["allowed_user_ids[]"];
+          const allowedUserIds = publishStatus === "restricted"
+            ? (Array.isArray(rawAllowedUserIds) ? rawAllowedUserIds : rawAllowedUserIds ? [rawAllowedUserIds] : []).map(String).map((u) => u.trim()).filter(Boolean)
+            : [];
+
           db.transaction(() => {
             db.run(`UPDATE meets SET ${meetFields.map((field) => `${field}=?`).join(",")}, updated_at=CURRENT_TIMESTAMP WHERE id=?`, [...values, scheduledAtUtc, id]);
             db.run("DELETE FROM meet_tags WHERE meet_id=?", [id]);
             for (const tagId of tagIds) {
               if (validRelation("tags", tagId)) {
                 db.run("INSERT OR IGNORE INTO meet_tags (meet_id,tag_id) VALUES (?,?)", [id, tagId]);
+              }
+            }
+            db.run("DELETE FROM meet_allowed_users WHERE meet_id=?", [id]);
+            for (const uid of allowedUserIds) {
+              if (validRelation("users", uid)) {
+                db.run("INSERT OR IGNORE INTO meet_allowed_users (meet_id,user_id) VALUES (?,?)", [id, uid]);
               }
             }
           })();
@@ -935,7 +1034,7 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
           const adminAuth = c.get("auth") as { sub: string; role_id: string } | undefined;
           logger.meet("MEET_UPDATED", {
             actor: { userId: adminAuth?.sub, role: adminAuth?.role_id, ip: c.req.header("x-forwarded-for") ?? "local" },
-            data: { meetId: id, title: submitted.title, status: submitted.status, accessStatus: submitted.access_status },
+            data: { meetId: id, title: submitted.title, status: submitted.status, publishStatus, accessStatus: submitted.access_status },
           });
         } else {
           const values = fields.map((field) => {
@@ -945,7 +1044,7 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
           });
           db.run(`UPDATE ${table} SET ${fields.map((field) => `${field}=?`).join(",")}, updated_at=CURRENT_TIMESTAMP WHERE id=?`, [...values, id]);
         }
-        return c.html(tableResponse(resource, "admin.created", "Updated"));
+        return c.html(tableResponse(resource, "admin.created", "Updated", isSuperAdmin(c)));
       } catch {
         return failForm(c, resource, resource === "users" ? "That email, username, or phone is already used." : "A record with that title already exists.", submitted, id);
       }
@@ -963,11 +1062,9 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
           data: { meetId: id },
         });
       }
-      return c.html(tableResponse(resource, "admin.deleted", "Deleted"));
+      return c.html(tableResponse(resource, "admin.deleted", "Deleted", isSuperAdmin(c)));
     });
   }
-
-  const validRelation = (table: "tags" | "users", id: string) => !!db.query(`SELECT 1 FROM ${table} WHERE id=? AND deleted_at IS NULL`).get(id);
 
   app.post("/meets/:id/tags", async (c) => {
     const meetId = c.req.param("id");
