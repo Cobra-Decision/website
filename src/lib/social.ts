@@ -1,6 +1,7 @@
 export const SOCIAL_LINKS = {
   email: "cobradecisionteam@gmail.com",
   telegram: "https://t.me/CobraDecision",
+  youtube: "https://www.youtube.com/@CobraDecision",
   github: "https://github.com/Cobra-Decision",
   linkedin: "https://www.linkedin.com/company/cobra-decision",
 } as const;
@@ -8,6 +9,7 @@ export const SOCIAL_LINKS = {
 export const SOCIAL_MEDIA_LIST = [
   { name: "Email", href: `mailto:${SOCIAL_LINKS.email}` },
   { name: "Telegram", href: SOCIAL_LINKS.telegram, target: "_blank", rel: "noopener noreferrer" },
+  { name: "YouTube", href: SOCIAL_LINKS.youtube, target: "_blank", rel: "noopener noreferrer" },
   { name: "GitHub", href: SOCIAL_LINKS.github, target: "_blank", rel: "noopener noreferrer" },
   { name: "LinkedIn", href: SOCIAL_LINKS.linkedin, target: "_blank", rel: "noopener noreferrer" },
 ] as const;

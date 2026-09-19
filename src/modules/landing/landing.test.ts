@@ -12,7 +12,7 @@ describe("Landing & Content Pages", () => {
     expect(res.status).toBe(200);
     const html = await res.text();
     expect(html).toContain("About Cobra Decision");
-    expect(html).toContain("Engineering Conversations Without the Noise");
+    expect(html).toContain("Specialized Conversations Without the Noise");
     expect(html).toContain("Weekly Session Formats");
     expect(html).toContain("Core Values");
   });
@@ -24,7 +24,7 @@ describe("Landing & Content Pages", () => {
     expect(res.status).toBe(200);
     const html = await res.text();
     expect(html).toContain("درباره تصمیم کبرا");
-    expect(html).toContain("فضایی برای گفتگوهای تخصصی مهندسی کامپیوتر");
+    expect(html).toContain("فضایی برای گفتگوهای تخصصی بدون هیاهو");
   });
 
   it("renders /support page with Yavar iframe embed", async () => {
