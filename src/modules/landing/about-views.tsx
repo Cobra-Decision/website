@@ -219,16 +219,16 @@ export const AboutView = ({ data, locale = "en" }: { data: LandingCache; locale?
               <div
                 key={faq.q}
                 x-data={`{ open: ${idx === 0} }`}
-                class="border border-base-300 bg-base-100 rounded-box shadow-xs relative overflow-hidden"
+                class="border border-base-300 bg-base-100 rounded-box shadow-xs overflow-hidden"
               >
                 <button
                   type="button"
                   x-on:click="open = !open"
-                  class="w-full flex items-center justify-between px-4 py-4 pe-12 min-h-[3.75rem] text-start font-semibold text-base sm:text-lg cursor-pointer select-none"
+                  class="w-full flex items-center justify-between p-4 text-start font-semibold text-base sm:text-lg cursor-pointer select-none gap-4"
                 >
                   <span>{faq.q}</span>
                   <span
-                    class="absolute top-4 inset-inline-end-[1.4rem] font-mono text-base select-none pointer-events-none"
+                    class="font-mono text-lg text-base-content/70 select-none pointer-events-none shrink-0"
                     x-text="open ? '−' : '+'"
                   >
                     {idx === 0 ? "−" : "+"}
