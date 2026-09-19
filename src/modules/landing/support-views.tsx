@@ -152,18 +152,32 @@ export const SupportView = ({ locale = "en" }: { locale?: Locale }) => {
           </div>
           <div class="space-y-4">
             {faqs.map((faq, idx) => (
-              <details
+              <div
                 key={faq.q}
-                class="collapse collapse-plus border border-base-300 bg-base-100 rounded-box shadow-xs"
-                open={idx === 0}
+                x-data={`{ open: ${idx === 0} }`}
+                class="border border-base-300 bg-base-100 rounded-box shadow-xs relative overflow-hidden"
               >
-                <summary class="collapse-title font-semibold text-base sm:text-lg">
-                  {faq.q}
-                </summary>
-                <div class="collapse-content text-sm text-base-content/75 leading-relaxed">
+                <button
+                  type="button"
+                  x-on:click="open = !open"
+                  class="w-full flex items-center justify-between px-4 py-4 pe-12 min-h-[3.75rem] text-start font-semibold text-base sm:text-lg cursor-pointer select-none"
+                >
+                  <span>{faq.q}</span>
+                  <span
+                    class="absolute top-4 inset-inline-end-[1.4rem] font-mono text-base select-none pointer-events-none"
+                    x-text="open ? '−' : '+'"
+                  >
+                    {idx === 0 ? "−" : "+"}
+                  </span>
+                </button>
+                <div
+                  x-show="open"
+                  x-cloak
+                  class="px-4 pb-4 text-sm text-base-content/75 leading-relaxed"
+                >
                   <p>{faq.a}</p>
                 </div>
-              </details>
+              </div>
             ))}
           </div>
         </section>
