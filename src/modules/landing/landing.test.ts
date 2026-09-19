@@ -33,7 +33,7 @@ describe("Landing & Content Pages", () => {
     const html = await res.text();
     expect(html).toContain("donate.sudoshz.ir");
     expect(html).toContain("cobra-decision");
-    expect(html).toContain("Direct Crowdfunding via Yavar");
+    expect(html).toContain("Direct Support via Yavar Platform");
   });
 
   it("redirects /donate to /support", async () => {
