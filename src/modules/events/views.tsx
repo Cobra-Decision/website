@@ -5,7 +5,7 @@ import type { Locale } from "../../lib/i18n/translations";
 import { t, formatLocalizedNumber } from "../../lib/i18n/context";
 import { formatLocalizedDate, formatLocalizedTime, isMeetLinkActive } from "./datetime";
 import { LanguageSwitch } from "../../ui/language-switch";
-import { MeetStatusBadge, MeetAccessBadge } from "../../ui/meet-badges";
+import { MeetStatusBadge, MeetAccessBadge, MeetPublishBadge } from "../../ui/meet-badges";
 import { VideoIcon, FileTextIcon, DownloadIcon, ChevronDownIcon, ChevronUpIcon } from "../../ui/icons";
 
 export const DynamicCtaButton = ({
@@ -257,6 +257,7 @@ export const MeetingDetailPage = ({
             <div class="space-y-4">
               <div class="flex flex-wrap items-center gap-2">
                 <MeetStatusBadge status={meet.status} locale={locale} size="sm" />
+                <MeetPublishBadge publishStatus={meet.publish_status} locale={locale} size="sm" />
                 <MeetAccessBadge accessStatus={meet.access_status} locale={locale} size="sm" />
                 <span class="badge badge-neutral font-medium">{formattedDate}</span>
                 <span class="badge badge-outline">{formattedTime}</span>
@@ -394,6 +395,7 @@ export const MeetingDetailPage = ({
                   <p class="text-xs font-semibold text-base-content/50 uppercase tracking-wider">{t("meet.status", locale)} & {t("meet.access", locale)}</p>
                   <div class="mt-1 flex flex-wrap gap-1.5">
                     <MeetStatusBadge status={meet.status} locale={locale} size="sm" />
+                    <MeetPublishBadge publishStatus={meet.publish_status} locale={locale} size="sm" />
                     <MeetAccessBadge accessStatus={meet.access_status} locale={locale} size="sm" />
                   </div>
                 </div>

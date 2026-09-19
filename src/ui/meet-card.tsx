@@ -3,7 +3,7 @@ import type { Locale } from "../lib/i18n/translations";
 import { t, formatLocalizedNumber } from "../lib/i18n/context";
 import { formatLocalizedDate, formatLocalizedTime } from "../modules/events/datetime";
 import { TagBadge } from "./tag-badge";
-import { MeetStatusBadge, MeetAccessBadge } from "./meet-badges";
+import { MeetStatusBadge, MeetAccessBadge, MeetPublishBadge } from "./meet-badges";
 
 /**
  * Extracts clean plaintext excerpt from markdown content for previews.
@@ -89,7 +89,8 @@ export const UnifiedMeetCard = ({
             <span>
               {formattedTime} · {formattedDuration} {t("meet.minutes", locale)}
             </span>
-            <span class="relative z-20">
+            <span class="relative z-20 flex items-center gap-1">
+              <MeetPublishBadge publishStatus={meet.publish_status} locale={locale} size="xs" />
               <MeetAccessBadge accessStatus={meet.access_status} locale={locale} size="xs" />
             </span>
           </div>

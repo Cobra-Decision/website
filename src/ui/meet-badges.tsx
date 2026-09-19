@@ -1,4 +1,4 @@
-import type { MeetStatus, MeetAccessStatus } from "../modules/events/types";
+import type { MeetStatus, MeetAccessStatus, MeetPublishStatus } from "../modules/events/types";
 import type { Locale } from "../lib/i18n/translations";
 import { t } from "../lib/i18n/context";
 import { LockIcon } from "./icons";
@@ -67,6 +67,32 @@ export const MeetAccessBadge = ({
   return (
     <span class={`badge ${badgeClass} ${sizeClass} gap-1 ${extraClass}`.trim()}>
       {!isPublic && <LockIcon class={size === "xs" ? "h-2.5 w-2.5" : "h-3 w-3"} />}
+      {label}
+    </span>
+  );
+};
+
+export const MeetPublishBadge = ({
+  publishStatus = "public",
+  locale = "en",
+  size = "sm",
+  class: extraClass = "",
+}: {
+  publishStatus?: MeetPublishStatus;
+  locale?: Locale;
+  size?: "xs" | "sm" | "md";
+  class?: string;
+}) => {
+  if (publishStatus === "public") return null;
+
+  const isRestricted = publishStatus === "restricted";
+  const label = isRestricted ? t("meet.restricted", locale) : t("meet.private", locale);
+  const badgeClass = isRestricted ? "badge-warning" : "badge-neutral";
+  const sizeClass = size === "xs" ? "badge-xs" : size === "sm" ? "badge-sm" : "";
+
+  return (
+    <span class={`badge ${badgeClass} ${sizeClass} gap-1 ${extraClass}`.trim()}>
+      <LockIcon class={size === "xs" ? "h-2.5 w-2.5" : "h-3 w-3"} />
       {label}
     </span>
   );

@@ -33,11 +33,13 @@ export function createUserDashboardRoutes(database: Database, jwtSecret = proces
     const user = loadUser(auth.sub);
     if (!user) return c.redirect("/auth");
 
+    const isSuperAdmin = user.role_title === "Super Admin";
     const defaultStatus = "upcoming";
     const meets = filterMeets(database, {
       userId: user.id,
       attendedOnly: activeTab === "attended",
       status: defaultStatus,
+      viewer: { userId: user.id, isSuperAdmin },
     });
 
     const tags = getTags();
@@ -69,6 +71,10 @@ export function createUserDashboardRoutes(database: Database, jwtSecret = proces
     const endDate = c.req.query("endDate") ?? c.req.query("end_date");
     const attendedOnly = c.req.query("attendedOnly") === "true" || c.req.query("attended_only") === "true";
 
+    const isSuperAdmin = auth.role_title === "Super Admin" || (database
+      .query<{ title: string }, [string]>("SELECT r.title FROM roles r JOIN users u ON u.role_id = r.id WHERE u.id = ?")
+      .get(auth.sub)?.title === "Super Admin");
+
     const meets = filterMeets(database, {
       q,
       tagId: tagId || undefined,
@@ -77,6 +83,7 @@ export function createUserDashboardRoutes(database: Database, jwtSecret = proces
       endDate: endDate || undefined,
       userId: auth.sub,
       attendedOnly,
+      viewer: { userId: auth.sub, isSuperAdmin },
     });
 
     return c.html(<MeetsGrid meets={meets} userId={auth.sub} locale={locale} timeZone={timeZone} />);

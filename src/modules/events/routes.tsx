@@ -26,7 +26,16 @@ export function createEventsRoutes(database: Database, jwtSecret = process.env.J
 
   app.get("/:id", async (c) => {
     const id = c.req.param("id");
-    const meet = getMeetById(database, id);
+    const user = await getSessionUser(getCookie(c, "session"));
+    const isSuperAdmin = user
+      ? database
+          .query<{ title: string }, [string]>(
+            "SELECT r.title FROM roles r JOIN users u ON u.role_id = r.id WHERE u.id = ?"
+          )
+          .get(user.sub)?.title === "Super Admin"
+      : false;
+
+    const meet = getMeetById(database, id, { userId: user?.sub, isSuperAdmin });
     if (!meet) return c.notFound();
 
     const platformSlug = c.req.query("platform");
@@ -42,7 +51,6 @@ export function createEventsRoutes(database: Database, jwtSecret = process.env.J
 
     const locale = getLocale(c);
     const origin = new URL("/", c.req.url).origin;
-    const user = await getSessionUser(getCookie(c, "session"));
     const isAuthenticated = Boolean(user);
     const isAttending = Boolean(user && meet.attendee_ids.includes(user.sub));
 
@@ -86,7 +94,13 @@ export function createEventsRoutes(database: Database, jwtSecret = process.env.J
     const user = await getSessionUser(getCookie(c, "session"));
     if (!user) return c.html(<a href="/auth" class="btn btn-primary w-full">Sign In to Attend</a>, 401);
 
-    const meetBefore = getMeetById(database, id);
+    const isSuperAdmin = database
+      .query<{ title: string }, [string]>(
+        "SELECT r.title FROM roles r JOIN users u ON u.role_id = r.id WHERE u.id = ?"
+      )
+      .get(user.sub)?.title === "Super Admin";
+
+    const meetBefore = getMeetById(database, id, { userId: user.sub, isSuperAdmin });
     if (!meetBefore) return c.notFound();
 
     // Prevent attending completed meetings
@@ -101,7 +115,7 @@ export function createEventsRoutes(database: Database, jwtSecret = process.env.J
     }
 
     attendMeet(database, id, user.sub);
-    const meet = getMeetById(database, id);
+    const meet = getMeetById(database, id, { userId: user.sub, isSuperAdmin });
     if (!meet) return c.notFound();
 
     logger.attendance("USER_ATTENDED", {
@@ -168,8 +182,17 @@ export function createEventsRoutes(database: Database, jwtSecret = process.env.J
     const user = await getSessionUser(getCookie(c, "session"));
     if (!user) return c.html(<a href="/auth" class="btn btn-primary w-full">Sign In to Attend</a>, 401);
 
+    const isSuperAdmin = database
+      .query<{ title: string }, [string]>(
+        "SELECT r.title FROM roles r JOIN users u ON u.role_id = r.id WHERE u.id = ?"
+      )
+      .get(user.sub)?.title === "Super Admin";
+
+    const meetBefore = getMeetById(database, id, { userId: user.sub, isSuperAdmin });
+    if (!meetBefore) return c.notFound();
+
     leaveMeet(database, id, user.sub);
-    const meet = getMeetById(database, id);
+    const meet = getMeetById(database, id, { userId: user.sub, isSuperAdmin });
     if (!meet) return c.notFound();
 
     logger.attendance("USER_UNATTENDED", {
