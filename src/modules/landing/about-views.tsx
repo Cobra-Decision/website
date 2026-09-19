@@ -216,10 +216,11 @@ export const AboutView = ({ data, locale = "en" }: { data: LandingCache; locale?
           </div>
           <div class="space-y-4">
             {faqs.map((faq, idx) => (
-              <details key={faq.q} class="collapse collapse-plus border border-base-300 bg-base-100 rounded-box shadow-xs" open={idx === 0}>
-                <summary class="collapse-title font-semibold text-base sm:text-lg">
+              <div key={faq.q} class="collapse collapse-plus border border-base-300 bg-base-100 rounded-box shadow-xs">
+                <input type="checkbox" defaultChecked={idx === 0} aria-label={faq.q} />
+                <div class="collapse-title font-semibold text-base sm:text-lg">
                   {faq.q}
-                </summary>
+                </div>
                 <div class="collapse-content text-sm text-base-content/75 leading-relaxed space-y-3">
                   <p>{faq.a}</p>
                   {faq.link && (
@@ -238,7 +239,7 @@ export const AboutView = ({ data, locale = "en" }: { data: LandingCache; locale?
                     </div>
                   )}
                 </div>
-              </details>
+              </div>
             ))}
           </div>
         </section>
