@@ -150,7 +150,7 @@ export const MeetingLinkGenerator = ({
       </div>
 
       {/* Telegram Mini App Direct Link */}
-      <div class="p-3 bg-base-100 rounded-lg border border-base-300 space-y-2">
+      <div x-data="{ copied: false }" class="p-3 bg-base-100 rounded-lg border border-base-300 space-y-2">
         <div class="flex items-center justify-between">
           <label for={`tg-direct-url-${meetId}`} class="label-text font-semibold text-xs flex items-center gap-1.5 text-base-content">
             <LinkIcon class="h-3.5 w-3.5 text-primary" />
@@ -172,31 +172,7 @@ export const MeetingLinkGenerator = ({
             type="button"
             class="btn btn-primary btn-sm gap-1 shrink-0"
             aria-label="Copy Telegram Mini App direct link"
-            onclick={`
-              const text = '${tgDirectLink}';
-              const doCopy = (val) => {
-                if (navigator.clipboard && window.isSecureContext) {
-                  return navigator.clipboard.writeText(val);
-                }
-                const el = document.createElement('textarea');
-                el.value = val;
-                el.style.position = 'fixed';
-                el.style.left = '-9999px';
-                document.body.appendChild(el);
-                el.focus();
-                el.select();
-                document.execCommand('copy');
-                document.body.removeChild(el);
-                return Promise.resolve();
-              };
-              doCopy(text).finally(() => {
-                const notice = document.getElementById('tg-copied-notice-${meetId}');
-                if (notice) {
-                  notice.classList.remove('opacity-0');
-                  setTimeout(() => notice.classList.add('opacity-0'), 2500);
-                }
-              });
-            `}
+            x-on:click={`navigator.clipboard.writeText('${tgDirectLink}'); copied = true; setTimeout(() => copied = false, 2500)`}
           >
             <CopyIcon class="h-3.5 w-3.5" />
             Copy Bot Link
@@ -204,8 +180,9 @@ export const MeetingLinkGenerator = ({
         </div>
         <div class="h-4 flex items-center">
           <span
-            id={`tg-copied-notice-${meetId}`}
-            class="text-xs font-semibold text-success flex items-center gap-1 transition-opacity duration-200 opacity-0"
+            x-show="copied"
+            x-cloak
+            class="text-xs font-semibold text-success flex items-center gap-1 transition-opacity duration-200"
           >
             <CheckIcon class="h-3.5 w-3.5" /> Copied Telegram Mini App link!
           </span>

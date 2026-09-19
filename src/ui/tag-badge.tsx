@@ -17,7 +17,7 @@ export const TagBadge = ({
   removeTarget,
   removeAriaLabel,
 }: TagBadgeProps) => {
-  const sizeClass = size === "xs" ? "badge-sm text-[11px] px-2 py-0.5" : size === "md" ? "badge-md px-3 py-1" : "badge-sm px-2.5 py-0.5";
+  const sizeClass = size === "xs" ? "badge-xs" : size === "md" ? "badge-md" : "badge-sm";
   const variantClass = variant === "outline" ? "badge-outline" : `badge-${variant}`;
   const badgeClasses = `badge ${variantClass} ${sizeClass} inline-flex items-center gap-1 shrink-0 font-medium`;
 

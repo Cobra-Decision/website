@@ -4,7 +4,6 @@ import { ChevronUpIcon } from "./icons";
 
 export const ScrollToTop = ({ locale = "en" }: { locale?: Locale }) => {
   const rtl = isRtl(locale);
-  const positionClass = rtl ? "left-6" : "right-6";
   const ariaLabel = rtl ? "بازگشت به بالای صفحه" : "Scroll to top";
 
   return (
@@ -20,7 +19,7 @@ export const ScrollToTop = ({ locale = "en" }: { locale?: Locale }) => {
       }"
       x-init="checkScroll()"
       {...{ "x-on:scroll.window": "checkScroll()" }}
-      class={`fixed bottom-6 ${positionClass} z-40`}
+      class="fixed bottom-6 end-6 z-40"
     >
       <button
         type="button"
