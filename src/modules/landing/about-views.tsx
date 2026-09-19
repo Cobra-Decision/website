@@ -98,21 +98,18 @@ export const AboutView = ({ data, locale = "en" }: { data: LandingCache; locale?
           </div>
           <div class="grid gap-8 md:grid-cols-3">
             <div class="card border border-base-300 bg-base-100 p-6 shadow-sm">
-              <div class="text-3xl mb-4">💡</div>
               <h3 class="text-xl font-bold">{t("about.values.learn_in_public", locale)}</h3>
               <p class="mt-3 text-sm text-base-content/70 leading-relaxed">
                 {t("about.values.learn_in_public_desc", locale)}
               </p>
             </div>
             <div class="card border border-base-300 bg-base-100 p-6 shadow-sm">
-              <div class="text-3xl mb-4">🔬</div>
               <h3 class="text-xl font-bold">{t("about.values.depth_over_hype", locale)}</h3>
               <p class="mt-3 text-sm text-base-content/70 leading-relaxed">
                 {t("about.values.depth_over_hype_desc", locale)}
               </p>
             </div>
             <div class="card border border-base-300 bg-base-100 p-6 shadow-sm">
-              <div class="text-3xl mb-4">🤝</div>
               <h3 class="text-xl font-bold">{t("about.values.constructive_dialogue", locale)}</h3>
               <p class="mt-3 text-sm text-base-content/70 leading-relaxed">
                 {t("about.values.constructive_dialogue_desc", locale)}

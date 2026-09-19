@@ -64,7 +64,7 @@ export const SupportView = ({ locale = "en" }: { locale?: Locale }) => {
               {t("support.yavar_desc", locale)}
             </p>
 
-            <div class="w-full flex justify-center overflow-hidden my-4">
+            <div style="display:flex;justify-content:center;width:100%">
               <iframe
                 src="https://donate.sudoshz.ir/embed/widget.php?slug=cobra-decision&theme=dark&lang=fa"
                 title="حمایت با یاور"
@@ -107,14 +107,11 @@ export const SupportView = ({ locale = "en" }: { locale?: Locale }) => {
           </div>
         </section>
 
-        {/* Shiraz LUG Partnership Stewardship */}
+        {/* Independent & Open Stewardship */}
         <section class="mx-auto max-w-4xl px-5 sm:px-8">
-          <div class="card border border-primary/20 bg-primary/5 p-8 rounded-3xl text-center sm:text-start flex flex-col sm:flex-row items-center gap-6">
-            <div class="text-4xl sm:text-5xl">🐧</div>
-            <div>
-              <h3 class="text-xl font-bold text-base-content">{t("support.stewardship_title", locale)}</h3>
-              <p class="mt-2 text-sm text-base-content/75 leading-relaxed">{t("support.stewardship_desc", locale)}</p>
-            </div>
+          <div class="card border border-primary/20 bg-primary/5 p-8 rounded-3xl text-center sm:text-start">
+            <h3 class="text-xl font-bold text-base-content">{t("support.stewardship_title", locale)}</h3>
+            <p class="mt-2 text-sm text-base-content/75 leading-relaxed">{t("support.stewardship_desc", locale)}</p>
           </div>
         </section>
 
