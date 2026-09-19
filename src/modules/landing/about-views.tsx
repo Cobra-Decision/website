@@ -43,54 +43,54 @@ export const AboutView = ({ data, locale = "en" }: { data: LandingCache; locale?
     <div class="overflow-x-hidden bg-base-100 min-h-screen">
       <PublicHeader locale={locale} activePage="about" />
 
-      <main class="space-y-24 py-12 sm:py-20">
+      <main class="space-y-16 sm:space-y-24 py-10 sm:py-16">
         {/* Hero & Manifesto */}
-        <section id="manifesto" class="mx-auto max-w-5xl px-5 sm:px-8 text-center scroll-mt-24">
+        <section id="manifesto" class="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 text-center scroll-mt-24">
           <div class="inline-flex items-center justify-center mb-6 max-w-full">
             <span class="inline-block rounded-full border border-primary/40 bg-primary/10 px-4 py-1.5 text-xs sm:text-sm font-medium text-primary text-center leading-normal">
               {t("about.hero_quote", locale)}
             </span>
           </div>
-          <h1 class="text-4xl sm:text-6xl font-extrabold tracking-tight text-base-content leading-tight">
+          <h1 class="text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-base-content leading-tight">
             {t("about.hero_title", locale)}
           </h1>
-          <p class="mt-6 mx-auto max-w-3xl text-lg sm:text-xl leading-relaxed text-base-content/75">
+          <p class="mt-5 sm:mt-6 mx-auto max-w-3xl text-base sm:text-lg lg:text-xl leading-relaxed text-base-content/75">
             {t("about.hero_subtitle", locale)}
           </p>
-          <div class="mt-10 flex flex-wrap justify-center gap-4">
-            <a class="btn btn-primary px-8 shadow-md" href="/#meets">
+          <div class="mt-8 sm:mt-10 flex flex-wrap justify-center gap-3 sm:gap-4">
+            <a class="btn btn-primary px-6 sm:px-8 shadow-md" href="/#meets">
               {t("hero.cta_explore", locale)}
             </a>
-            <a class="btn btn-outline px-8" href="/support">
+            <a class="btn btn-outline px-6 sm:px-8" href="/support">
               {t("about.cta_support", locale)}
             </a>
           </div>
         </section>
 
         {/* Mission & Vision */}
-        <section id="mission" class="mx-auto max-w-7xl px-5 sm:px-8 scroll-mt-24">
-          <div class="grid gap-8 md:grid-cols-2">
-            <div class="card border border-base-300 bg-base-200/50 p-8 shadow-sm">
+        <section id="mission" class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 scroll-mt-24">
+          <div class="grid gap-6 sm:gap-8 md:grid-cols-2">
+            <div class="card border border-base-300 bg-base-200/50 p-6 sm:p-8 shadow-sm">
               <div class="badge badge-primary badge-sm mb-4 font-bold">{t("about.mission_title", locale)}</div>
-              <h2 class="text-2xl font-bold text-base-content">
+              <h2 class="text-xl sm:text-2xl font-bold text-base-content">
                 <a href="#mission" class="hover:text-primary transition-colors inline-flex items-center gap-2 group">
                   <span>{t("about.mission_subtitle", locale)}</span>
                   <span class="text-base-content/30 group-hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity text-lg font-mono">#</span>
                 </a>
               </h2>
-              <p class="mt-4 text-base-content/75 leading-relaxed">
+              <p class="mt-4 text-sm sm:text-base text-base-content/75 leading-relaxed">
                 {t("about.mission_desc", locale)}
               </p>
             </div>
-            <div id="vision" class="card border border-base-300 bg-base-200/50 p-8 shadow-sm scroll-mt-24">
+            <div id="vision" class="card border border-base-300 bg-base-200/50 p-6 sm:p-8 shadow-sm scroll-mt-24">
               <div class="badge badge-secondary badge-sm mb-4 font-bold">{t("about.vision_title", locale)}</div>
-              <h2 class="text-2xl font-bold text-base-content">
+              <h2 class="text-xl sm:text-2xl font-bold text-base-content">
                 <a href="#vision" class="hover:text-primary transition-colors inline-flex items-center gap-2 group">
                   <span>{t("about.vision_subtitle", locale)}</span>
                   <span class="text-base-content/30 group-hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity text-lg font-mono">#</span>
                 </a>
               </h2>
-              <p class="mt-4 text-base-content/75 leading-relaxed">
+              <p class="mt-4 text-sm sm:text-base text-base-content/75 leading-relaxed">
                 {t("about.vision_desc", locale)}
               </p>
             </div>
@@ -98,34 +98,34 @@ export const AboutView = ({ data, locale = "en" }: { data: LandingCache; locale?
         </section>
 
         {/* Core Values */}
-        <section id="values" class="mx-auto max-w-7xl px-5 sm:px-8 scroll-mt-24">
-          <div class="text-center max-w-2xl mx-auto mb-12">
-            <h2 class="text-3xl sm:text-4xl font-bold tracking-tight">
+        <section id="values" class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 scroll-mt-24">
+          <div class="text-center max-w-2xl mx-auto mb-8 sm:mb-12">
+            <h2 class="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight">
               <a href="#values" class="hover:text-primary transition-colors inline-flex items-center justify-center gap-2 group">
                 <span>{t("about.values_title", locale)}</span>
                 <span class="text-base-content/30 group-hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity text-xl font-mono">#</span>
               </a>
             </h2>
-            <p class="mt-3 text-base-content/65">
+            <p class="mt-2.5 sm:mt-3 text-sm sm:text-base text-base-content/65">
               {t("about.values_subtitle", locale)}
             </p>
           </div>
-          <div class="grid gap-8 md:grid-cols-3">
-            <div class="card border border-base-300 bg-base-100 p-6 shadow-sm">
-              <h3 class="text-xl font-bold">{t("about.values.learn_in_public", locale)}</h3>
-              <p class="mt-3 text-sm text-base-content/70 leading-relaxed">
+          <div class="grid gap-4 sm:gap-6 md:grid-cols-3">
+            <div class="card border border-base-300 bg-base-100 p-5 sm:p-6 shadow-sm">
+              <h3 class="text-lg sm:text-xl font-bold">{t("about.values.learn_in_public", locale)}</h3>
+              <p class="mt-2.5 sm:mt-3 text-sm text-base-content/70 leading-relaxed">
                 {t("about.values.learn_in_public_desc", locale)}
               </p>
             </div>
-            <div class="card border border-base-300 bg-base-100 p-6 shadow-sm">
-              <h3 class="text-xl font-bold">{t("about.values.depth_over_hype", locale)}</h3>
-              <p class="mt-3 text-sm text-base-content/70 leading-relaxed">
+            <div class="card border border-base-300 bg-base-100 p-5 sm:p-6 shadow-sm">
+              <h3 class="text-lg sm:text-xl font-bold">{t("about.values.depth_over_hype", locale)}</h3>
+              <p class="mt-2.5 sm:mt-3 text-sm text-base-content/70 leading-relaxed">
                 {t("about.values.depth_over_hype_desc", locale)}
               </p>
             </div>
-            <div class="card border border-base-300 bg-base-100 p-6 shadow-sm">
-              <h3 class="text-xl font-bold">{t("about.values.constructive_dialogue", locale)}</h3>
-              <p class="mt-3 text-sm text-base-content/70 leading-relaxed">
+            <div class="card border border-base-300 bg-base-100 p-5 sm:p-6 shadow-sm">
+              <h3 class="text-lg sm:text-xl font-bold">{t("about.values.constructive_dialogue", locale)}</h3>
+              <p class="mt-2.5 sm:mt-3 text-sm text-base-content/70 leading-relaxed">
                 {t("about.values.constructive_dialogue_desc", locale)}
               </p>
             </div>
@@ -133,63 +133,65 @@ export const AboutView = ({ data, locale = "en" }: { data: LandingCache; locale?
         </section>
 
         {/* Weekly Formats */}
-        <section id="formats" class="mx-auto max-w-7xl px-5 sm:px-8 bg-base-200/40 py-16 rounded-3xl border border-base-300 scroll-mt-24">
-          <div class="text-center max-w-2xl mx-auto mb-12">
-            <h2 class="text-3xl sm:text-4xl font-bold tracking-tight">
-              <a href="#formats" class="hover:text-primary transition-colors inline-flex items-center justify-center gap-2 group">
-                <span>{t("about.formats_title", locale)}</span>
-                <span class="text-base-content/30 group-hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity text-xl font-mono">#</span>
-              </a>
-            </h2>
-            <p class="mt-3 text-base-content/65">
-              {t("about.formats_subtitle", locale)}
-            </p>
-          </div>
-          <div class="grid gap-8 md:grid-cols-2 max-w-4xl mx-auto">
-            <div class="card bg-base-100 border border-base-300 p-8 shadow-sm">
-              <span class="badge badge-primary badge-sm font-semibold mb-3">{t("about.formats.roundtables_badge", locale)}</span>
-              <h3 class="text-2xl font-bold">{t("about.formats.roundtables", locale)}</h3>
-              <p class="mt-4 text-base-content/75 leading-relaxed">
-                {t("about.formats.roundtables_desc", locale)}
+        <section id="formats" class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 scroll-mt-24">
+          <div class="bg-base-200/40 py-10 sm:py-16 px-4 sm:px-8 rounded-2xl sm:rounded-3xl border border-base-300">
+            <div class="text-center max-w-2xl mx-auto mb-8 sm:mb-12">
+              <h2 class="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight">
+                <a href="#formats" class="hover:text-primary transition-colors inline-flex items-center justify-center gap-2 group">
+                  <span>{t("about.formats_title", locale)}</span>
+                  <span class="text-base-content/30 group-hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity text-xl font-mono">#</span>
+                </a>
+              </h2>
+              <p class="mt-2.5 sm:mt-3 text-sm sm:text-base text-base-content/65">
+                {t("about.formats_subtitle", locale)}
               </p>
             </div>
-            <div class="card bg-base-100 border border-base-300 p-8 shadow-sm">
-              <span class="badge badge-secondary badge-sm font-semibold mb-3">{t("about.formats.talks_badge", locale)}</span>
-              <h3 class="text-2xl font-bold">{t("about.formats.talks", locale)}</h3>
-              <p class="mt-4 text-base-content/75 leading-relaxed">
-                {t("about.formats.talks_desc", locale)}
-              </p>
+            <div class="grid gap-6 sm:gap-8 md:grid-cols-2 max-w-4xl mx-auto">
+              <div class="card bg-base-100 border border-base-300 p-6 sm:p-8 shadow-sm">
+                <span class="badge badge-primary badge-sm font-semibold mb-3">{t("about.formats.roundtables_badge", locale)}</span>
+                <h3 class="text-xl sm:text-2xl font-bold">{t("about.formats.roundtables", locale)}</h3>
+                <p class="mt-3 sm:mt-4 text-sm sm:text-base text-base-content/75 leading-relaxed">
+                  {t("about.formats.roundtables_desc", locale)}
+                </p>
+              </div>
+              <div class="card bg-base-100 border border-base-300 p-6 sm:p-8 shadow-sm">
+                <span class="badge badge-secondary badge-sm font-semibold mb-3">{t("about.formats.talks_badge", locale)}</span>
+                <h3 class="text-xl sm:text-2xl font-bold">{t("about.formats.talks", locale)}</h3>
+                <p class="mt-3 sm:mt-4 text-sm sm:text-base text-base-content/75 leading-relaxed">
+                  {t("about.formats.talks_desc", locale)}
+                </p>
+              </div>
             </div>
           </div>
         </section>
 
         {/* Tracks & Domains */}
-        <section id="tracks" class="mx-auto max-w-7xl px-5 sm:px-8 scroll-mt-24">
-          <div class="text-center max-w-2xl mx-auto mb-12">
-            <h2 class="text-3xl sm:text-4xl font-bold tracking-tight">
+        <section id="tracks" class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 scroll-mt-24">
+          <div class="text-center max-w-2xl mx-auto mb-8 sm:mb-12">
+            <h2 class="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight">
               <a href="#tracks" class="hover:text-primary transition-colors inline-flex items-center justify-center gap-2 group">
                 <span>{t("about.tracks_title", locale)}</span>
                 <span class="text-base-content/30 group-hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity text-xl font-mono">#</span>
               </a>
             </h2>
-            <p class="mt-3 text-base-content/65">
+            <p class="mt-2.5 sm:mt-3 text-sm sm:text-base text-base-content/65">
               {t("about.tracks_subtitle", locale)}
             </p>
           </div>
-          <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <div class="grid gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {tracks.map((track) => (
-              <div key={track.title} class="card border border-base-300 bg-base-100 p-6 shadow-sm">
-                <h3 class="font-bold text-lg text-primary">{track.title}</h3>
-                <p class="mt-2 text-sm text-base-content/70 leading-relaxed">{track.desc}</p>
+              <div key={track.title} class="card border border-base-300 bg-base-100 p-5 sm:p-6 shadow-sm">
+                <h3 class="font-bold text-base sm:text-lg text-primary">{track.title}</h3>
+                <p class="mt-2 text-xs sm:text-sm text-base-content/70 leading-relaxed">{track.desc}</p>
               </div>
             ))}
           </div>
         </section>
 
         {/* Live Metrics */}
-        <section id="metrics" class="border-y border-base-200 bg-base-100 py-12 scroll-mt-24">
-          <div class="mx-auto max-w-7xl px-5 sm:px-8 text-center">
-            <h2 class="text-2xl font-bold mb-8">
+        <section id="metrics" class="border-y border-base-200 bg-base-100 py-10 sm:py-12 scroll-mt-24">
+          <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 text-center">
+            <h2 class="text-xl sm:text-2xl font-bold mb-6 sm:mb-8">
               <a href="#metrics" class="hover:text-primary transition-colors inline-flex items-center justify-center gap-2 group">
                 <span>{t("about.metrics_title", locale)}</span>
                 <span class="text-base-content/30 group-hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity text-xl font-mono">#</span>
@@ -205,16 +207,16 @@ export const AboutView = ({ data, locale = "en" }: { data: LandingCache; locale?
         </section>
 
         {/* FAQ & Open Source Section */}
-        <section id="faq" class="mx-auto max-w-4xl px-5 sm:px-8 scroll-mt-24">
-          <div class="text-center max-w-2xl mx-auto mb-10">
-            <h2 class="text-3xl font-bold tracking-tight">
+        <section id="faq" class="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 scroll-mt-24">
+          <div class="text-center max-w-2xl mx-auto mb-8 sm:mb-10">
+            <h2 class="text-2xl sm:text-3xl font-bold tracking-tight">
               <a href="#faq" class="hover:text-primary transition-colors inline-flex items-center justify-center gap-2 group">
                 <span>{t("about.faq_title", locale)}</span>
                 <span class="text-base-content/30 group-hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity text-xl font-mono">#</span>
               </a>
             </h2>
           </div>
-          <div class="space-y-4">
+          <div class="space-y-3 sm:space-y-4">
             {faqs.map((faq, idx) => (
               <div
                 key={faq.q}
@@ -262,15 +264,15 @@ export const AboutView = ({ data, locale = "en" }: { data: LandingCache; locale?
         </section>
 
         {/* Community Action Hub */}
-        <section id="join" class="mx-auto max-w-4xl px-5 sm:px-8 text-center scroll-mt-24">
-          <div class="rounded-3xl border border-base-300 bg-gradient-to-b from-base-200/60 to-base-100 p-10 shadow-sm">
-            <h2 class="text-3xl font-bold">
+        <section id="join" class="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 text-center scroll-mt-24">
+          <div class="rounded-2xl sm:rounded-3xl border border-base-300 bg-gradient-to-b from-base-200/60 to-base-100 p-6 sm:p-10 shadow-sm">
+            <h2 class="text-2xl sm:text-3xl font-bold">
               {t("about.join_title", locale)}
             </h2>
-            <p class="mt-4 text-base-content/70 max-w-xl mx-auto">
+            <p class="mt-3 sm:mt-4 text-sm sm:text-base text-base-content/70 max-w-xl mx-auto">
               {t("about.join_desc", locale)}
             </p>
-            <div class="mt-8 flex flex-wrap justify-center gap-4">
+            <div class="mt-6 sm:mt-8 flex flex-wrap justify-center gap-3 sm:gap-4">
               <a class="btn btn-primary px-6" href="/#meets">
                 {t("about.cta_join_bot", locale)}
               </a>

@@ -14,26 +14,26 @@ export const SupportView = ({ locale = "en" }: { locale?: Locale }) => {
     <div class="overflow-x-hidden bg-base-100 min-h-screen">
       <PublicHeader locale={locale} activePage="support" />
 
-      <main class="space-y-24 py-12 sm:py-20">
+      <main class="space-y-16 sm:space-y-24 py-10 sm:py-16">
         {/* Hero Section */}
         <section
           id="purpose"
-          class="mx-auto max-w-5xl px-5 sm:px-8 text-center scroll-mt-24"
+          class="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 text-center scroll-mt-24"
         >
-          <h1 class="text-4xl sm:text-6xl font-extrabold tracking-tight text-base-content leading-tight">
+          <h1 class="text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-base-content leading-tight">
             <a
               href="#purpose"
               class="hover:text-primary transition-colors inline-flex items-center justify-center gap-2 group"
             >
               <span>{t("support.hero_title", locale)}</span>
-              <span class="text-base-content/30 group-hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity text-2xl font-mono">
+              <span class="text-base-content/30 group-hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity text-xl sm:text-2xl font-mono">
                 #
               </span>
             </a>
           </h1>
-          <div class="mt-8 mx-auto max-w-3xl space-y-4 text-lg sm:text-xl leading-relaxed text-base-content/80">
+          <div class="mt-6 sm:mt-8 mx-auto max-w-3xl space-y-3 sm:space-y-4 text-base sm:text-lg lg:text-xl leading-relaxed text-base-content/80">
             <p>{t("support.hero_subtitle", locale)}</p>
-            <p class="text-base sm:text-lg text-base-content/65 leading-relaxed">
+            <p class="text-sm sm:text-base lg:text-lg text-base-content/65 leading-relaxed">
               {t("support.hero_stewardship", locale)}
             </p>
           </div>
@@ -42,24 +42,24 @@ export const SupportView = ({ locale = "en" }: { locale?: Locale }) => {
         {/* Yavar Crowdfunding & Transparency Main Grid */}
         <section
           id="donate"
-          class="mx-auto max-w-7xl px-5 sm:px-8 scroll-mt-24"
+          class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 scroll-mt-24"
         >
-          <div class="grid gap-8 lg:grid-cols-12 items-stretch">
+          <div class="grid gap-6 sm:gap-8 lg:grid-cols-12 items-stretch">
             {/* Direct Yavar Donation Card / Widget */}
-            <div class="lg:col-span-6 card border border-base-300 bg-base-200/50 p-6 sm:p-10 shadow-sm flex flex-col justify-between text-center">
+            <div class="lg:col-span-6 card border border-base-300 bg-base-200/50 p-5 sm:p-8 lg:p-10 shadow-sm flex flex-col justify-between text-center">
               <div>
-                <h2 class="text-2xl sm:text-3xl font-bold text-base-content mb-3">
+                <h2 class="text-xl sm:text-2xl lg:text-3xl font-bold text-base-content mb-3">
                   <a
                     href="#donate"
                     class="hover:text-primary transition-colors inline-flex items-center justify-center gap-2 group"
                   >
                     <span>{t("support.yavar_title", locale)}</span>
-                    <span class="text-base-content/30 group-hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity text-xl font-mono">
+                    <span class="text-base-content/30 group-hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity text-lg sm:text-xl font-mono">
                       #
                     </span>
                   </a>
                 </h2>
-                <p class="text-sm sm:text-base text-base-content/70 mb-8 max-w-md mx-auto leading-relaxed">
+                <p class="text-xs sm:text-sm lg:text-base text-base-content/70 mb-6 sm:mb-8 max-w-md mx-auto leading-relaxed">
                   {t("support.yavar_desc", locale)}
                 </p>
 
@@ -75,7 +75,7 @@ export const SupportView = ({ locale = "en" }: { locale?: Locale }) => {
                 </div>
               </div>
 
-              <div class="mt-8 pt-4 border-t border-base-300/60">
+              <div class="mt-6 sm:mt-8 pt-4 border-t border-base-300/60">
                 <a
                   class="btn btn-outline btn-sm sm:btn-md font-medium w-full sm:w-auto"
                   href="https://donate.sudoshz.ir/u/cobra-decision"
@@ -90,32 +90,32 @@ export const SupportView = ({ locale = "en" }: { locale?: Locale }) => {
             {/* Transparency & Financial Commitment Card */}
             <div
               id="transparency"
-              class="lg:col-span-6 card border border-base-300 bg-base-100 p-6 sm:p-10 shadow-sm flex flex-col justify-between scroll-mt-24"
+              class="lg:col-span-6 card border border-base-300 bg-base-100 p-5 sm:p-8 lg:p-10 shadow-sm flex flex-col justify-between scroll-mt-24"
             >
-              <div class="space-y-5 text-start">
+              <div class="space-y-4 sm:space-y-5 text-start">
                 <div class="inline-flex items-center gap-2 text-primary text-xs sm:text-sm font-semibold tracking-wider">
                   <span class="inline-block h-2.5 w-2.5 rounded-full bg-primary animate-pulse"></span>
                   <span>{t("support.transparency_badge", locale)}</span>
                 </div>
-                <h2 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-base-content leading-tight">
+                <h2 class="text-xl sm:text-2xl lg:text-3xl font-extrabold tracking-tight text-base-content leading-tight">
                   <a
                     href="#transparency"
                     class="hover:text-primary transition-colors inline-flex items-center gap-2 group"
                   >
                     <span>{t("support.transparency_title", locale)}</span>
-                    <span class="text-base-content/30 group-hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity text-xl font-mono">
+                    <span class="text-base-content/30 group-hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity text-lg sm:text-xl font-mono">
                       #
                     </span>
                   </a>
                 </h2>
-                <p class="text-sm sm:text-base leading-relaxed text-base-content/75">
+                <p class="text-xs sm:text-sm lg:text-base leading-relaxed text-base-content/75">
                   {t("support.transparency_desc", locale)}
                 </p>
               </div>
 
-              <div class="mt-8 pt-6 border-t border-base-300 space-y-4">
+              <div class="mt-6 sm:mt-8 pt-5 sm:pt-6 border-t border-base-300 space-y-3 sm:space-y-4">
                 <div class="text-start">
-                  <h3 class="font-bold text-base text-base-content">
+                  <h3 class="font-bold text-sm sm:text-base text-base-content">
                     {t("support.transparency_track_title", locale)}
                   </h3>
                   <p class="text-xs sm:text-sm text-base-content/65 mt-1 leading-relaxed">
@@ -136,9 +136,9 @@ export const SupportView = ({ locale = "en" }: { locale?: Locale }) => {
         </section>
 
         {/* FAQ Section */}
-        <section id="faq" class="mx-auto max-w-5xl px-5 sm:px-8 scroll-mt-24">
-          <div class="text-center max-w-2xl mx-auto mb-10">
-            <h2 class="text-3xl sm:text-4xl font-bold tracking-tight">
+        <section id="faq" class="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 scroll-mt-24">
+          <div class="text-center max-w-2xl mx-auto mb-8 sm:mb-10">
+            <h2 class="text-2xl sm:text-3xl font-bold tracking-tight">
               <a
                 href="#faq"
                 class="hover:text-primary transition-colors inline-flex items-center justify-center gap-2 group"
@@ -150,7 +150,7 @@ export const SupportView = ({ locale = "en" }: { locale?: Locale }) => {
               </a>
             </h2>
           </div>
-          <div class="space-y-4">
+          <div class="space-y-3 sm:space-y-4">
             {faqs.map((faq, idx) => (
               <div
                 key={faq.q}
