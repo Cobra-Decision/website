@@ -7,6 +7,7 @@ import { formatLocalizedDate, formatLocalizedTime, isMeetLinkActive } from "./da
 import { LanguageSwitch } from "../../ui/language-switch";
 import { MeetStatusBadge, MeetAccessBadge, MeetPublishBadge } from "../../ui/meet-badges";
 import { VideoIcon, FileTextIcon, DownloadIcon, ChevronDownIcon, ChevronUpIcon } from "../../ui/icons";
+import { Footer } from "../../ui/footer";
 
 export const DynamicCtaButton = ({
   meetId,
@@ -444,6 +445,8 @@ export const MeetingDetailPage = ({
           </aside>
         </div>
       </div>
+
+      <Footer locale={locale} />
     </div>
   );
 };

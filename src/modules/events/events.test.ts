@@ -252,7 +252,10 @@ test("meet detail & attend routes enforce authorization on private and restricte
 
   // --- GET /meets/:id tests ---
   // Public meet: 200 for everyone
-  expect((await app.request(`/meets/${publicMeet.id}`)).status).toBe(200);
+  const publicRes = await app.request(`/meets/${publicMeet.id}`);
+  expect(publicRes.status).toBe(200);
+  const publicHtml = await publicRes.text();
+  expect(publicHtml).toContain('id="contact"');
   expect((await app.request(`/meets/${publicMeet.id}`, { headers: { cookie: unassignedCookie } })).status).toBe(200);
 
   // Private meet: 404 for anon, unassigned, assigned; 200 for super admin
