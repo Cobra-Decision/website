@@ -6,6 +6,27 @@
   [dir="rtl"], [dir="rtl"] * {
     font-family: "Vazirmatn", system-ui, -apple-system, sans-serif !important;
   }
+
+  /* Normalize details & summary across mobile/desktop browsers */
+  details.collapse > summary {
+    list-style: none;
+  }
+  details.collapse > summary::-webkit-details-marker,
+  details.collapse > summary::marker {
+    display: none;
+  }
+
+  /* Prevent focus from keeping closed <details> visually open */
+  details.collapse:not([open]) > .collapse-content {
+    visibility: hidden;
+  }
+  details.collapse:not([open]).collapse-plus > .collapse-title:after {
+    content: "+";
+  }
+  details.collapse:not([open]).collapse-arrow > .collapse-title:after {
+    --tw-translate-y: -100%;
+    --tw-rotate: 45deg;
+  }
 }
 
 

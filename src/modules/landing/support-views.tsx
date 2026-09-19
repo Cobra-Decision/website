@@ -152,18 +152,18 @@ export const SupportView = ({ locale = "en" }: { locale?: Locale }) => {
           </div>
           <div class="space-y-4">
             {faqs.map((faq, idx) => (
-              <div
+              <details
                 key={faq.q}
                 class="collapse collapse-plus border border-base-300 bg-base-100 rounded-box shadow-xs"
+                open={idx === 0}
               >
-                <input type="checkbox" defaultChecked={idx === 0} aria-label={faq.q} />
-                <div class="collapse-title font-semibold text-base sm:text-lg">
+                <summary class="collapse-title font-semibold text-base sm:text-lg">
                   {faq.q}
-                </div>
+                </summary>
                 <div class="collapse-content text-sm text-base-content/75 leading-relaxed">
                   <p>{faq.a}</p>
                 </div>
-              </div>
+              </details>
             ))}
           </div>
         </section>
