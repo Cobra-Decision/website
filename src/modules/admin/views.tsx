@@ -4,6 +4,8 @@ import { TagBadge } from "../../ui/tag-badge";
 import type { Locale } from "../../lib/i18n/translations";
 import { t } from "../../lib/i18n/context";
 import { formatUtcDateTime, formatLocalizedDate, formatLocalizedTime } from "../events/datetime";
+import { Pagination } from "./pagination-view";
+import type { PaginationState } from "./pagination";
 
 export type Row = Record<string, string | number | null>;
 const managementLinks = [
@@ -237,6 +239,7 @@ export function CrudTable({
   query = {},
   locale = "en",
   timeZone = "Asia/Tehran",
+  pagination,
 }: {
   resource: string;
   rows: Row[];
@@ -245,6 +248,7 @@ export function CrudTable({
   query?: Record<string, string>;
   locale?: Locale;
   timeZone?: string;
+  pagination?: PaginationState;
 }) {
   const searchField = searchFields.includes(query.search_field ?? "") ? query.search_field! : searchFields[0]!;
   const sortUrl = (column: string) =>
@@ -398,6 +402,16 @@ export function CrudTable({
           </table>
         </div>
       </form>
+      {pagination && (
+        <Pagination
+          state={pagination}
+          resource={resource}
+          baseUrl={`/dashboard/admin/${resource}`}
+          targetId={`${resource}-table`}
+          query={query}
+          locale={locale}
+        />
+      )}
       <div id="modal"></div>
     </div>
   );
