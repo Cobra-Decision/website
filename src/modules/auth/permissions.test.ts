@@ -329,12 +329,12 @@ describe("Permissions & Endpoint Integrity Suite", () => {
       });
 
       const epUsers = db.query<{ id: string }, [string]>("SELECT id FROM endpoints WHERE title = ?").get("/dashboard/admin/users")!;
-      const epMeets = db.query<{ id: string }, [string]>("SELECT id FROM endpoints WHERE title = ?").get("/dashboard/admin/meets")!;
+      const epTags = db.query<{ id: string }, [string]>("SELECT id FROM endpoints WHERE title = ?").get("/dashboard/admin/tags")!;
 
       // Bulk remove 2 endpoints from admin role
       const formData = new FormData();
       formData.append("endpoint_ids", epUsers.id);
-      formData.append("endpoint_ids", epMeets.id);
+      formData.append("endpoint_ids", epTags.id);
       const resBulkDelete = await app.fetch(new Request(`http://localhost/dashboard/admin/roles/${adminRole.id}/endpoints/bulk-delete`, {
         method: "DELETE",
         headers: { Cookie: cookie },
@@ -344,17 +344,17 @@ describe("Permissions & Endpoint Integrity Suite", () => {
 
       const checkRemoved = db.query<{ c: number }, [string, string, string]>(
         "SELECT COUNT(*) as c FROM role_endpoints WHERE role_id = ? AND endpoint_id IN (?, ?)"
-      ).get(adminRole.id, epUsers.id, epMeets.id)!;
+      ).get(adminRole.id, epUsers.id, epTags.id)!;
       expect(checkRemoved.c).toBe(0);
 
-      // Re-run startup seeding (seedEndpoints without bindRoles)
+      // Re-run startup seeding (seedEndpoints without re-adding unassigned permissions)
       const { seedEndpoints } = await import("../../lib/database/seeding");
       await seedEndpoints(db);
 
       // Verify startup seeding did not re-add deleted permissions
       const checkStillRemoved = db.query<{ c: number }, [string, string, string]>(
         "SELECT COUNT(*) as c FROM role_endpoints WHERE role_id = ? AND endpoint_id IN (?, ?)"
-      ).get(adminRole.id, epUsers.id, epMeets.id)!;
+      ).get(adminRole.id, epUsers.id, epTags.id)!;
       expect(checkStillRemoved.c).toBe(0);
     });
   });

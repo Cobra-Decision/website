@@ -176,6 +176,34 @@ export const SYSTEM_ENDPOINTS = [
   "/dashboard/admin/platforms-data/bulk-delete-visits",
 ] as const;
 
+export const ADMIN_ALLOWED_ENDPOINTS = [
+  // Meets CRUD
+  "/dashboard/admin/meets",
+  "/dashboard/admin/meets/new",
+  "/dashboard/admin/meets/:id",
+  "/dashboard/admin/meets/:id/edit",
+  "/dashboard/admin/meets/:id/confirm",
+  "/dashboard/admin/meets/bulk-confirm",
+  "/dashboard/admin/meets/bulk-delete",
+  "/dashboard/admin/meets/:id/tags",
+  "/dashboard/admin/meets/:id/tags/:tagId",
+  "/dashboard/admin/meets/:id/attendees",
+  "/dashboard/admin/meets/:id/attendees/:userId",
+
+  // Files Management
+  "/dashboard/admin/files",
+  "/dashboard/admin/files/upload",
+  "/dashboard/admin/files/upload-modal",
+  "/dashboard/admin/files/preview-modal",
+  "/dashboard/admin/files/rename",
+  "/dashboard/admin/files/rename-modal",
+  "/dashboard/admin/files/duplicate",
+  "/dashboard/admin/files/confirm-delete",
+  "/dashboard/admin/files/bulk-confirm",
+  "/dashboard/admin/files/bulk-delete",
+  "/dashboard/admin/files/:filename",
+] as const;
+
 export async function seedEndpoints(
   db: Database,
   report: SeedReport = {}
@@ -193,6 +221,26 @@ export async function seedEndpoints(
       addReport(report, "endpoints", "endpoints", 1, 0, 0);
     } else {
       addReport(report, "endpoints", "endpoints", 0, 0, 1);
+    }
+  }
+
+  // Bind Meet and File endpoints for admin role
+  const adminRole = db.query<{ id: string }, [string]>("SELECT id FROM roles WHERE title = ? AND deleted_at IS NULL").get("admin");
+  if (adminRole) {
+    for (const endpoint of ADMIN_ALLOWED_ENDPOINTS) {
+      const ep = db.query<{ id: string }, [string]>("SELECT id FROM endpoints WHERE title = ?").get(endpoint);
+      if (ep) {
+        const existing = db.query<{ id: string }, [string, string]>("SELECT id FROM role_endpoints WHERE role_id = ? AND endpoint_id = ?").get(adminRole.id, ep.id);
+        if (!existing) {
+          db.run(
+            "INSERT OR IGNORE INTO role_endpoints (id, role_id, endpoint_id, description) VALUES (?, ?, ?, ?)",
+            [generateId(), adminRole.id, ep.id, "Admin access"]
+          );
+          addReport(report, "endpoints", "role_endpoints", 1, 0, 0);
+        } else {
+          addReport(report, "endpoints", "role_endpoints", 0, 0, 1);
+        }
+      }
     }
   }
 
