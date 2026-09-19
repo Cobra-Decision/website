@@ -4,6 +4,7 @@ import { verify } from "hono/jwt";
 import type { Database } from "bun:sqlite";
 import { clearPermissionCache, createPermissionChecker, getFirstAllowedAdminPath, getRoleAllowedEndpoints } from "../auth/middleware";
 import { AdminLayout, CrudTable, MeetRelations, type Row, Toast, AdminConfirmDeleteModal, AdminBulkConfirmDeleteModal } from "./views";
+import { parsePaginationParams, calculatePagination, type PaginationState } from "./pagination";
 import { FormMessage } from "../../ui/form-message";
 import { getErrorMessage, refreshLandingCache, refreshErrorCache } from "../../lib/cache";
 import { validateReportSql } from "./report";
@@ -97,8 +98,8 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
     },
     meets: {
       table: "meets",
-      columns: ["id", "title", "status", "publish_status", "access_status", "description", "topics", "scheduled_date", "scheduled_time", "duration_minutes", "meet_url", "video_url", "file_url", "image_url", "presenter_id", "created_at", "updated_at"],
-      searchFields: ["id", "title", "status", "publish_status", "access_status", "description", "topics", "scheduled_date", "presenter_id"],
+      columns: ["id", "title", "status", "publish_status", "access_status", "topics", "scheduled_date", "scheduled_time", "duration_minutes", "meet_url", "video_url", "file_url", "image_url", "presenter_id", "created_at", "updated_at"],
+      searchFields: ["id", "title", "status", "publish_status", "access_status", "topics", "scheduled_date", "presenter_id"],
       fields: ["title", "description", "topics", "scheduled_date", "scheduled_time", "duration_minutes", "meet_url", "video_url", "file_url", "image_url", "status", "publish_status", "access_status", "presenter_id"],
     },
     tags: {
@@ -126,29 +127,57 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
 
   const validRelation = (table: "tags" | "users", id: string) => !!db.query(`SELECT 1 FROM ${table} WHERE id=? AND deleted_at IS NULL`).get(id);
 
-  const rowsFor = (resource: keyof typeof config, query: Record<string, string> = {}, isSuperAdminUser = true) => {
+  const rowsFor = (
+    resource: keyof typeof config,
+    query: Record<string, string> = {},
+    isSuperAdminUser = true,
+    page = 1,
+    limit = 10
+  ) => {
     const direction = query.direction === "asc" ? "ASC" : "DESC";
     const sort = query.sort && config[resource].columns.includes(query.sort as never) ? query.sort : "id";
     const q = query.q?.trim();
     const searchField = config[resource].searchFields.includes(query.search_field as never) ? query.search_field : config[resource].searchFields[0];
+    const offset = (page - 1) * limit;
+
     if (resource === "users") {
       const allowed = ["id", "email", "username", "phone", "first_name", "last_name", "role_title", "created_at", "updated_at"];
       const userSort = allowed.includes(sort) ? sort : "id";
       const field = searchField === "role_title" ? "r.title" : `u.${searchField}`;
-      const sql = `SELECT u.id,u.email,u.username,u.phone,u.first_name,u.last_name,r.title role_title,u.created_at,u.updated_at FROM users u JOIN roles r ON r.id=u.role_id WHERE u.deleted_at IS NULL AND r.deleted_at IS NULL${q ? ` AND CAST(${field} AS TEXT) LIKE ?` : ""} ORDER BY ${userSort === "role_title" ? "r.title" : `u.${userSort}`} ${direction}`;
-      return (q ? db.query(sql).all(`%${q}%`) : db.query(sql).all()) as Row[];
+
+      const countSql = `SELECT COUNT(*) as count FROM users u JOIN roles r ON r.id=u.role_id WHERE u.deleted_at IS NULL AND r.deleted_at IS NULL${q ? ` AND CAST(${field} AS TEXT) LIKE ?` : ""}`;
+      const totalCount = (q ? db.query<{ count: number }, [string]>(countSql).get(`%${q}%`) : db.query<{ count: number }, []>(countSql).get())?.count ?? 0;
+
+      const sql = `SELECT u.id,u.email,u.username,u.phone,u.first_name,u.last_name,r.title role_title,u.created_at,u.updated_at FROM users u JOIN roles r ON r.id=u.role_id WHERE u.deleted_at IS NULL AND r.deleted_at IS NULL${q ? ` AND CAST(${field} AS TEXT) LIKE ?` : ""} ORDER BY ${userSort === "role_title" ? "r.title" : `u.${userSort}`} ${direction} LIMIT ? OFFSET ?`;
+      const rows = (q ? db.query(sql).all(`%${q}%`, limit, offset) : db.query(sql).all(limit, offset)) as Row[];
+
+      return { rows, totalCount };
     }
+
     const rbacFilter = resource === "meets" && !isSuperAdminUser ? " AND publish_status != 'private'" : "";
-    const sql = `SELECT ${config[resource].columns.join(", ")} FROM ${config[resource].table} WHERE deleted_at IS NULL${rbacFilter}${q ? ` AND CAST(${searchField} AS TEXT) LIKE ?` : ""} ORDER BY ${sort} ${direction}`;
-    return (q ? db.query(sql).all(`%${q}%`) : db.query(sql).all()) as Row[];
+    const countSql = `SELECT COUNT(*) as count FROM ${config[resource].table} WHERE deleted_at IS NULL${rbacFilter}${q ? ` AND CAST(${searchField} AS TEXT) LIKE ?` : ""}`;
+    const totalCount = (q ? db.query<{ count: number }, [string]>(countSql).get(`%${q}%`) : db.query<{ count: number }, []>(countSql).get())?.count ?? 0;
+
+    const sql = `SELECT ${config[resource].columns.join(", ")} FROM ${config[resource].table} WHERE deleted_at IS NULL${rbacFilter}${q ? ` AND CAST(${searchField} AS TEXT) LIKE ?` : ""} ORDER BY ${sort} ${direction} LIMIT ? OFFSET ?`;
+    const rows = (q ? db.query(sql).all(`%${q}%`, limit, offset) : db.query(sql).all(limit, offset)) as Row[];
+
+    return { rows, totalCount };
   };
 
-  const tableResponse = (resource: keyof typeof config, toastTitle?: string, fallback = "", isSuper = true) => {
+  const tableResponse = (resource: keyof typeof config, toastTitle?: string, fallback = "", isSuper = true, page = 1, limit = 10) => {
     refreshLandingCache(db);
     clearPermissionCache();
+    const { rows, totalCount } = rowsFor(resource, {}, isSuper, page, limit);
+    const pagination = calculatePagination(totalCount, page, limit);
     return (
       <>
-        <CrudTable resource={resource} columns={[...config[resource].columns]} searchFields={[...config[resource].searchFields]} rows={rowsFor(resource, {}, isSuper)} />
+        <CrudTable
+          resource={resource}
+          columns={[...config[resource].columns]}
+          searchFields={[...config[resource].searchFields]}
+          rows={rows}
+          pagination={pagination}
+        />
         {toastTitle && toast(toastTitle, fallback)}
       </>
     );
@@ -748,15 +777,19 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
     app.get(`/${resource}`, (c) => {
       const locale = getLocale(c);
       const tz = getTimezone(c);
+      const { page: pageNum, limit } = parsePaginationParams(c.req.query());
+      const { rows, totalCount } = rowsFor(resource, c.req.query(), isSuperAdmin(c), pageNum, limit);
+      const pagination = calculatePagination(totalCount, pageNum, limit);
       const tableComponent = (
         <CrudTable
           resource={resource}
           columns={[...columns]}
           searchFields={[...config[resource].searchFields]}
-          rows={rowsFor(resource, c.req.query(), isSuperAdmin(c))}
+          rows={rows}
           query={c.req.query()}
           locale={locale}
           timeZone={tz}
+          pagination={pagination}
         />
       );
       return c.req.header("HX-Request") ? c.html(tableComponent) : page(c, resource, tableComponent);
@@ -922,7 +955,7 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
       const body = await c.req.parseBody({ all: true });
       const rawIds = body["ids"] || body["ids[]"];
       const ids = (Array.isArray(rawIds) ? rawIds : rawIds ? [rawIds] : []).map(String).filter(Boolean);
-      if (!ids.length) return c.html(<><CrudTable resource={resource} columns={[...columns]} searchFields={[...config[resource].searchFields]} rows={rowsFor(resource, {}, isSuperAdmin(c))} />{toast("admin.nothing_selected", "Select at least one record.", "warning")}</>, 400);
+      if (!ids.length) return c.html(tableResponse(resource, "admin.nothing_selected", "Select at least one record.", isSuperAdmin(c)), 400);
       for (const id of ids) {
         if (!(resource === "roles" && db.query("SELECT 1 FROM roles WHERE id=? AND title='Super Admin'").get(id))) {
           db.run(`UPDATE ${table} SET deleted_at=CURRENT_TIMESTAMP, updated_at=CURRENT_TIMESTAMP WHERE id=?`, [id]);
