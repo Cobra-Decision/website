@@ -1,8 +1,8 @@
 import type { LandingCache } from "../../lib/cache";
 import type { Locale } from "../../lib/i18n/translations";
 import { t, formatLocalizedNumber } from "../../lib/i18n/context";
-import { SOCIAL_MEDIA_LIST } from "../../lib/social";
 import { LanguageSwitch } from "../../ui/language-switch";
+import { Footer } from "../../ui/footer";
 
 export const AboutView = ({ data, locale = "en" }: { data: LandingCache; locale?: Locale }) => {
   const totalUsersFormatted = formatLocalizedNumber(data.totalUsers, locale);
@@ -14,7 +14,32 @@ export const AboutView = ({ data, locale = "en" }: { data: LandingCache; locale?
     { title: t("about.tracks.ai", locale), desc: locale === "fa" ? "مدل‌های زبانی بزرگ، یادگیری ماشین در پروداکشن و زیرساخت داده" : "LLMs, production machine learning, vector search, and data pipelines." },
     { title: t("about.tracks.devops", locale), desc: locale === "fa" ? "زیرساخت لینوکسی، کانتینرها، CI/CD، پایش و امنیت شبکه" : "Linux servers, containers, CI/CD, observability, and network security." },
     { title: t("about.tracks.craftsmanship", locale), desc: locale === "fa" ? "معماری تمیز، تست‌نویسی خودکار، ریفکتور و طراحی ماژولار" : "Clean architecture, automated testing, refactoring, and modular design." },
-    { title: t("about.tracks.softskills", locale), desc: locale === "fa" ? "رهبری فنی، منتورینگ، فرهنگ مهندسی و چالش‌های رشد شغلی" : "Technical leadership, mentoring, engineering culture, and career growth." },
+    { title: t("about.tracks.softskills", locale), desc: locale === "fa" ? "رهبری تیم، مدیریت محصول، منتورینگ و رشد فردی و شغلی" : "Technical leadership, product management, mentoring, and professional growth." },
+    { title: t("about.tracks.opensource_culture", locale), desc: locale === "fa" ? "مشارکت در پروژه‌های آزاد، معرفی و نقد کتاب و همکاری‌های جمعی" : "Open-source collaboration, technical book reviews, and collective engineering." },
+  ];
+
+  const faqs = [
+    {
+      q: t("about.faq.q1", locale),
+      a: t("about.faq.a1", locale),
+    },
+    {
+      q: t("about.faq.format_q", locale),
+      a: t("about.faq.format_a", locale),
+    },
+    {
+      q: t("about.faq.register_q", locale),
+      a: t("about.faq.register_a", locale),
+    },
+    {
+      q: t("about.faq.opensource_q", locale),
+      a: t("about.faq.opensource_a", locale),
+      link: "https://github.com/Cobra-Decision/website",
+    },
+    {
+      q: t("about.faq.participate_q", locale),
+      a: t("about.faq.participate_a", locale),
+    },
   ];
 
   return (
@@ -44,10 +69,12 @@ export const AboutView = ({ data, locale = "en" }: { data: LandingCache; locale?
 
       <main class="space-y-24 py-12 sm:py-20">
         {/* Hero & Manifesto */}
-        <section class="mx-auto max-w-5xl px-5 sm:px-8 text-center">
-          <span class="badge badge-primary badge-outline mb-6 rounded-full px-5 py-3 text-xs sm:text-sm font-medium">
-            {t("about.hero_quote", locale)}
-          </span>
+        <section id="manifesto" class="mx-auto max-w-5xl px-5 sm:px-8 text-center scroll-mt-24">
+          <div class="inline-flex items-center justify-center mb-6 max-w-full">
+            <span class="inline-block rounded-full border border-primary/40 bg-primary/10 px-4 py-1.5 text-xs sm:text-sm font-medium text-primary text-center leading-normal">
+              {t("about.hero_quote", locale)}
+            </span>
+          </div>
           <h1 class="text-4xl sm:text-6xl font-extrabold tracking-tight text-base-content leading-tight">
             {t("about.hero_title", locale)}
           </h1>
@@ -65,21 +92,27 @@ export const AboutView = ({ data, locale = "en" }: { data: LandingCache; locale?
         </section>
 
         {/* Mission & Vision */}
-        <section class="mx-auto max-w-7xl px-5 sm:px-8">
+        <section id="mission" class="mx-auto max-w-7xl px-5 sm:px-8 scroll-mt-24">
           <div class="grid gap-8 md:grid-cols-2">
             <div class="card border border-base-300 bg-base-200/50 p-8 shadow-sm">
               <div class="badge badge-primary badge-sm mb-4 font-bold">{t("about.mission_title", locale)}</div>
               <h2 class="text-2xl font-bold text-base-content">
-                {locale === "fa" ? "گفتگوی عمیق بدون هیاهو" : "Focused Conversations Without Noise"}
+                <a href="#mission" class="hover:text-primary transition-colors inline-flex items-center gap-2 group">
+                  <span>{locale === "fa" ? "گفتگوی عمیق بدون هیاهو" : "Focused Conversations Without Noise"}</span>
+                  <span class="text-base-content/30 group-hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity text-lg font-mono">#</span>
+                </a>
               </h2>
               <p class="mt-4 text-base-content/75 leading-relaxed">
                 {t("about.mission_desc", locale)}
               </p>
             </div>
-            <div class="card border border-base-300 bg-base-200/50 p-8 shadow-sm">
+            <div id="vision" class="card border border-base-300 bg-base-200/50 p-8 shadow-sm scroll-mt-24">
               <div class="badge badge-secondary badge-sm mb-4 font-bold">{t("about.vision_title", locale)}</div>
               <h2 class="text-2xl font-bold text-base-content">
-                {locale === "fa" ? "مرجع همتا-به-همتای توسعه‌دهندگان" : "Peer-to-Peer Engineering Reference"}
+                <a href="#vision" class="hover:text-primary transition-colors inline-flex items-center gap-2 group">
+                  <span>{locale === "fa" ? "مرجع همتا-به-همتای توسعه‌دهندگان" : "Peer-to-Peer Engineering Reference"}</span>
+                  <span class="text-base-content/30 group-hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity text-lg font-mono">#</span>
+                </a>
               </h2>
               <p class="mt-4 text-base-content/75 leading-relaxed">
                 {t("about.vision_desc", locale)}
@@ -89,9 +122,14 @@ export const AboutView = ({ data, locale = "en" }: { data: LandingCache; locale?
         </section>
 
         {/* Core Values */}
-        <section class="mx-auto max-w-7xl px-5 sm:px-8">
+        <section id="values" class="mx-auto max-w-7xl px-5 sm:px-8 scroll-mt-24">
           <div class="text-center max-w-2xl mx-auto mb-12">
-            <h2 class="text-3xl sm:text-4xl font-bold tracking-tight">{t("about.values_title", locale)}</h2>
+            <h2 class="text-3xl sm:text-4xl font-bold tracking-tight">
+              <a href="#values" class="hover:text-primary transition-colors inline-flex items-center justify-center gap-2 group">
+                <span>{t("about.values_title", locale)}</span>
+                <span class="text-base-content/30 group-hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity text-xl font-mono">#</span>
+              </a>
+            </h2>
             <p class="mt-3 text-base-content/65">
               {locale === "fa" ? "اصولی که جلسات، تعاملات و فرهنگ تصمیم کبرا را شکل می‌دهند." : "The core pillars guiding our meetings, discussions, and community culture."}
             </p>
@@ -119,23 +157,28 @@ export const AboutView = ({ data, locale = "en" }: { data: LandingCache; locale?
         </section>
 
         {/* Weekly Formats */}
-        <section class="mx-auto max-w-7xl px-5 sm:px-8 bg-base-200/40 py-16 rounded-3xl border border-base-300">
+        <section id="formats" class="mx-auto max-w-7xl px-5 sm:px-8 bg-base-200/40 py-16 rounded-3xl border border-base-300 scroll-mt-24">
           <div class="text-center max-w-2xl mx-auto mb-12">
-            <h2 class="text-3xl sm:text-4xl font-bold tracking-tight">{t("about.formats_title", locale)}</h2>
+            <h2 class="text-3xl sm:text-4xl font-bold tracking-tight">
+              <a href="#formats" class="hover:text-primary transition-colors inline-flex items-center justify-center gap-2 group">
+                <span>{t("about.formats_title", locale)}</span>
+                <span class="text-base-content/30 group-hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity text-xl font-mono">#</span>
+              </a>
+            </h2>
             <p class="mt-3 text-base-content/65">
               {locale === "fa" ? "جلسات آنلاین هفتگی ما در دو فرمت مکمل و مشخص برگزار می‌شوند." : "Weekly online gatherings hosted in two complementary formats."}
             </p>
           </div>
           <div class="grid gap-8 md:grid-cols-2 max-w-4xl mx-auto">
             <div class="card bg-base-100 border border-base-300 p-8 shadow-sm">
-              <span class="badge badge-primary badge-sm font-semibold mb-3">Weekly • جمعه‌ها</span>
+              <span class="badge badge-primary badge-sm font-semibold mb-3">{locale === "fa" ? "Weekly • چهارشنبه‌ها" : "Weekly • Wednesdays"}</span>
               <h3 class="text-2xl font-bold">{t("about.formats.roundtables", locale)}</h3>
               <p class="mt-4 text-base-content/75 leading-relaxed">
                 {t("about.formats.roundtables_desc", locale)}
               </p>
             </div>
             <div class="card bg-base-100 border border-base-300 p-8 shadow-sm">
-              <span class="badge badge-secondary badge-sm font-semibold mb-3">Deep-Dive • ارائه‌های فنی</span>
+              <span class="badge badge-secondary badge-sm font-semibold mb-3">{locale === "fa" ? "Deep-Dive • ارائه‌های تخصصی" : "Deep-Dive • Specialized Talks"}</span>
               <h3 class="text-2xl font-bold">{t("about.formats.talks", locale)}</h3>
               <p class="mt-4 text-base-content/75 leading-relaxed">
                 {t("about.formats.talks_desc", locale)}
@@ -145,9 +188,14 @@ export const AboutView = ({ data, locale = "en" }: { data: LandingCache; locale?
         </section>
 
         {/* Tracks & Domains */}
-        <section class="mx-auto max-w-7xl px-5 sm:px-8">
+        <section id="tracks" class="mx-auto max-w-7xl px-5 sm:px-8 scroll-mt-24">
           <div class="text-center max-w-2xl mx-auto mb-12">
-            <h2 class="text-3xl sm:text-4xl font-bold tracking-tight">{t("about.tracks_title", locale)}</h2>
+            <h2 class="text-3xl sm:text-4xl font-bold tracking-tight">
+              <a href="#tracks" class="hover:text-primary transition-colors inline-flex items-center justify-center gap-2 group">
+                <span>{t("about.tracks_title", locale)}</span>
+                <span class="text-base-content/30 group-hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity text-xl font-mono">#</span>
+              </a>
+            </h2>
             <p class="mt-3 text-base-content/65">
               {locale === "fa" ? "سرفصل‌ها و موضوعات محوری که در جلسات به بحث گذاشته می‌شوند." : "Core tracks and specialized domains explored in our community sessions."}
             </p>
@@ -163,9 +211,14 @@ export const AboutView = ({ data, locale = "en" }: { data: LandingCache; locale?
         </section>
 
         {/* Live Metrics */}
-        <section class="border-y border-base-200 bg-base-100 py-12">
+        <section id="metrics" class="border-y border-base-200 bg-base-100 py-12 scroll-mt-24">
           <div class="mx-auto max-w-7xl px-5 sm:px-8 text-center">
-            <h2 class="text-2xl font-bold mb-8">{t("about.metrics_title", locale)}</h2>
+            <h2 class="text-2xl font-bold mb-8">
+              <a href="#metrics" class="hover:text-primary transition-colors inline-flex items-center justify-center gap-2 group">
+                <span>{t("about.metrics_title", locale)}</span>
+                <span class="text-base-content/30 group-hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity text-xl font-mono">#</span>
+              </a>
+            </h2>
             <div class="flex flex-wrap items-center justify-center gap-8 sm:gap-16">
               {data.totalUsers >= 50 && (
                 <>
@@ -189,8 +242,47 @@ export const AboutView = ({ data, locale = "en" }: { data: LandingCache; locale?
           </div>
         </section>
 
+        {/* FAQ & Open Source Section */}
+        <section id="faq" class="mx-auto max-w-4xl px-5 sm:px-8 scroll-mt-24">
+          <div class="text-center max-w-2xl mx-auto mb-10">
+            <h2 class="text-3xl font-bold tracking-tight">
+              <a href="#faq" class="hover:text-primary transition-colors inline-flex items-center justify-center gap-2 group">
+                <span>{t("about.faq_title", locale)}</span>
+                <span class="text-base-content/30 group-hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity text-xl font-mono">#</span>
+              </a>
+            </h2>
+          </div>
+          <div class="space-y-4">
+            {faqs.map((faq, idx) => (
+              <details key={faq.q} class="collapse collapse-plus border border-base-300 bg-base-100 rounded-box shadow-xs" open={idx === 0}>
+                <summary class="collapse-title font-semibold text-base sm:text-lg">
+                  {faq.q}
+                </summary>
+                <div class="collapse-content text-sm text-base-content/75 leading-relaxed space-y-3">
+                  <p>{faq.a}</p>
+                  {faq.link && (
+                    <div>
+                      <a
+                        href={faq.link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="btn btn-outline btn-sm gap-2 font-mono"
+                      >
+                        <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
+                          <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" />
+                        </svg>
+                        GitHub Repository →
+                      </a>
+                    </div>
+                  )}
+                </div>
+              </details>
+            ))}
+          </div>
+        </section>
+
         {/* Community Action Hub */}
-        <section class="mx-auto max-w-4xl px-5 sm:px-8 text-center">
+        <section id="join" class="mx-auto max-w-4xl px-5 sm:px-8 text-center scroll-mt-24">
           <div class="rounded-3xl border border-base-300 bg-gradient-to-b from-base-200/60 to-base-100 p-10 shadow-sm">
             <h2 class="text-3xl font-bold">
               {locale === "fa" ? "هم‌اکنون به گفتگو بپیوندید" : "Join the Conversation Today"}
@@ -199,7 +291,7 @@ export const AboutView = ({ data, locale = "en" }: { data: LandingCache; locale?
               {locale === "fa" ? "در جلسات بعدی شرکت کنید، ارائه‌ای به اشتراک بگذارید، یا به گفتگوهای آزاد بپیوندید." : "Attend upcoming meets, propose your technical talk, or take part in our weekly roundtables."}
             </p>
             <div class="mt-8 flex flex-wrap justify-center gap-4">
-              <a class="btn btn-primary px-6" href="https://t.me/CobraDecisionBot" target="_blank" rel="noopener noreferrer">
+              <a class="btn btn-primary px-6" href="/#meets">
                 {t("about.cta_join_bot", locale)}
               </a>
               <a class="btn btn-outline px-6" href="mailto:cobradecisionteam@gmail.com">
@@ -210,48 +302,7 @@ export const AboutView = ({ data, locale = "en" }: { data: LandingCache; locale?
         </section>
       </main>
 
-      {/* Footer */}
-      <footer id="contact" class="bg-neutral text-neutral-content">
-        <div class="mx-auto grid max-w-7xl gap-12 px-5 py-16 sm:px-8 lg:grid-cols-[1fr_auto_1.2fr]">
-          <div>
-            <a class="inline-flex items-center gap-3 text-2xl font-bold" href="/">
-              <img src="/favicon.svg" alt="CobraDecision" width="36" height="36" class="h-9 w-9" />
-              <span>{t("brand.name", locale)}<span class="text-primary">.</span></span>
-            </a>
-            <p class="mt-4 max-w-xs leading-7 text-neutral-content/65">
-              {t("footer.about", locale)}
-            </p>
-          </div>
-          <div>
-            <p class="font-semibold">{t("footer.find_us", locale)}</p>
-            <div class="mt-4 grid gap-2 text-sm text-neutral-content/65">
-              {SOCIAL_MEDIA_LIST.map((item) => (
-                <a
-                  key={item.name}
-                  class="link-hover inline-flex items-center gap-2 transition-colors hover:text-primary"
-                  href={item.href}
-                  target={"target" in item ? item.target : undefined}
-                  rel={"rel" in item ? item.rel : undefined}
-                >
-                  {item.name}
-                </a>
-              ))}
-            </div>
-          </div>
-          <form class="w-full max-w-md" hx-post="/api/contact" hx-target="#contact-result" hx-swap="outerHTML">
-            <p class="font-semibold">{t("footer.contact_title", locale)}</p>
-            <p class="mt-2 text-sm text-neutral-content/65">{t("footer.contact_subtitle", locale)}</p>
-            <div class="mt-5 flex flex-col gap-3 sm:flex-row">
-              <input class="input input-bordered w-full text-base-content" name="email" type="email" required placeholder="you@example.com" />
-              <button class="btn btn-primary sm:w-28">{t("footer.send", locale)}</button>
-            </div>
-            <div id="contact-result" class="mt-3"></div>
-          </form>
-        </div>
-        <div class="border-t border-neutral-content/15 px-5 py-5 text-center text-xs text-neutral-content/50">
-          {t("footer.copyright", locale)}
-        </div>
-      </footer>
+      <Footer locale={locale} />
     </div>
   );
 };

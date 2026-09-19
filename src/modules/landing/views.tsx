@@ -1,10 +1,10 @@
 import type { LandingCache } from "../../lib/cache";
 import type { Locale } from "../../lib/i18n/translations";
 import { t, formatLocalizedNumber } from "../../lib/i18n/context";
-import { SOCIAL_MEDIA_LIST } from "../../lib/social";
 import { LanguageSwitch } from "../../ui/language-switch";
 import { UnifiedMeetCard } from "../../ui/meet-card";
 import { Carousel } from "../../ui/carousel";
+import { Footer } from "../../ui/footer";
 
 export const Landing = ({ data, locale = "en" }: { data: LandingCache; locale?: Locale }) => {
   const featured = data.meets[0];
@@ -42,9 +42,11 @@ export const Landing = ({ data, locale = "en" }: { data: LandingCache; locale?: 
         <section class="border-b border-base-200 bg-gradient-to-br from-base-100 via-base-100 to-primary/10">
           <div class="mx-auto grid max-w-7xl gap-12 px-5 py-16 sm:px-8 lg:grid-cols-[1.05fr_.95fr] lg:items-center lg:py-24">
             <div class="max-w-2xl">
-              <span class="badge badge-primary badge-outline mb-6 rounded-full px-4 py-3">
-                {t("hero.badge", locale)}
-              </span>
+              <div class="inline-flex items-center justify-center mb-6 max-w-full">
+                <span class="inline-block rounded-full border border-primary/40 bg-primary/10 px-4 py-1.5 text-xs sm:text-sm font-medium text-primary text-center leading-normal">
+                  {t("hero.badge", locale)}
+                </span>
+              </div>
               <h1 class="text-5xl font-bold tracking-tight text-base-content sm:text-6xl lg:text-7xl leading-tight">
                 {t("hero.title", locale)}
               </h1>
@@ -152,48 +154,7 @@ export const Landing = ({ data, locale = "en" }: { data: LandingCache; locale?: 
         </section>
       </main>
 
-      {/* Footer */}
-      <footer id="contact" class="bg-neutral text-neutral-content">
-        <div class="mx-auto grid max-w-7xl gap-12 px-5 py-16 sm:px-8 lg:grid-cols-[1fr_auto_1.2fr]">
-          <div>
-            <a class="inline-flex items-center gap-3 text-2xl font-bold" href="/">
-              <img src="/favicon.svg" alt="CobraDecision" width="36" height="36" class="h-9 w-9" />
-              <span>{t("brand.name", locale)}<span class="text-primary">.</span></span>
-            </a>
-            <p class="mt-4 max-w-xs leading-7 text-neutral-content/65">
-              {t("footer.about", locale)}
-            </p>
-          </div>
-          <div>
-            <p class="font-semibold">{t("footer.find_us", locale)}</p>
-            <div class="mt-4 grid gap-2 text-sm text-neutral-content/65">
-              {SOCIAL_MEDIA_LIST.map((item) => (
-                <a
-                  key={item.name}
-                  class="link-hover inline-flex items-center gap-2 transition-colors hover:text-primary"
-                  href={item.href}
-                  target={"target" in item ? item.target : undefined}
-                  rel={"rel" in item ? item.rel : undefined}
-                >
-                  {item.name}
-                </a>
-              ))}
-            </div>
-          </div>
-          <form class="w-full max-w-md" hx-post="/api/contact" hx-target="#contact-result" hx-swap="outerHTML">
-            <p class="font-semibold">{t("footer.contact_title", locale)}</p>
-            <p class="mt-2 text-sm text-neutral-content/65">{t("footer.contact_subtitle", locale)}</p>
-            <div class="mt-5 flex flex-col gap-3 sm:flex-row">
-              <input class="input input-bordered w-full text-base-content" name="email" type="email" required placeholder="you@example.com" />
-              <button class="btn btn-primary sm:w-28">{t("footer.send", locale)}</button>
-            </div>
-            <div id="contact-result" class="mt-3"></div>
-          </form>
-        </div>
-        <div class="border-t border-neutral-content/15 px-5 py-5 text-center text-xs text-neutral-content/50">
-          {t("footer.copyright", locale)}
-        </div>
-      </footer>
+      <Footer locale={locale} />
     </div>
   );
 };

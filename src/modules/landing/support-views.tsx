@@ -1,7 +1,7 @@
 import type { Locale } from "../../lib/i18n/translations";
 import { t } from "../../lib/i18n/context";
-import { SOCIAL_MEDIA_LIST } from "../../lib/social";
 import { LanguageSwitch } from "../../ui/language-switch";
+import { Footer } from "../../ui/footer";
 
 export const SupportView = ({ locale = "en" }: { locale?: Locale }) => {
   const allocations = [
@@ -45,9 +45,11 @@ export const SupportView = ({ locale = "en" }: { locale?: Locale }) => {
       <main class="space-y-20 py-12 sm:py-20">
         {/* Hero Section */}
         <section class="mx-auto max-w-4xl px-5 sm:px-8 text-center">
-          <span class="badge badge-success badge-outline mb-6 rounded-full px-5 py-3 text-xs sm:text-sm font-medium">
-            {t("support.hero_badge", locale)}
-          </span>
+          <div class="inline-flex items-center justify-center mb-6 max-w-full">
+            <span class="inline-block rounded-full border border-success/40 bg-success/10 px-4 py-1.5 text-xs sm:text-sm font-medium text-success text-center leading-normal">
+              {t("support.hero_badge", locale)}
+            </span>
+          </div>
           <h1 class="text-4xl sm:text-6xl font-extrabold tracking-tight text-base-content leading-tight">
             {t("support.hero_title", locale)}
           </h1>
@@ -135,48 +137,7 @@ export const SupportView = ({ locale = "en" }: { locale?: Locale }) => {
         </section>
       </main>
 
-      {/* Footer */}
-      <footer id="contact" class="bg-neutral text-neutral-content">
-        <div class="mx-auto grid max-w-7xl gap-12 px-5 py-16 sm:px-8 lg:grid-cols-[1fr_auto_1.2fr]">
-          <div>
-            <a class="inline-flex items-center gap-3 text-2xl font-bold" href="/">
-              <img src="/favicon.svg" alt="CobraDecision" width="36" height="36" class="h-9 w-9" />
-              <span>{t("brand.name", locale)}<span class="text-primary">.</span></span>
-            </a>
-            <p class="mt-4 max-w-xs leading-7 text-neutral-content/65">
-              {t("footer.about", locale)}
-            </p>
-          </div>
-          <div>
-            <p class="font-semibold">{t("footer.find_us", locale)}</p>
-            <div class="mt-4 grid gap-2 text-sm text-neutral-content/65">
-              {SOCIAL_MEDIA_LIST.map((item) => (
-                <a
-                  key={item.name}
-                  class="link-hover inline-flex items-center gap-2 transition-colors hover:text-primary"
-                  href={item.href}
-                  target={"target" in item ? item.target : undefined}
-                  rel={"rel" in item ? item.rel : undefined}
-                >
-                  {item.name}
-                </a>
-              ))}
-            </div>
-          </div>
-          <form class="w-full max-w-md" hx-post="/api/contact" hx-target="#contact-result" hx-swap="outerHTML">
-            <p class="font-semibold">{t("footer.contact_title", locale)}</p>
-            <p class="mt-2 text-sm text-neutral-content/65">{t("footer.contact_subtitle", locale)}</p>
-            <div class="mt-5 flex flex-col gap-3 sm:flex-row">
-              <input class="input input-bordered w-full text-base-content" name="email" type="email" required placeholder="you@example.com" />
-              <button class="btn btn-primary sm:w-28">{t("footer.send", locale)}</button>
-            </div>
-            <div id="contact-result" class="mt-3"></div>
-          </form>
-        </div>
-        <div class="border-t border-neutral-content/15 px-5 py-5 text-center text-xs text-neutral-content/50">
-          {t("footer.copyright", locale)}
-        </div>
-      </footer>
+      <Footer locale={locale} />
     </div>
   );
 };
