@@ -1,5 +1,7 @@
 import type { Locale } from "../../../lib/i18n/translations";
 import { t } from "../../../lib/i18n/context";
+import { Pagination } from "../pagination-view";
+import type { PaginationState } from "../pagination";
 
 export type FileItem = {
   name: string;
@@ -14,29 +16,13 @@ export function FileGrid({
   files,
   query = {},
   locale = "en",
+  pagination,
 }: {
   files: FileItem[];
-  query?: { q?: string; sort?: string; direction?: string };
+  query?: Record<string, string | undefined>;
   locale?: Locale;
+  pagination?: PaginationState;
 }) {
-  const q = (query.q ?? "").trim().toLowerCase();
-  const sort = query.sort ?? "modifiedAt";
-  const direction = query.direction === "asc" ? "asc" : "desc";
-
-  const filtered = files.filter((f) => !q || f.name.toLowerCase().includes(q));
-
-  const sorted = [...filtered].sort((a, b) => {
-    let comparison = 0;
-    if (sort === "name") {
-      comparison = a.name.localeCompare(b.name);
-    } else if (sort === "size") {
-      comparison = a.size - b.size;
-    } else {
-      comparison = a.modifiedAt.localeCompare(b.modifiedAt);
-    }
-    return direction === "asc" ? comparison : -comparison;
-  });
-
   const sortUrl = (column: string) =>
     `/dashboard/admin/files?q=${encodeURIComponent(query.q ?? "")}&sort=${encodeURIComponent(column)}&direction=${query.sort === column && query.direction === "asc" ? "desc" : "asc"}`;
 
@@ -158,8 +144,8 @@ export function FileGrid({
               </tr>
             </thead>
             <tbody>
-              {sorted.length > 0 ? (
-                sorted.map((file) => (
+              {files.length > 0 ? (
+                files.map((file) => (
                   <tr key={file.name} class="hover">
                     <td>
                       <input
@@ -267,6 +253,17 @@ export function FileGrid({
           </table>
         </div>
       </form>
+
+      {pagination && (
+        <Pagination
+          state={pagination}
+          resource="files"
+          baseUrl="/dashboard/admin/files"
+          targetId="files-table"
+          query={query}
+          locale={locale}
+        />
+      )}
 
       <div id="file-modal"></div>
     </div>

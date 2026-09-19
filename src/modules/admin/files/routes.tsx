@@ -16,6 +16,7 @@ import { getErrorMessage } from "../../../lib/cache";
 import { handleImageUpload, handlePresentationUpload } from "../upload";
 import { getLocale } from "../../../lib/i18n/context";
 import { logger } from "../../../lib/logger";
+import { parsePaginationParams, calculatePagination } from "../pagination";
 
 export function getStorageDir(): string {
   return process.env.STORAGE_DIR ?? "./public/uploads";
@@ -97,8 +98,31 @@ export function createFileAdminRoutes(
 
   app.get("/", async (c) => {
     const locale = getLocale(c);
-    const files = await listFiles();
-    const table = <FileGrid files={files} query={c.req.query()} locale={locale} />;
+    const query = c.req.query();
+    const { page, limit, offset } = parsePaginationParams(query);
+    const q = (query.q ?? "").trim().toLowerCase();
+    const sort = query.sort ?? "modifiedAt";
+    const direction = query.direction === "asc" ? "asc" : "desc";
+
+    const allFiles = await listFiles();
+    const filtered = allFiles.filter((f) => !q || f.name.toLowerCase().includes(q));
+
+    const sorted = [...filtered].sort((a, b) => {
+      let comparison = 0;
+      if (sort === "name") {
+        comparison = a.name.localeCompare(b.name);
+      } else if (sort === "size") {
+        comparison = a.size - b.size;
+      } else {
+        comparison = a.modifiedAt.localeCompare(b.modifiedAt);
+      }
+      return direction === "asc" ? comparison : -comparison;
+    });
+
+    const pagination = calculatePagination(sorted.length, page, limit);
+    const pagedFiles = sorted.slice(offset, offset + limit);
+
+    const table = <FileGrid files={pagedFiles} query={query} locale={locale} pagination={pagination} />;
     if (c.req.header("HX-Request")) {
       return c.html(table);
     }
