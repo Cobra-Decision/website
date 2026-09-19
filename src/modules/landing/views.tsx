@@ -26,6 +26,8 @@ export const Landing = ({ data, locale = "en" }: { data: LandingCache; locale?: 
           <div class="hidden gap-7 text-sm font-medium md:flex">
             <a class="link-hover" href="#how-it-works">{t("nav.how_it_works", locale)}</a>
             <a class="link-hover" href="#meets">{t("nav.meets", locale)}</a>
+            <a class="link-hover" href="/about">{t("nav.about", locale)}</a>
+            <a class="link-hover" href="/support">{t("nav.support", locale)}</a>
             <a class="link-hover" href="#contact">{t("nav.contact", locale)}</a>
           </div>
           <div class="flex-none gap-3 ps-4">
