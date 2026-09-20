@@ -86,10 +86,17 @@ export const MailerDashboardView = ({
             .replace(/\\{\\{\\s*date\\s*\\}\\}/gi, new Date().toLocaleDateString())
             .replace(/\\{\\{\\s*date_shamsi\\s*\\}\\}/gi, new Intl.DateTimeFormat('fa-IR', { year: 'numeric', month: 'long', day: 'numeric' }).format(new Date()))
             .replace(/\\{\\{\\s*meet_title\\s*\\}\\}/gi, 'Distributed Systems with Bun & SQLite')
+            .replace(/\\{\\{\\s*meet_title_encoded\\s*\\}\\}/gi, encodeURIComponent('Distributed Systems with Bun & SQLite'))
             .replace(/\\{\\{\\s*meet_date\\s*\\}\\}/gi, '2026-08-25')
             .replace(/\\{\\{\\s*meet_date_shamsi\\s*\\}\\}/gi, '۳ شهریور ۱۴۰۵')
             .replace(/\\{\\{\\s*meet_time\\s*\\}\\}/gi, '18:00')
+            .replace(/\\{\\{\\s*meet_duration\\s*\\}\\}/gi, '75')
+            .replace(/\\{\\{\\s*meet_start_utc\\s*\\}\\}/gi, '20260825T143000Z')
+            .replace(/\\{\\{\\s*meet_end_utc\\s*\\}\\}/gi, '20260825T154500Z')
+            .replace(/\\{\\{\\s*meet_start_iso\\s*\\}\\}/gi, '2026-08-25T14:30:00Z')
+            .replace(/\\{\\{\\s*meet_end_iso\\s*\\}\\}/gi, '2026-08-25T15:45:00Z')
             .replace(/\\{\\{\\s*meet_link\\s*\\}\\}/gi, window.location.origin + '/meets/sample-123')
+            .replace(/\\{\\{\\s*meet_link_encoded\\s*\\}\\}/gi, encodeURIComponent(window.location.origin + '/meets/sample-123'))
             .replace(/\\{\\{\\s*dashboard_url\\s*\\}\\}/gi, window.location.origin + '/dashboard/user')
             .replace(/\\{\\{\\s*unsubscribe_url\\s*\\}\\}/gi, '#');
 

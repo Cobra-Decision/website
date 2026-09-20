@@ -11,6 +11,88 @@ export function toUtcIso(date: string, time: string) {
   return new Date(Date.UTC(year, month - 1, day, hour, minute - tehranOffsetMinutes)).toISOString();
 }
 
+/**
+ * Converts a Tehran date & time plus duration into UTC calendar strings
+ * (Google compact format e.g. 20261015T163000Z and standard ISO 8601 e.g. 2026-10-15T16:30:00Z).
+ */
+export function formatCalendarUtc(dateStr: string, timeStr: string, durationMinutes = 60): {
+  startUtc: string;
+  endUtc: string;
+  startIso: string;
+  endIso: string;
+} {
+  const startIso = toUtcIso(dateStr, timeStr);
+  const startDate = new Date(startIso);
+  const endDate = new Date(startDate.getTime() + (durationMinutes || 60) * 60 * 1000);
+
+  const toCompact = (d: Date) =>
+    d.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z");
+  const toIsoNoMs = (d: Date) =>
+    d.toISOString().replace(/\.\d{3}Z$/, "Z");
+
+  return {
+    startUtc: toCompact(startDate),
+    endUtc: toCompact(endDate),
+    startIso: toIsoNoMs(startDate),
+    endIso: toIsoNoMs(endDate),
+  };
+}
+
+/**
+ * Builds direct Google Calendar and Outlook Live Web event links.
+ */
+export function buildCalendarLinks({
+  title,
+  description = "",
+  location = "",
+  date,
+  time,
+  durationMinutes = 60,
+}: {
+  title: string;
+  description?: string;
+  location?: string;
+  date: string;
+  time: string;
+  durationMinutes?: number;
+}): {
+  googleCalendarUrl: string;
+  outlookCalendarUrl: string;
+  startUtc: string;
+  endUtc: string;
+  startIso: string;
+  endIso: string;
+} {
+  const { startUtc, endUtc, startIso, endIso } = formatCalendarUtc(date, time, durationMinutes);
+
+  const googleParams = new URLSearchParams({
+    action: "TEMPLATE",
+    text: title,
+    dates: `${startUtc}/${endUtc}`,
+    details: description,
+    location,
+  });
+
+  const outlookParams = new URLSearchParams({
+    path: "/calendar/action/compose",
+    rru: "addevent",
+    subject: title,
+    startdt: startIso,
+    enddt: endIso,
+    body: description,
+    location,
+  });
+
+  return {
+    googleCalendarUrl: `https://calendar.google.com/calendar/render?${googleParams.toString()}`,
+    outlookCalendarUrl: `https://outlook.live.com/calendar/0/deeplink/compose?${outlookParams.toString()}`,
+    startUtc,
+    endUtc,
+    startIso,
+    endIso,
+  };
+}
+
 export function formatTehran(utc: string) {
   const value = new Date(utc);
   const date = new Intl.DateTimeFormat("fa-IR-u-ca-persian", { timeZone: "Asia/Tehran", dateStyle: "short" }).format(value);

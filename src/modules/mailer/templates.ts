@@ -1,6 +1,6 @@
 import type { Database } from "bun:sqlite";
 import { renderMarkdown } from "../../lib/markdown";
-import { formatLocalizedDate } from "../events/datetime";
+import { formatLocalizedDate, formatCalendarUtc } from "../events/datetime";
 
 export interface MeetEmailData {
   id: string;
@@ -251,6 +251,8 @@ export function renderAttendanceConfirmationTemplate(
   const meetLink = `${cleanBase}/meets/${meet.id}?ref=gmail`;
   const meetDateShamsi = formatLocalizedDate(meet.scheduledDate, "fa");
   const dashboardUrl = `${cleanBase}/dashboard/user`;
+  const cal = formatCalendarUtc(meet.scheduledDate, meet.scheduledTime, meet.durationMinutes);
+
   const vars = {
     name,
     email: user.email,
@@ -259,6 +261,7 @@ export function renderAttendanceConfirmationTemplate(
     last_name: user.lastName || "",
     meet_id: meet.id,
     meet_title: meet.title,
+    meet_title_encoded: encodeURIComponent(meet.title || ""),
     meet_date: meet.scheduledDate,
     meet_date_shamsi: meetDateShamsi,
     meet_time: meet.scheduledTime,
@@ -266,8 +269,13 @@ export function renderAttendanceConfirmationTemplate(
     presenter_name: meet.presenterName || "CobraDecision",
     access_status: meet.accessStatus,
     meet_link: meetLink,
+    meet_link_encoded: encodeURIComponent(meetLink),
     dashboard_url: dashboardUrl,
     unsubscribe_url: `${cleanBase}/dashboard/account`,
+    meet_start_utc: cal.startUtc,
+    meet_end_utc: cal.endUtc,
+    meet_start_iso: cal.startIso,
+    meet_end_iso: cal.endIso,
     date: new Date().toLocaleDateString(),
     date_shamsi: getShamsiToday(),
   };
@@ -317,6 +325,8 @@ export function renderAttendeesReminderTemplate(
   const meetLink = `${cleanBase}/meets/${meet.id}?ref=gmail`;
   const meetDateShamsi = formatLocalizedDate(meet.scheduledDate, "fa");
   const dashboardUrl = `${cleanBase}/dashboard/user`;
+  const cal = formatCalendarUtc(meet.scheduledDate, meet.scheduledTime, meet.durationMinutes);
+
   const vars = {
     name,
     email: user.email,
@@ -325,6 +335,7 @@ export function renderAttendeesReminderTemplate(
     last_name: user.lastName || "",
     meet_id: meet.id,
     meet_title: meet.title,
+    meet_title_encoded: encodeURIComponent(meet.title || ""),
     meet_date: meet.scheduledDate,
     meet_date_shamsi: meetDateShamsi,
     meet_time: meet.scheduledTime,
@@ -332,8 +343,13 @@ export function renderAttendeesReminderTemplate(
     presenter_name: meet.presenterName || "CobraDecision",
     access_status: meet.accessStatus,
     meet_link: meetLink,
+    meet_link_encoded: encodeURIComponent(meetLink),
     dashboard_url: dashboardUrl,
     unsubscribe_url: `${cleanBase}/dashboard/account`,
+    meet_start_utc: cal.startUtc,
+    meet_end_utc: cal.endUtc,
+    meet_start_iso: cal.startIso,
+    meet_end_iso: cal.endIso,
     date: new Date().toLocaleDateString(),
     date_shamsi: getShamsiToday(),
   };
@@ -382,6 +398,8 @@ export function renderTagReminderTemplate(
   const meetLink = `${cleanBase}/meets/${meet.id}?ref=gmail`;
   const meetDateShamsi = formatLocalizedDate(meet.scheduledDate, "fa");
   const dashboardUrl = `${cleanBase}/dashboard/user`;
+  const cal = formatCalendarUtc(meet.scheduledDate, meet.scheduledTime, meet.durationMinutes);
+
   const vars = {
     name,
     email: user.email,
@@ -391,6 +409,7 @@ export function renderTagReminderTemplate(
     tags: matchedTags.join("، "),
     meet_id: meet.id,
     meet_title: meet.title,
+    meet_title_encoded: encodeURIComponent(meet.title || ""),
     meet_date: meet.scheduledDate,
     meet_date_shamsi: meetDateShamsi,
     meet_time: meet.scheduledTime,
@@ -398,8 +417,13 @@ export function renderTagReminderTemplate(
     presenter_name: meet.presenterName || "CobraDecision",
     access_status: meet.accessStatus,
     meet_link: meetLink,
+    meet_link_encoded: encodeURIComponent(meetLink),
     dashboard_url: dashboardUrl,
     unsubscribe_url: `${cleanBase}/dashboard/account`,
+    meet_start_utc: cal.startUtc,
+    meet_end_utc: cal.endUtc,
+    meet_start_iso: cal.startIso,
+    meet_end_iso: cal.endIso,
     date: new Date().toLocaleDateString(),
     date_shamsi: getShamsiToday(),
   };
