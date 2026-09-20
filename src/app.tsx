@@ -1,5 +1,6 @@
 import type { Database } from "bun:sqlite";
 import { Hono, type Handler, type MiddlewareHandler } from "hono";
+import { HTTPException } from "hono/http-exception";
 import { setCookie } from "hono/cookie";
 import { serveStatic } from "hono/bun";
 import { createAuthRoutes, createDashboardRoute, createProfileRoute } from "./modules/auth/routes";
@@ -12,6 +13,11 @@ import { createUserDashboardRoutes } from "./modules/dashboard/user/routes";
 import { createAccountRoutes } from "./modules/dashboard/account/routes";
 import { createSeoRoutes } from "./modules/seo/routes";
 import { rateLimiter } from "./middleware/rate-limit";
+import { Document } from "./ui/layout";
+import { ErrorPage } from "./ui/error-page";
+import { FormMessage } from "./ui/form-message";
+import { getLocale, t } from "./lib/i18n/context";
+import { logger } from "./lib/logger";
 
 export function createApp({
   database,
@@ -96,6 +102,69 @@ export function createApp({
   app.route("/meets", createEventsRoutes(database, jwtSecret));
   app.route("/events", events);
   app.route("/mailer", mailer);
+
+  // Global 404 Handler
+  app.notFound((c) => {
+    const isJson = c.req.path.startsWith("/api/") || c.req.header("Accept")?.includes("application/json");
+    if (isJson) {
+      return c.json({ error: "Not Found", statusCode: 404 }, 404);
+    }
+    const locale = getLocale(c);
+    const isHtmxPartial = c.req.header("HX-Request") === "true" && c.req.header("HX-Boosted") !== "true";
+    if (isHtmxPartial) {
+      return c.html(<FormMessage message={t("error.404.subtitle", locale)} type="error" />, 404);
+    }
+    const title = `${t("error.404.title", locale)} | CobraDecision`;
+    return c.html(
+      <Document title={title} locale={locale} noindex={true}>
+        <ErrorPage statusCode={404} locale={locale} />
+      </Document>,
+      404
+    );
+  });
+
+  // Global Error Handler
+  app.onError((err, c) => {
+    const isHttpException = err instanceof HTTPException;
+    const status = isHttpException ? err.status : 500;
+    const level = status >= 500 ? "ERROR" : "WARN";
+
+    logger.app("APP_ERROR", {
+      level,
+      data: {
+        path: c.req.path,
+        method: c.req.method,
+        status,
+      },
+      error: err,
+    });
+
+    if (isHttpException && err.res) {
+      return err.res;
+    }
+
+    const isJson = c.req.path.startsWith("/api/") || c.req.header("Accept")?.includes("application/json");
+    if (isJson) {
+      const errorMessage = isHttpException ? (err.message || "Forbidden") : "Internal Server Error";
+      return c.json({ error: errorMessage, statusCode: status }, status);
+    }
+
+    const locale = getLocale(c);
+    const isHtmxPartial = c.req.header("HX-Request") === "true" && c.req.header("HX-Boosted") !== "true";
+    if (isHtmxPartial) {
+      const msg = status === 403 ? t("error.403.subtitle", locale) : t("error.500.subtitle", locale);
+      return c.html(<FormMessage message={msg} type="error" />, status);
+    }
+
+    const translationKey = status === 403 ? "error.403.title" : "error.500.title";
+    const title = `${t(translationKey, locale)} | CobraDecision`;
+    return c.html(
+      <Document title={title} locale={locale} noindex={true}>
+        <ErrorPage statusCode={status} locale={locale} />
+      </Document>,
+      status
+    );
+  });
 
   return app;
 }

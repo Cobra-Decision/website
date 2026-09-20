@@ -499,6 +499,15 @@ export const translations = {
     "support.faq.a2": "Donations are securely and directly processed via the transparent Yavar platform.",
     "support.faq.q3": "Can I contribute in other ways besides financial support?",
     "support.faq.a3": "Absolutely! You can present a talk, participate actively in roundtables, invite colleagues, or help improve our open-source codebase.",
+    // Errors
+    "error.404.title": "Page Not Found",
+    "error.404.subtitle": "The page you are looking for doesn't exist or has been moved.",
+    "error.500.title": "Internal Server Error",
+    "error.500.subtitle": "Something went wrong on our end. Please try again later.",
+    "error.403.title": "Access Forbidden",
+    "error.403.subtitle": "You don't have permission to access this resource.",
+    "error.back_home": "Back to Home",
+    "error.explore_meets": "Explore Meets",
   },
   fa: {
     // Navigation & Common
@@ -998,6 +1007,16 @@ export const translations = {
     "support.faq.a2": "پرداخت‌ها به صورت مستقیم و شفاف از طریق پلتفرم یاور انجام می‌پذیرد.",
     "support.faq.q3": "آیا امکان مشارکت غیرمالی نیز وجود دارد؟",
     "support.faq.a3": "قطعاً! شما می‌توانید یک ارائه فنی برگزار کنید، در گفتگوها فعال باشید، دوستان خود را دعوت نمایید یا در توسعه کد متن‌باز پروژه سهیم شوید.",
+
+    // Errors
+    "error.404.title": "صفحه یافت نشد",
+    "error.404.subtitle": "صفحه‌ای که به دنبال آن هستید وجود ندارد یا منتقل شده است.",
+    "error.500.title": "خطای داخلی سرور",
+    "error.500.subtitle": "مشکلی در پردازش درخواست پیش آمده است. لطفاً بعداً دوباره تلاش کنید.",
+    "error.403.title": "دسترسی غیرمجاز",
+    "error.403.subtitle": "شما اجازه دسترسی به این بخش یا صفحه را ندارید.",
+    "error.back_home": "بازگشت به صفحه اصلی",
+    "error.explore_meets": "مشاهده جلسات",
   },
 } as const;
 
