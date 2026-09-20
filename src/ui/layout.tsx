@@ -2,6 +2,7 @@ import type { Child } from "hono/jsx";
 import { html } from "hono/html";
 import type { Locale } from "../lib/i18n/translations";
 import { isRtl } from "../lib/i18n/context";
+import { assetUrl } from "../lib/assets";
 import { ScrollToTop } from "./scroll-to-top";
 
 export interface DocumentProps {
@@ -85,7 +86,7 @@ export const Layout = ({
 
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
         <link rel="preload" href="/fonts/webfonts/Vazirmatn[wght].woff2" as="font" type="font/woff2" crossorigin="anonymous" />
-        <link href="/app.css" rel="stylesheet" />
+        <link href={assetUrl("/app.css")} rel="stylesheet" />
         <link href="/vazirmatn.css" rel="stylesheet" />
         <script src="/htmx.js" />
         <script async defer src="/altcha.js" type="module" />

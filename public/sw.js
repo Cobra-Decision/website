@@ -1,8 +1,7 @@
-const CACHE_NAME = "cobradecision-static-v1";
+const CACHE_NAME = "cobradecision-static-v2";
 const STATIC_ASSETS = [
   "/",
   "/offline.html",
-  "/app.css",
   "/favicon.svg",
   "/manifest.webmanifest",
   "/vazirmatn.css",
@@ -41,13 +40,18 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Handle static assets: cache first, fallback to network
+  // Handle static assets: stale-while-revalidate for faster response & auto-refresh
   event.respondWith(
     caches.match(request).then((cachedResponse) => {
-      if (cachedResponse) {
-        return cachedResponse;
-      }
-      return fetch(request);
+      const fetchPromise = fetch(request).then((networkResponse) => {
+        if (networkResponse && networkResponse.status === 200 && networkResponse.type === "basic") {
+          const responseToCache = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, responseToCache));
+        }
+        return networkResponse;
+      }).catch(() => cachedResponse);
+
+      return cachedResponse || fetchPromise;
     })
   );
 });

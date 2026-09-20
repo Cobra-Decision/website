@@ -23,7 +23,7 @@ test("auth pages load the shared UI stack and ALTCHA", async () => {
   for (const path of ["/auth", "/auth/register"]) {
     const html = await (await app.request(path)).text();
     expect(html.startsWith("<!DOCTYPE html>")).toBe(true);
-    expect(html).toContain('href="/app.css"');
+    expect(html).toMatch(/href="\/app\.css(\?v=[a-f0-9]+)?"/);
     expect(html).not.toContain("cdn.tailwindcss.com");
     expect(html).toContain('src="/altcha.js"');
     expect(html).not.toContain("cdn.jsdelivr.net/npm/altcha");

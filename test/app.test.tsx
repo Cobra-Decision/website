@@ -29,7 +29,7 @@ test("home renders landing navigation", async () => {
   const html = await response.text();
 
   expect(response.status).toBe(200);
-  expect(html).toContain('href="/app.css"');
+  expect(html).toMatch(/href="\/app\.css(\?v=[a-f0-9]+)?"/);
   expect(html).not.toContain("cdn.tailwindcss.com");
   expect(html).toContain('src="/alpine.js"');
   expect(html).not.toContain("cdn.jsdelivr.net");
