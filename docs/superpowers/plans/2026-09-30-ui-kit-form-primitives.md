@@ -241,6 +241,7 @@ export interface ButtonProps {
   href?: string;
   disabled?: boolean;
   loading?: boolean;
+  htmxIndicator?: boolean;
   outline?: boolean;
   circle?: boolean;
   square?: boolean;
@@ -279,6 +280,7 @@ export function Button({
   href,
   disabled = false,
   loading = false,
+  htmxIndicator = false,
   outline = false,
   circle = false,
   square = false,
@@ -305,6 +307,7 @@ export function Button({
   const content = (
     <>
       {loading && <span class="loading loading-spinner loading-xs me-2" aria-hidden="true"></span>}
+      {htmxIndicator && <span class="htmx-indicator loading loading-spinner loading-xs me-2" aria-hidden="true"></span>}
       {!loading && icon && <span class="inline-flex shrink-0 me-2 items-center">{icon}</span>}
       {children}
       {iconRight && <span class="inline-flex shrink-0 ms-2 items-center">{iconRight}</span>}
@@ -333,7 +336,6 @@ export function Button({
   );
 }
 ```
-
 Create `src/ui/forms/input.tsx`:
 ```typescript
 import type { ComponentSize } from "./types";
@@ -390,10 +392,12 @@ export function Input({
   const isFile = type === "file";
   const baseClass = isFile ? "file-input" : "input";
   const sizeClass = size ? (isFile ? fileInputSizes[size] : inputSizes[size]) : "";
-  const variantClass = variant === "bordered" ? `${baseClass}-bordered` : `${baseClass}-${variant}`;
+  const isGhost = variant === "ghost";
+  const borderClass = isGhost ? `${baseClass}-ghost` : `${baseClass}-bordered`;
+  const colorClass = variant && variant !== "bordered" && !isGhost ? `${baseClass}-${variant}` : "";
   const focusClass = isFile ? "focus:file-input-primary" : "focus:input-primary focus:outline-none";
 
-  const classes = [baseClass, variantClass, sizeClass, focusClass, "w-full", customClass]
+  const classes = [baseClass, borderClass, colorClass, sizeClass, focusClass, "w-full", customClass]
     .filter(Boolean)
     .join(" ");
 
@@ -458,11 +462,14 @@ export function Textarea({
   ...props
 }: TextareaProps) {
   const sizeClass = size ? textareaSizes[size] : "";
-  const variantClass = variant === "bordered" ? "textarea-bordered" : `textarea-${variant}`;
+  const isGhost = variant === "ghost";
+  const borderClass = isGhost ? "textarea-ghost" : "textarea-bordered";
+  const colorClass = variant && variant !== "bordered" && !isGhost ? `textarea-${variant}` : "";
 
   const classes = [
     "textarea",
-    variantClass,
+    borderClass,
+    colorClass,
     sizeClass,
     "focus:textarea-primary focus:outline-none w-full",
     customClass,
@@ -531,24 +538,33 @@ export function Select({
     .filter(Boolean)
     .join(" ");
 
+  const isPlaceholderSelected = value === undefined || value === null || value === "";
+
   return (
     <select name={name} required={required} disabled={disabled} id={id} class={classes} {...props}>
       {placeholder && (
-        <option value="" disabled selected={!value}>
+        <option value="" disabled selected={isPlaceholderSelected}>
           {placeholder}
         </option>
       )}
       {options
-        ? options.map((opt) => (
-            <option
-              key={String(opt.value)}
-              value={opt.value}
-              selected={opt.value === value || opt.selected}
-              disabled={opt.disabled}
-            >
-              {opt.label}
-            </option>
-          ))
+        ? options.map((opt) => {
+            const isSelected =
+              value !== undefined && value !== null
+                ? String(opt.value) === String(value)
+                : Boolean(opt.selected);
+
+            return (
+              <option
+                key={String(opt.value)}
+                value={opt.value}
+                selected={isSelected}
+                disabled={opt.disabled}
+              >
+                {opt.label}
+              </option>
+            );
+          })
         : children}
     </select>
   );
