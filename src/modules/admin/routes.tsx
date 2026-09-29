@@ -504,7 +504,9 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
 
   const toast = (title: string, fallback: string, type: "info" | "error" | "success" | "warning" = "success") => {
     refreshErrorCache(db);
-    const message = getErrorMessage(title) ?? { type, title, description: fallback };
+    const cached = getErrorMessage(title);
+    const description = (title === "admin.error" && fallback) ? fallback : (cached?.description || fallback);
+    const message = cached ? { type: cached.type, title: cached.title, description } : { type, title, description: fallback };
     return <Toast type={message.type} title={message.title} description={message.description} />;
   };
 
@@ -1455,6 +1457,7 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
     templates: db.query<EmailTemplateRow, []>("SELECT * FROM emails_schema WHERE deleted_at IS NULL ORDER BY title ASC").all(),
     tags: getAllTags(db),
     users: db.query<{ id: string; email: string; first_name: string | null; last_name: string | null; username: string | null }, []>("SELECT id, email, first_name, last_name, username FROM users WHERE deleted_at IS NULL ORDER BY email ASC").all(),
+    meets: db.query<{ id: string; title: string; scheduled_date: string; scheduled_time: string; status: string }, []>("SELECT id, title, scheduled_date, scheduled_time, status FROM meets WHERE deleted_at IS NULL ORDER BY scheduled_date DESC LIMIT 50").all(),
   });
 
   const renderMailScheduler = (c: Context, toastElement?: ReturnType<typeof toast>) => {
@@ -1547,7 +1550,7 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
 
       if (rule.rule_key === "tag_reminder") {
         const daysAhead = typeof config.days_ahead === "number" ? config.days_ahead : 1;
-        await mailService.sendFavoriteTagMeetReminders(db, daysAhead, undefined, templateTitle);
+        await mailService.sendFavoriteTagMeetReminders(db, daysAhead, undefined, templateTitle, undefined, true);
       } else if (rule.rule_key === "rsvp_reminder") {
         const daysAhead = typeof config.days_ahead === "number" ? config.days_ahead : 0;
         const target = new Date();
@@ -1555,7 +1558,7 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
         const targetDateStr = target.toISOString().slice(0, 10);
         const meets = db.query<{ id: string }, [string]>("SELECT id FROM meets WHERE scheduled_date = ? AND status = 'upcoming' AND deleted_at IS NULL").all(targetDateStr);
         for (const { id: meetId } of meets) {
-          await mailService.sendMeetAttendeesReminder(db, meetId, undefined, templateTitle);
+          await mailService.sendMeetAttendeesReminder(db, meetId, undefined, templateTitle, undefined, undefined, true);
         }
       } else if (rule.rule_key === "welcome_email") {
         const auth = c.get("auth");
@@ -1596,15 +1599,20 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
     const subject = String(body.subject ?? "").trim();
     const emailBody = String(body.body ?? "").trim();
     const format = String(body.format ?? "html") as "html" | "markdown" | "text";
-    const targetMode = String(body.targetMode ?? "all") as "all" | "tags" | "domain" | "selected";
+    const targetMode = String(body.targetMode ?? "all") as "all" | "tags" | "domain" | "selected" | "meet_attendees" | "tag_followers";
     const templateId = String(body.templateId ?? "").trim() || null;
-    const scheduledFor = String(body.scheduledFor ?? "").trim();
+    const meetId = String(body.meetId ?? "").trim() || undefined;
+    const sendNow = String(body.sendNow ?? "") === "true" || String(body.sendNow ?? "") === "1";
+    const scheduleDate = String(body.scheduleDate ?? "").trim();
+    const scheduleTime = String(body.scheduleTime ?? "12:00").trim() || "12:00";
+    const rawScheduledFor = String(body.scheduledFor ?? "").trim();
+    const scheduledFor = rawScheduledFor || (scheduleDate ? `${scheduleDate}T${scheduleTime}:00` : "");
 
-    if (!title || !subject || !emailBody || !scheduledFor) {
-      return renderMailScheduler(c, toast("admin.error", "Title, subject, body, and schedule time are required.", "error"));
+    if (!title || !subject || !emailBody || (!scheduledFor && !sendNow)) {
+      return renderMailScheduler(c, toast("admin.error", "Title, subject, and body are required.", "error"));
     }
 
-    let payloadObj: any = {};
+    let payloadObj: any = { meetId };
     if (targetMode === "tags") {
       let tagIds: string[] = [];
       if (Array.isArray(body.tagIds)) tagIds = body.tagIds.map(String);
@@ -1619,13 +1627,48 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
       payloadObj.domain = String(body.domain ?? "").trim();
     }
 
+    // Direct immediate send bypass
+    if (sendNow) {
+      const count = await mailService.sendBatchEmails(
+        db,
+        {
+          mode: targetMode,
+          meetId,
+          tagIds: payloadObj.tagIds,
+          userIds: payloadObj.userIds,
+          domain: payloadObj.domain,
+        },
+        subject,
+        emailBody,
+        format
+      );
+
+      db.run(
+        `INSERT INTO scheduled_emails (id, template_id, title, subject, format, body, target_mode, target_payload, scheduled_for, status, sent_count)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'sent', ?)`,
+        [generateId(), templateId, title, subject, format, emailBody, targetMode, JSON.stringify(payloadObj), new Date().toISOString(), count]
+      );
+
+      return renderMailScheduler(c, toast("admin.broadcast_sent", `Broadcast sent immediately to ${count} recipient(s).`));
+    }
+
+    let scheduledIso: string;
+    try {
+      scheduledIso = new Date(scheduledFor).toISOString();
+      if (isNaN(new Date(scheduledIso).getTime())) {
+        throw new Error("Invalid date");
+      }
+    } catch {
+      return renderMailScheduler(c, toast("admin.error", "Invalid scheduled date/time provided.", "error"));
+    }
+
     db.run(
       `INSERT INTO scheduled_emails (id, template_id, title, subject, format, body, target_mode, target_payload, scheduled_for, status)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')`,
-      [generateId(), templateId, title, subject, format, emailBody, targetMode, JSON.stringify(payloadObj), new Date(scheduledFor).toISOString()]
+      [generateId(), templateId, title, subject, format, emailBody, targetMode, JSON.stringify(payloadObj), scheduledIso]
     );
 
-    return renderMailScheduler(c, toast("admin.created", "Broadcast scheduled successfully."));
+    return renderMailScheduler(c, toast("admin.broadcast_scheduled", "Broadcast scheduled successfully."));
   });
 
   app.post("/mail-scheduler/cancel", async (c) => {

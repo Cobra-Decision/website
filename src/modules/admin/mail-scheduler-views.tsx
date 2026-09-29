@@ -188,6 +188,7 @@ export const MailSchedulerView = ({
   templates,
   tags,
   users,
+  meets = [],
   locale = "en",
   timeZone = "Asia/Tehran",
 }: {
@@ -196,6 +197,7 @@ export const MailSchedulerView = ({
   templates: EmailTemplateRow[];
   tags: Tag[];
   users: { id: string; email: string; first_name: string | null; last_name: string | null; username: string | null }[];
+  meets?: { id: string; title: string; scheduled_date: string; scheduled_time: string; status: string }[];
   locale?: Locale;
   timeZone?: string;
 }) => {
@@ -204,17 +206,22 @@ export const MailSchedulerView = ({
       class="space-y-8"
       x-data={`{
         activeTab: 'rules',
+        editorSubTab: 'compose',
         targetMode: 'all',
         format: 'html',
         selectedTemplateId: '',
+        selectedMeetId: '',
+        sendNow: false,
         title: '',
         subject: '',
         body: '',
-        scheduledFor: '',
+        scheduleDate: '',
+        scheduleTime: '12:00',
         tagSearch: '',
         userSearch: '',
         templates: ${JSON.stringify(templates.map((t) => ({ id: t.id, title: t.title, subject: t.subject, format: t.format, value: t.value })))},
         allTags: ${JSON.stringify(tags.map((t) => ({ id: t.id, title: t.title })))},
+        allMeets: ${JSON.stringify(meets.map((m) => ({ id: m.id, title: m.title, date: m.scheduled_date, time: m.scheduled_time })))},
         allUsers: ${JSON.stringify(
           users.map((u) => ({
             id: u.id,
@@ -231,6 +238,61 @@ export const MailSchedulerView = ({
           this.subject = t.subject;
           this.format = t.format;
           this.body = t.value;
+          if (t.title.includes('attendees_reminder') && this.selectedMeetId) {
+            this.targetMode = 'meet_attendees';
+          } else if (t.title.includes('tag_reminder') && this.selectedMeetId) {
+            this.targetMode = 'tag_followers';
+          }
+        },
+        onMeetChange() {
+          if (this.selectedMeetId && this.targetMode !== 'meet_attendees' && this.targetMode !== 'tag_followers') {
+            const m = this.allMeets.find(x => x.id === this.selectedMeetId);
+            if (m && !this.title) {
+              this.title = 'Event: ' + m.title;
+            }
+          }
+        },
+        get currentMeet() {
+          return this.allMeets.find(x => x.id === this.selectedMeetId) || null;
+        },
+        get interpolatedPreview() {
+          if (!this.body || !this.body.trim()) {
+            return '<div class="p-6 text-center text-base-content/40 italic">Body is empty. Compose an email to see preview.</div>';
+          }
+          const m = this.currentMeet;
+          const meetTitle = m ? m.title : 'Distributed Systems Architecture';
+          const meetDate = m ? m.date : '2026-09-30';
+          const meetTime = m ? m.time : '18:00';
+          const meetLink = window.location.origin + '/meets/' + (m ? m.id : 'sample-meet');
+
+          let text = this.body
+            .replace(/\\{\\{\\s*name\\s*\\}\\}/gi, 'Sara Ahmadi')
+            .replace(/\\{\\{\\s*email\\s*\\}\\}/gi, 'sara@example.com')
+            .replace(/\\{\\{\\s*first_name\\s*\\}\\}/gi, 'Sara')
+            .replace(/\\{\\{\\s*last_name\\s*\\}\\}/gi, 'Ahmadi')
+            .replace(/\\{\\{\\s*username\\s*\\}\\}/gi, 'sara_dev')
+            .replace(/\\{\\{\\s*dashboard_url\\s*\\}\\}/gi, window.location.origin + '/dashboard/user')
+            .replace(/\\{\\{\\s*unsubscribe_url\\s*\\}\\}/gi, window.location.origin + '/dashboard/account')
+            .replace(/\\{\\{\\s*date\\s*\\}\\}/gi, new Date().toLocaleDateString())
+            .replace(/\\{\\{\\s*date_shamsi\\s*\\}\\}/gi, new Intl.DateTimeFormat('fa-IR', { year: 'numeric', month: 'long', day: 'numeric' }).format(new Date()))
+            .replace(/\\{\\{\\s*meet_title\\s*\\}\\}/gi, meetTitle)
+            .replace(/\\{\\{\\s*meet_title_encoded\\s*\\}\\}/gi, encodeURIComponent(meetTitle))
+            .replace(/\\{\\{\\s*meet_date\\s*\\}\\}/gi, meetDate)
+            .replace(/\\{\\{\\s*meet_date_shamsi\\s*\\}\\}/gi, '۸ مهر ۱۴۰۵')
+            .replace(/\\{\\{\\s*meet_time\\s*\\}\\}/gi, meetTime)
+            .replace(/\\{\\{\\s*meet_duration\\s*\\}\\}/gi, '60')
+            .replace(/\\{\\{\\s*presenter_name\\s*\\}\\}/gi, 'Babak Fathi')
+            .replace(/\\{\\{\\s*meet_link\\s*\\}\\}/gi, meetLink)
+            .replace(/\\{\\{\\s*meet_link_encoded\\s*\\}\\}/gi, encodeURIComponent(meetLink))
+            .replace(/\\{\\{\\s*tags\\s*\\}\\}/gi, 'Backend, TypeScript, Bun');
+
+          if (this.format === 'markdown') {
+            return '<div class="prose max-w-none text-xs p-4">' + text.replace(/\\n/g, '<br/>') + '</div>';
+          }
+          if (this.format === 'text') {
+            return '<pre class="whitespace-pre-wrap font-mono text-xs p-4 bg-base-200/50 rounded">' + text + '</pre>';
+          }
+          return text;
         },
         get filteredTags() {
           if (!this.tagSearch.trim()) return this.allTags;
@@ -421,8 +483,23 @@ export const MailSchedulerView = ({
               </div>
             </div>
 
-            {/* Target Audience Mode */}
+            {/* Target Audience Mode & Meeting Context */}
             <div class="grid gap-4 sm:grid-cols-2">
+              <div class="form-control">
+                <label class="label py-1"><span class="label-text font-semibold text-xs">{locale === "fa" ? "جلسه / رویداد مرتبط (اختیاری)" : "Event / Meet Context (Optional)"}</span></label>
+                <select
+                  class="select select-bordered select-sm w-full"
+                  name="meetId"
+                  x-model="selectedMeetId"
+                  x-on:change="onMeetChange()"
+                >
+                  <option value="">{locale === "fa" ? "-- بدون انتخاب جلسه --" : "-- No Specific Meet Selected --"}</option>
+                  <template x-for="m in allMeets" x-bind:key="m.id">
+                    <option x-bind:value="m.id" x-text="m.title + ' (' + m.date + ' ' + m.time + ')'"></option>
+                  </template>
+                </select>
+              </div>
+
               <div class="form-control">
                 <label class="label py-1"><span class="label-text font-semibold text-xs">{t("admin.mail.recipient_mode", locale)} *</span></label>
                 <select
@@ -431,21 +508,48 @@ export const MailSchedulerView = ({
                   x-model="targetMode"
                 >
                   <option value="all">{t("admin.mail.mode_all", locale)} ({formatLocalizedNumber(users.length, locale)})</option>
+                  <option value="meet_attendees" x-show="selectedMeetId" x-cloak>{locale === "fa" ? "شرکت‌کنندگان ثبت‌نام‌شده در جلسه انتخاب‌شده (RSVP)" : "Confirmed RSVP Attendees of Selected Meet"}</option>
+                  <option value="tag_followers" x-show="selectedMeetId" x-cloak>{locale === "fa" ? "دنبال‌کنندگان تگ‌های جلسه انتخاب‌شده" : "Users Following Selected Meet's Tags"}</option>
                   <option value="tags">{t("admin.mail.mode_tags", locale)}</option>
                   <option value="domain">{locale === "fa" ? "فیلتر بر اساس دامنه ایمیل (مثلاً gmail.com)" : "Filter by Email Domain (e.g. gmail.com)"}</option>
                   <option value="selected">{t("admin.mail.mode_users", locale)}</option>
                 </select>
               </div>
 
-              <div class="form-control">
-                <label class="label py-1"><span class="label-text font-semibold text-xs">{locale === "fa" ? "تاریخ و زمان ارسال *" : "Schedule Date & Time *"}</span></label>
-                <input
-                  type="datetime-local"
-                  name="scheduledFor"
-                  required
-                  x-model="scheduledFor"
-                  class="input input-bordered input-sm w-full text-xs"
-                />
+              <div class="form-control sm:col-span-2 flex flex-col md:flex-row md:items-end justify-between gap-4 p-4 bg-base-200/50 rounded-xl border border-base-300">
+                <div class="flex items-center gap-3">
+                  <label class="label cursor-pointer gap-2 p-0">
+                    <input
+                      type="checkbox"
+                      name="sendNow"
+                      value="true"
+                      x-model="sendNow"
+                      class="checkbox checkbox-primary checkbox-sm"
+                    />
+                    <span class="label-text font-bold text-xs">
+                      {locale === "fa" ? "ارسال فوری (Run Now) بدون زمانبندی آینده" : "Send Immediately (Run Now without future schedule)"}
+                    </span>
+                  </label>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full md:w-auto" x-show="!sendNow" x-cloak>
+                  <div class="w-full sm:w-48">
+                    <DatePicker
+                      name="scheduleDate"
+                      label={locale === "fa" ? "تاریخ ارسال" : "Schedule Date"}
+                      locale={locale}
+                    />
+                  </div>
+                  <div class="form-control">
+                    <label class="label py-1"><span class="label-text font-semibold text-xs">{locale === "fa" ? "ساعت ارسال" : "Schedule Time"}</span></label>
+                    <input
+                      type="time"
+                      name="scheduleTime"
+                      x-model="scheduleTime"
+                      class="input input-bordered input-sm w-full text-xs"
+                    />
+                  </div>
+                </div>
               </div>
 
               {/* Tag selector */}
@@ -542,25 +646,65 @@ export const MailSchedulerView = ({
               />
             </div>
 
-            {/* Body Textarea */}
-            <div class="form-control space-y-1">
-              <label class="label py-1"><span class="label-text font-semibold text-xs">{t("admin.mail.body_content", locale)} *</span></label>
-              <MailPlaceholdersToolbar onInsertMethod="insertTag" />
-              <textarea
-                x-ref="bodyTextarea"
-                name="body"
-                required
-                x-model="body"
-                rows={6}
-                placeholder="Compose scheduled email body. {{name}}, {{email}}, {{date}}, {{date_shamsi}} supported."
-                class="textarea textarea-bordered font-mono text-xs w-full leading-relaxed"
-              ></textarea>
+            {/* Body Textarea & Live Preview */}
+            <div class="space-y-2">
+              <div class="flex items-center justify-between">
+                <label class="label py-0"><span class="label-text font-semibold text-xs">{t("admin.mail.body_content", locale)} *</span></label>
+                <div class="join">
+                  <button
+                    type="button"
+                    class="btn btn-2xs join-item"
+                    x-bind:class="editorSubTab === 'compose' ? 'btn-primary' : 'btn-ghost'"
+                    x-on:click="editorSubTab = 'compose'"
+                  >
+                    {locale === "fa" ? "ویرایش متن" : "Compose"}
+                  </button>
+                  <button
+                    type="button"
+                    class="btn btn-2xs join-item"
+                    x-bind:class="editorSubTab === 'preview' ? 'btn-primary' : 'btn-ghost'"
+                    x-on:click="editorSubTab = 'preview'"
+                  >
+                    {locale === "fa" ? "پیش‌نمایش زنده" : "Live Preview"}
+                  </button>
+                </div>
+              </div>
+
+              <div x-show="editorSubTab === 'compose'" class="space-y-1">
+                <MailPlaceholdersToolbar onInsertMethod="insertTag" />
+                <textarea
+                  x-ref="bodyTextarea"
+                  name="body"
+                  required
+                  x-model="body"
+                  rows={7}
+                  placeholder="Compose scheduled email body. {{name}}, {{email}}, {{date}}, {{date_shamsi}}, {{meet_title}}, {{meet_link}} supported."
+                  class="textarea textarea-bordered font-mono text-xs w-full leading-relaxed"
+                ></textarea>
+              </div>
+
+              <div x-show="editorSubTab === 'preview'" x-cloak class="rounded-xl border border-base-300 bg-base-200/30 overflow-hidden">
+                <div class="bg-base-200 p-2.5 px-4 border-b border-base-300 flex items-center justify-between text-2xs">
+                  <div class="flex items-center gap-2">
+                    <span class="font-bold text-base-content">{locale === "fa" ? "موضوع:" : "Subject:"}</span>
+                    <span class="font-semibold text-primary" x-text="subject || '(No subject)'"></span>
+                  </div>
+                  <span class="badge badge-xs badge-outline uppercase font-mono" x-text="format"></span>
+                </div>
+                <div class="p-4 bg-white text-slate-900 min-h-[160px]" x-html="interpolatedPreview"></div>
+              </div>
             </div>
 
-            <div class="flex justify-end">
+            <div class="flex items-center justify-between pt-2">
+              <span class="text-xs text-base-content/60" x-show="sendNow" x-cloak>
+                {locale === "fa" ? "⚡ ایمیل‌ها بلافاصله پس از کلیک به صف ارسال افزوده خواهند شد." : "⚡ Emails will be enqueued for immediate delivery upon clicking send."}
+              </span>
+              <span x-show="!sendNow"></span>
               <button class="btn btn-primary btn-sm gap-2" type="submit">
                 <span class="htmx-indicator loading loading-spinner loading-xs"></span>
-                <span>{t("admin.mail.send_now", locale)}</span>
+                <span x-text={`sendNow ? '${locale === "fa" ? "ارسال فوری (Run Now)" : "Send Immediately (Run Now)"}' : '${t("admin.mail.send_now", locale)}'`}>
+                  {t("admin.mail.send_now", locale)}
+                </span>
               </button>
             </div>
           </form>

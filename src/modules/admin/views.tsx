@@ -424,8 +424,8 @@ export const Toast = ({
   locale = "en",
 }: {
   type: string;
-  title: string;
-  description: string;
+  title?: string;
+  description?: string;
   locale?: Locale;
 }) => {
   return (
