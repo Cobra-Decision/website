@@ -1,6 +1,7 @@
 import type { Locale } from "../../lib/i18n/translations";
 import { formatLocalizedNumber } from "../../lib/i18n/context";
 import { buildPaginationUrl, type PaginationState } from "./pagination";
+import { Button } from "../../ui/forms";
 
 export interface PaginationProps {
   state: PaginationState;
@@ -59,9 +60,10 @@ export function Pagination({
 
       <div class="join shadow-sm border border-base-300">
         {/* First & Prev */}
-        <button
+        <Button
           type="button"
-          class={`join-item btn btn-sm ${!hasPrev ? "btn-disabled opacity-50" : ""}`}
+          size="sm"
+          class={`join-item ${!hasPrev ? "btn-disabled opacity-50" : ""}`}
           hx-get={hasPrev ? prevUrl : undefined}
           hx-target={`#${targetId}`}
           hx-swap="outerHTML"
@@ -69,55 +71,60 @@ export function Pagination({
           aria-label="Previous Page"
         >
           {locale === "fa" ? "قبلی" : "Prev"}
-        </button>
+        </Button>
 
         {range[0] > 1 && (
           <>
-            <button
+            <Button
               type="button"
-              class={`join-item btn btn-sm ${page === 1 ? "btn-active font-bold" : ""}`}
+              size="sm"
+              class={`join-item ${page === 1 ? "btn-active font-bold" : ""}`}
               hx-get={firstUrl}
               hx-target={`#${targetId}`}
               hx-swap="outerHTML"
             >
               {formatLocalizedNumber(1, locale)}
-            </button>
-            {range[0] > 2 && <button type="button" class="join-item btn btn-sm btn-disabled">...</button>}
+            </Button>
+            {range[0] > 2 && <Button type="button" size="sm" class="join-item btn-disabled" disabled>...</Button>}
           </>
         )}
 
         {range.map((p) => (
-          <button
+          <Button
             key={p}
             type="button"
-            class={`join-item btn btn-sm ${page === p ? "btn-active btn-primary font-bold" : ""}`}
+            size="sm"
+            variant={page === p ? "primary" : undefined}
+            class={`join-item ${page === p ? "btn-active font-bold" : ""}`}
             hx-get={buildPaginationUrl(baseUrl, p, query)}
             hx-target={`#${targetId}`}
             hx-swap="outerHTML"
           >
             {formatLocalizedNumber(p, locale)}
-          </button>
+          </Button>
         ))}
 
         {range[range.length - 1] < totalPages && (
           <>
-            {range[range.length - 1] < totalPages - 1 && <button type="button" class="join-item btn btn-sm btn-disabled">...</button>}
-            <button
+            {range[range.length - 1] < totalPages - 1 && <Button type="button" size="sm" class="join-item btn-disabled" disabled>...</Button>}
+            <Button
               type="button"
-              class={`join-item btn btn-sm ${page === totalPages ? "btn-active font-bold" : ""}`}
+              size="sm"
+              class={`join-item ${page === totalPages ? "btn-active font-bold" : ""}`}
               hx-get={lastUrl}
               hx-target={`#${targetId}`}
               hx-swap="outerHTML"
             >
               {formatLocalizedNumber(totalPages, locale)}
-            </button>
+            </Button>
           </>
         )}
 
         {/* Next */}
-        <button
+        <Button
           type="button"
-          class={`join-item btn btn-sm ${!hasNext ? "btn-disabled opacity-50" : ""}`}
+          size="sm"
+          class={`join-item ${!hasNext ? "btn-disabled opacity-50" : ""}`}
           hx-get={hasNext ? nextUrl : undefined}
           hx-target={`#${targetId}`}
           hx-swap="outerHTML"
@@ -125,7 +132,7 @@ export function Pagination({
           aria-label="Next Page"
         >
           {locale === "fa" ? "بعدی" : "Next"}
-        </button>
+        </Button>
       </div>
     </div>
   );

@@ -1,6 +1,7 @@
 import type { Database } from "bun:sqlite";
 import type { Locale } from "../../lib/i18n/translations";
 import { t } from "../../lib/i18n/context";
+import { Button, Input, Select } from "../../ui/forms";
 
 type SchemaRow = { table_name: string; name: string; type: string; notnull: number; dflt_value: string | null; pk: number };
 const fields = ["table_name", "name", "type", "notnull", "dflt_value", "pk"] as const;
@@ -42,20 +43,27 @@ export function SchemaTable({
       <form class="flex flex-wrap items-end gap-3" hx-get="/dashboard/admin/report" hx-target="#schema-table" hx-swap="outerHTML">
         <label class="form-control">
           <span class="label-text text-xs font-medium">{t("admin.crud.search_field", locale)}</span>
-          <select class="select select-bordered select-sm" name="schema_field">
-            {fields.map((name) => (
-              <option value={name} selected={field === name} key={name}>
-                {fieldLabel(name)}
-              </option>
-            ))}
-          </select>
+          <Select
+            size="sm"
+            name="schema_field"
+            options={fields.map((name) => ({
+              value: name,
+              label: fieldLabel(name),
+              selected: field === name,
+            }))}
+          />
         </label>
         <label class="form-control min-w-52 flex-1">
           <span class="label-text text-xs font-medium">{t("admin.report.search_schema", locale)}</span>
-          <input class="input input-bordered input-sm" name="schema_q" value={query.schema_q ?? ""} placeholder={t("admin.report.filter_schema_placeholder", locale)} />
+          <Input
+            size="sm"
+            name="schema_q"
+            value={query.schema_q ?? ""}
+            placeholder={t("admin.report.filter_schema_placeholder", locale)}
+          />
         </label>
-        <button class="btn btn-primary btn-sm">{t("admin.search", locale)}</button>
-        <a class="btn btn-ghost btn-sm" href="/dashboard/admin/report">{t("admin.reset", locale)}</a>
+        <Button size="sm" variant="primary" type="submit">{t("admin.search", locale)}</Button>
+        <Button size="sm" variant="ghost" href="/dashboard/admin/report">{t("admin.reset", locale)}</Button>
       </form>
 
       <div class="overflow-x-auto rounded-2xl border border-base-300 bg-base-100 shadow-sm">
@@ -64,10 +72,18 @@ export function SchemaTable({
             <tr>
               {fields.map((name) => (
                 <th key={name}>
-                  <button type="button" class="btn btn-ghost btn-xs -ml-2 font-semibold uppercase tracking-wider" hx-get={url(name)} hx-target="#schema-table" hx-swap="outerHTML">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="xs"
+                    class="-ml-2 font-semibold uppercase tracking-wider"
+                    hx-get={url(name)}
+                    hx-target="#schema-table"
+                    hx-swap="outerHTML"
+                  >
                     {fieldLabel(name)}
                     {sort === name ? direction === "asc" ? " ↑" : " ↓" : ""}
-                  </button>
+                  </Button>
                 </th>
               ))}
             </tr>

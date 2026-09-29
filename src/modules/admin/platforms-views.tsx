@@ -2,6 +2,7 @@ import type { Database } from "bun:sqlite";
 import type { Locale } from "../../lib/i18n/translations";
 import { t, formatLocalizedNumber } from "../../lib/i18n/context";
 import { formatUtcDateTime } from "../events/datetime";
+import { Button, Checkbox, Input, Select } from "../../ui/forms";
 
 export interface PlatformFunnelStats {
   totalVisits: number;
@@ -324,29 +325,33 @@ export function PlatformsDataView({
         >
           <label class="form-control">
             <span class="label-text text-xs font-semibold">{t("admin.platforms.platform", locale)}</span>
-            <select class="select select-bordered select-sm w-full" name="platform">
-              <option value="" selected={!query.platform}>{t("admin.platforms.filter_all", locale)}</option>
-              <option value="direct" selected={query.platform === "direct"}>{t("admin.platforms.filter_direct", locale)}</option>
-              {stats.platforms.filter((p) => p.slug).map((p) => (
-                <option value={p.slug!} selected={query.platform === p.slug} key={p.slug!}>
-                  {p.name} ({p.slug})
-                </option>
-              ))}
-            </select>
+            <Select
+              size="sm"
+              name="platform"
+              options={[
+                { value: "", label: t("admin.platforms.filter_all", locale), selected: !query.platform },
+                { value: "direct", label: t("admin.platforms.filter_direct", locale), selected: query.platform === "direct" },
+                ...stats.platforms.filter((p) => p.slug).map((p) => ({
+                  value: p.slug!,
+                  label: `${p.name} (${p.slug})`,
+                  selected: query.platform === p.slug,
+                })),
+              ]}
+            />
           </label>
 
           <label class="form-control">
             <span class="label-text text-xs font-semibold">{t("admin.platforms.meet_title", locale)}</span>
-            <input
-              class="input input-bordered input-sm w-full"
+            <Input
+              size="sm"
               name="q"
               value={query.q ?? ""}
               placeholder={t("admin.platforms.search_meet_placeholder", locale)}
             />
           </label>
 
-          <button class="btn btn-primary btn-sm">{t("admin.platforms.apply_filter", locale)}</button>
-          <a class="btn btn-ghost btn-sm" href="/dashboard/admin/platforms-data">{t("admin.reset", locale)}</a>
+          <Button size="sm" variant="primary" type="submit">{t("admin.platforms.apply_filter", locale)}</Button>
+          <Button size="sm" variant="ghost" href="/dashboard/admin/platforms-data">{t("admin.reset", locale)}</Button>
         </form>
 
         {/* Visits Table */}
@@ -356,9 +361,8 @@ export function PlatformsDataView({
               <thead class="bg-base-200/50 text-xs uppercase tracking-wider text-base-content/70">
                 <tr>
                   <th class="w-10">
-                    <input
-                      type="checkbox"
-                      class="checkbox checkbox-xs"
+                    <Checkbox
+                      size="xs"
                       onclick="const checked = this.checked; document.querySelectorAll('#visits-bulk-form input[name=ids]').forEach(el => el.checked = checked)"
                       aria-label="Select all"
                     />
@@ -374,7 +378,7 @@ export function PlatformsDataView({
                   stats.recentVisits.map((v) => (
                     <tr id={`visit-${v.id}`} key={v.id} class="hover">
                       <td>
-                        <input type="checkbox" name="ids" value={v.id} class="checkbox checkbox-xs" />
+                        <Checkbox size="xs" name="ids" value={v.id} />
                       </td>
                       <td class="font-medium">
                         <a href={`/meets/${v.meet_id}`} target="_blank" class="link link-hover text-primary">
@@ -388,16 +392,18 @@ export function PlatformsDataView({
                         {formatUtcDateTime(v.created_at, locale, timeZone).full || v.created_at}
                       </td>
                       <td class="text-right">
-                        <button
+                        <Button
                           type="button"
-                          class="btn btn-ghost btn-xs text-error"
+                          variant="ghost"
+                          size="xs"
+                          class="text-error"
                           hx-post={`/dashboard/admin/platforms-data/delete-visit?id=${v.id}`}
                           hx-target={`#visit-${v.id}`}
                           hx-swap="outerHTML"
                           hx-confirm={locale === "fa" ? "آیا از حذف این لاگ بازدید اطمینان دارید؟" : "Are you sure you want to delete this visit record?"}
                         >
                           {t("admin.delete", locale)}
-                        </button>
+                        </Button>
                       </td>
                     </tr>
                   ))
@@ -415,8 +421,10 @@ export function PlatformsDataView({
 
         {/* Pagination & Bulk Actions */}
         <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between pt-2">
-          <button
-            class="btn btn-outline btn-error btn-xs"
+          <Button
+            size="xs"
+            variant="error"
+            outline
             hx-post="/dashboard/admin/platforms-data/bulk-delete-visits"
             hx-include="#visits-bulk-form"
             hx-target="#platforms-data-view"
@@ -424,25 +432,29 @@ export function PlatformsDataView({
             hx-confirm={locale === "fa" ? "آیا از حذف لاگ‌های انتخاب‌شده مطمئن هستید؟" : "Delete selected visit logs?"}
           >
             {t("admin.delete_selected", locale)}
-          </button>
+          </Button>
 
           {stats.totalPages > 1 && (
             <div class="join">
-              <a
-                class={`join-item btn btn-xs ${stats.page <= 1 ? "btn-disabled" : ""}`}
+              <Button
+                size="xs"
+                class={`join-item ${stats.page <= 1 ? "btn-disabled" : ""}`}
                 href={`/dashboard/admin/platforms-data?page=${stats.page - 1}&platform=${encodeURIComponent(query.platform ?? "")}&q=${encodeURIComponent(query.q ?? "")}`}
+                disabled={stats.page <= 1}
               >
                 {t("admin.platforms.prev", locale)}
-              </a>
-              <button class="join-item btn btn-xs btn-active">
+              </Button>
+              <Button size="xs" class="join-item btn-active" type="button">
                 {t("admin.platforms.page", locale)} {formatLocalizedNumber(stats.page, locale)} {t("admin.platforms.of", locale)} {formatLocalizedNumber(stats.totalPages, locale)}
-              </button>
-              <a
-                class={`join-item btn btn-xs ${stats.page >= stats.totalPages ? "btn-disabled" : ""}`}
+              </Button>
+              <Button
+                size="xs"
+                class={`join-item ${stats.page >= stats.totalPages ? "btn-disabled" : ""}`}
                 href={`/dashboard/admin/platforms-data?page=${stats.page + 1}&platform=${encodeURIComponent(query.platform ?? "")}&q=${encodeURIComponent(query.q ?? "")}`}
+                disabled={stats.page >= stats.totalPages}
               >
                 {t("admin.platforms.next", locale)}
-              </a>
+              </Button>
             </div>
           )}
         </div>

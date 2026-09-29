@@ -3,6 +3,7 @@ import { getCurrentVersion, migrations } from "../../lib/database/migration";
 import type { Locale } from "../../lib/i18n/translations";
 import { t, formatLocalizedNumber } from "../../lib/i18n/context";
 import { DatabaseBackupIcon, UploadIcon, DownloadIcon } from "../../ui/icons";
+import { Button } from "../../ui/forms";
 
 export interface DatabaseStats {
   sqliteVersion: string;
@@ -85,14 +86,16 @@ export function DatabaseManagementView({
           </p>
         </div>
         <div class="flex items-center gap-2">
-          <button
+          <Button
             hx-post="/dashboard/admin/database/backup-now"
             hx-target="#db-feedback"
-            class="btn btn-primary btn-sm gap-2"
+            variant="primary"
+            size="sm"
+            class="gap-2"
           >
             <DatabaseBackupIcon class="w-4 h-4" />
             {t("admin.db.backup_now", locale)}
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -141,13 +144,14 @@ export function DatabaseManagementView({
           <h2 class="text-lg font-bold text-base-content flex items-center justify-between">
             <span>{t("admin.db.migrations", locale)}</span>
             {!isUpToDate && (
-              <button
+              <Button
                 hx-post="/dashboard/admin/database/migrate"
                 hx-target="#db-feedback"
-                class="btn btn-warning btn-sm"
+                variant="warning"
+                size="sm"
               >
                 {t("admin.db.run_migrations", locale)}
-              </button>
+              </Button>
             )}
           </h2>
           <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -184,18 +188,33 @@ export function DatabaseManagementView({
               <p class="text-xs text-base-content/60">{t("admin.db.export_desc", locale)}</p>
             </div>
             <div class="flex flex-col gap-2">
-              <a href="/dashboard/admin/database/export?format=sql" class="btn btn-outline btn-sm justify-between">
+              <Button
+                href="/dashboard/admin/database/export?format=sql"
+                outline
+                size="sm"
+                class="justify-between"
+                iconRight={<DownloadIcon class="w-4 h-4" />}
+              >
                 <span>{t("admin.db.export_sql", locale)}</span>
-                <DownloadIcon class="w-4 h-4" />
-              </a>
-              <a href="/dashboard/admin/database/export?format=json" class="btn btn-outline btn-sm justify-between">
+              </Button>
+              <Button
+                href="/dashboard/admin/database/export?format=json"
+                outline
+                size="sm"
+                class="justify-between"
+                iconRight={<DownloadIcon class="w-4 h-4" />}
+              >
                 <span>{t("admin.db.export_json", locale)}</span>
-                <DownloadIcon class="w-4 h-4" />
-              </a>
-              <a href="/dashboard/admin/database/export?format=sqlite" class="btn btn-outline btn-sm justify-between">
+              </Button>
+              <Button
+                href="/dashboard/admin/database/export?format=sqlite"
+                outline
+                size="sm"
+                class="justify-between"
+                iconRight={<DownloadIcon class="w-4 h-4" />}
+              >
                 <span>{t("admin.db.export_sqlite", locale)}</span>
-                <DownloadIcon class="w-4 h-4" />
-              </a>
+              </Button>
             </div>
           </div>
         </div>

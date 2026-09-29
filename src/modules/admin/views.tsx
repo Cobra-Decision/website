@@ -1,6 +1,7 @@
 import { Layout } from "../../ui/layout";
 import { DashboardNavbar, type DashboardUser } from "../../ui/dashboard";
 import { TagBadge } from "../../ui/tag-badge";
+import { Button, Checkbox, Input, Select } from "../../ui/forms";
 import type { Locale } from "../../lib/i18n/translations";
 import { t } from "../../lib/i18n/context";
 import { formatUtcDateTime, formatLocalizedDate, formatLocalizedTime } from "../events/datetime";
@@ -267,21 +268,24 @@ export function CrudTable({
           </p>
         </div>
         <div class="flex flex-wrap gap-2">
-          <button
-            class="btn btn-primary btn-sm"
+          <Button
+            size="sm"
+            variant="primary"
             hx-get={`/dashboard/admin/${resource}/new`}
             hx-target="#modal"
           >
             {t("admin.add_new", locale)}
-          </button>
-          <button
-            class="btn btn-outline btn-error btn-sm"
+          </Button>
+          <Button
+            size="sm"
+            variant="error"
+            outline
             hx-post={`/dashboard/admin/${resource}/bulk-confirm`}
             hx-include={`#${resource}-bulk-form`}
             hx-target="#modal"
           >
             {t("admin.delete_selected", locale)}
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -295,29 +299,33 @@ export function CrudTable({
         <div class="grid gap-3 sm:grid-cols-[180px_1fr_auto_auto] sm:items-end">
           <label class="form-control">
             <span class="label-text font-medium text-xs">{t("admin.crud.search_field", locale)}</span>
-            <select class="select select-bordered select-sm w-full" name="search_field">
-              {searchFields.map((field) => (
-                <option value={field} selected={searchField === field} key={field}>
-                  {field.replaceAll("_", " ")}
-                </option>
-              ))}
-            </select>
+            <Select
+              size="sm"
+              name="search_field"
+              options={searchFields.map((field) => ({
+                value: field,
+                label: field.replaceAll("_", " "),
+                selected: searchField === field,
+              }))}
+            />
           </label>
 
           <label class="form-control">
             <span class="label-text font-medium text-xs">{t("admin.crud.search_query", locale)}</span>
-            <input
-              class="input input-bordered input-sm w-full"
+            <Input
+              size="sm"
               name="q"
               value={query.q ?? ""}
               placeholder={`${t("admin.crud.search_placeholder", locale)}`}
             />
           </label>
 
-          <button class="btn btn-primary btn-sm">{t("admin.search", locale)}</button>
-          <a class="btn btn-ghost btn-sm" href={`/dashboard/admin/${resource}`}>
+          <Button size="sm" variant="primary" type="submit">
+            {t("admin.search", locale)}
+          </Button>
+          <Button size="sm" variant="ghost" href={`/dashboard/admin/${resource}`}>
             {t("admin.reset", locale)}
-          </a>
+          </Button>
         </div>
       </form>
 
@@ -328,25 +336,26 @@ export function CrudTable({
             <thead class="bg-base-200/50 text-xs font-semibold uppercase tracking-wider text-base-content/70">
               <tr>
                 <th class="w-10">
-                  <input
-                    type="checkbox"
-                    class="checkbox checkbox-sm"
+                  <Checkbox
+                    size="sm"
                     onclick={`const checked = this.checked; document.querySelectorAll('#${resource}-bulk-form input[name=ids]').forEach(el => el.checked = checked)`}
                     aria-label="Select all"
                   />
                 </th>
                 {columns.map((column) => (
                   <th key={column} class="whitespace-nowrap">
-                    <button
+                    <Button
                       type="button"
-                      class="btn btn-ghost btn-xs -ml-2 font-semibold uppercase tracking-wider"
+                      variant="ghost"
+                      size="xs"
+                      class="-ml-2 font-semibold uppercase tracking-wider"
                       hx-get={sortUrl(column)}
                       hx-target={`#${resource}-table`}
                       hx-swap="outerHTML"
                     >
                       {column.replaceAll("_", " ")}
                       {query.sort === column ? (query.direction === "asc" ? " ↑" : " ↓") : ""}
-                    </button>
+                    </Button>
                   </th>
                 ))}
                 <th class="text-right">{t("admin.actions", locale)}</th>
@@ -357,11 +366,10 @@ export function CrudTable({
                 rows.map((row) => (
                   <tr id={`${resource}-${row.id}`} key={String(row.id)} class="hover">
                     <td>
-                      <input
-                        type="checkbox"
+                      <Checkbox
+                        size="sm"
                         name="ids"
                         value={String(row.id)}
-                        class="checkbox checkbox-sm"
                       />
                     </td>
                     {columns.map((column) => (
@@ -371,22 +379,25 @@ export function CrudTable({
                     ))}
                     <td class="text-right align-middle">
                       <div class="flex items-center justify-end gap-1.5 whitespace-nowrap">
-                        <button
+                        <Button
                           type="button"
-                          class="btn btn-xs btn-outline"
+                          size="xs"
+                          outline
                           hx-get={`/dashboard/admin/${resource}/${row.id}/edit`}
                           hx-target="#modal"
                         >
                           {t("admin.edit", locale)}
-                        </button>
-                        <button
+                        </Button>
+                        <Button
                           type="button"
-                          class="btn btn-xs btn-error btn-outline"
+                          size="xs"
+                          variant="error"
+                          outline
                           hx-get={`/dashboard/admin/${resource}/${row.id}/confirm`}
                           hx-target="#modal"
                         >
                           {t("admin.delete", locale)}
-                        </button>
+                        </Button>
                       </div>
                     </td>
                   </tr>
@@ -468,26 +479,30 @@ export function MeetRelations({
         <div class="card-body p-4 space-y-3">
           <h4 class="card-title text-sm font-bold text-base-content">{t("admin.crud.associated_tags", locale)}</h4>
           <div class="flex gap-2">
-            <select id={`meet-tag-${meetId}`} name="tag_id" class="select select-bordered select-sm min-w-0 flex-1">
-              <option value="">{t("admin.crud.choose_tag", locale)}</option>
-              {tags
+            <Select
+              id={`meet-tag-${meetId}`}
+              name="tag_id"
+              size="sm"
+              class="min-w-0 flex-1"
+              placeholder={t("admin.crud.choose_tag", locale)}
+              options={tags
                 .filter((tag) => !selectedTags.some((item) => item.id === tag.id))
-                .map((tag) => (
-                  <option value={tag.id} key={tag.id}>
-                    {tag.title}
-                  </option>
-                ))}
-            </select>
-            <button
+                .map((tag) => ({
+                  value: tag.id,
+                  label: tag.title,
+                }))}
+            />
+            <Button
               type="button"
-              class="btn btn-primary btn-sm"
+              variant="primary"
+              size="sm"
               hx-post={`/dashboard/admin/meets/${meetId}/tags`}
               hx-include={`#meet-tag-${meetId}`}
               hx-target={`#meet-relations-${meetId}`}
               hx-swap="outerHTML"
             >
               {t("admin.crud.add", locale)}
-            </button>
+            </Button>
           </div>
           <div class="flex flex-wrap gap-1.5">
             {selectedTags.map((tag) => (
@@ -507,40 +522,46 @@ export function MeetRelations({
         <div class="card-body p-4 space-y-3">
           <h4 class="card-title text-sm font-bold text-base-content">{t("admin.crud.registered_attendees", locale)}</h4>
           <div class="flex gap-2">
-            <select id={`meet-attendee-${meetId}`} name="user_id" class="select select-bordered select-sm min-w-0 flex-1">
-              <option value="">{t("admin.crud.choose_attendee", locale)}</option>
-              {users
+            <Select
+              id={`meet-attendee-${meetId}`}
+              name="user_id"
+              size="sm"
+              class="min-w-0 flex-1"
+              placeholder={t("admin.crud.choose_attendee", locale)}
+              options={users
                 .filter((user) => !attendees.some((item) => item.id === user.id))
-                .map((user) => (
-                  <option value={user.id} key={user.id}>
-                    {user.email}
-                  </option>
-                ))}
-            </select>
-            <button
+                .map((user) => ({
+                  value: user.id,
+                  label: user.email,
+                }))}
+            />
+            <Button
               type="button"
-              class="btn btn-primary btn-sm"
+              variant="primary"
+              size="sm"
               hx-post={`/dashboard/admin/meets/${meetId}/attendees`}
               hx-include={`#meet-attendee-${meetId}`}
               hx-target={`#meet-relations-${meetId}`}
               hx-swap="outerHTML"
             >
               {t("admin.crud.add", locale)}
-            </button>
+            </Button>
           </div>
           <div class="space-y-1.5 max-h-48 overflow-y-auto">
             {attendees.map((user) => (
               <div class="flex items-center justify-between rounded-lg bg-base-200/60 px-3 py-1.5 text-xs" key={user.id}>
                 <span>{user.email}</span>
-                <button
+                <Button
                   type="button"
-                  class="btn btn-ghost btn-xs text-error"
+                  variant="ghost"
+                  size="xs"
+                  class="text-error"
                   hx-delete={`/dashboard/admin/meets/${meetId}/attendees/${user.id}`}
                   hx-target={`#meet-relations-${meetId}`}
                   hx-swap="outerHTML"
                 >
                   {t("admin.crud.remove", locale)}
-                </button>
+                </Button>
               </div>
             ))}
           </div>
@@ -574,18 +595,19 @@ export function AdminConfirmDeleteModal({
         </div>
 
         <div class="modal-action">
-          <button type="button" class="btn btn-sm" onclick="this.closest('dialog').remove()">
+          <Button size="sm" type="button" onclick="this.closest('dialog').remove()">
             {t("common.cancel", locale)}
-          </button>
-          <button
+          </Button>
+          <Button
+            size="sm"
+            variant="error"
             type="button"
-            class="btn btn-error btn-sm"
             hx-delete={`/dashboard/admin/${resource}/${id}`}
             hx-target={`#${resource}-table`}
             hx-swap="outerHTML"
           >
             {t("common.delete", locale)}
-          </button>
+          </Button>
         </div>
       </div>
     </dialog>
@@ -621,18 +643,19 @@ export function AdminBulkConfirmDeleteModal({
           class="mt-4"
         >
           {items.map((item) => (
-            <input type="hidden" name="ids" value={item.id} key={item.id} />
+            <Input type="hidden" name="ids" value={item.id} key={item.id} />
           ))}
           <div class="modal-action">
-            <button type="button" class="btn btn-sm" onclick="this.closest('dialog').remove()">
+            <Button size="sm" type="button" onclick="this.closest('dialog').remove()">
               {t("common.cancel", locale)}
-            </button>
-            <button
+            </Button>
+            <Button
+              size="sm"
+              variant="error"
               type="submit"
-              class="btn btn-error btn-sm"
             >
               {t("common.delete", locale)} ({items.length})
-            </button>
+            </Button>
           </div>
         </form>
       </div>
