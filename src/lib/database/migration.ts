@@ -193,7 +193,7 @@ export const migrations: MigrationStep[] = [
           subject TEXT NOT NULL,
           format TEXT NOT NULL DEFAULT 'html' CHECK (format IN ('html', 'markdown', 'text')),
           body TEXT NOT NULL,
-          target_mode TEXT NOT NULL CHECK (target_mode IN ('all', 'tags', 'domain', 'selected')),
+          target_mode TEXT NOT NULL CHECK (target_mode IN ('all', 'tags', 'domain', 'selected', 'meet_attendees', 'tag_followers')),
           target_payload TEXT NOT NULL DEFAULT '',
           scheduled_for DATETIME NOT NULL,
           status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'processing', 'sent', 'failed', 'cancelled')),
@@ -422,6 +422,41 @@ export const migrations: MigrationStep[] = [
 
       db.run("CREATE INDEX IF NOT EXISTS idx_meet_allowed_users_user ON meet_allowed_users(user_id);");
       db.run("CREATE INDEX IF NOT EXISTS idx_meets_publish_status ON meets(publish_status);");
+    },
+  },
+  {
+    version: 13,
+    name: "013_update_scheduled_emails_target_mode_check",
+    up: (db: Database) => {
+      // Recreate scheduled_emails or update check constraint if sqlite allows, or create temporary copy
+      const hasTable = db.query<{ name: string }, [string]>("SELECT name FROM sqlite_master WHERE type='table' AND name=?").get("scheduled_emails");
+      if (!hasTable) return;
+
+      db.run("PRAGMA foreign_keys = OFF;");
+      db.run(`
+        CREATE TABLE IF NOT EXISTS scheduled_emails_new (
+          id TEXT PRIMARY KEY,
+          template_id TEXT REFERENCES emails_schema(id) ON DELETE SET NULL,
+          title TEXT NOT NULL,
+          subject TEXT NOT NULL,
+          format TEXT NOT NULL DEFAULT 'html' CHECK (format IN ('html', 'markdown', 'text')),
+          body TEXT NOT NULL,
+          target_mode TEXT NOT NULL CHECK (target_mode IN ('all', 'tags', 'domain', 'selected', 'meet_attendees', 'tag_followers')),
+          target_payload TEXT NOT NULL DEFAULT '',
+          scheduled_for DATETIME NOT NULL,
+          status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'processing', 'sent', 'failed', 'cancelled')),
+          sent_count INTEGER NOT NULL DEFAULT 0,
+          error TEXT,
+          created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          deleted_at DATETIME
+        );
+      `);
+      db.run("INSERT OR IGNORE INTO scheduled_emails_new SELECT * FROM scheduled_emails;");
+      db.run("DROP TABLE scheduled_emails;");
+      db.run("ALTER TABLE scheduled_emails_new RENAME TO scheduled_emails;");
+      db.run("CREATE INDEX IF NOT EXISTS idx_scheduled_emails_status ON scheduled_emails(status, scheduled_for);");
+      db.run("PRAGMA foreign_keys = ON;");
     },
   },
 ];

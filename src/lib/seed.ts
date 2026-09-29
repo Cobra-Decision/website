@@ -119,6 +119,7 @@ export async function seedSampleData(database: Database) {
     "/dashboard/admin/mail-scheduler/rules/:id/toggle",
     "/dashboard/admin/mail-scheduler/rules/:id/update",
     "/dashboard/admin/mail-scheduler/rules/:id/trigger",
+    "/dashboard/admin/mail-scheduler/trigger",
     "/dashboard/admin/mail-scheduler/schedule",
     "/dashboard/admin/mail-scheduler/repeat",
     "/dashboard/admin/mail-scheduler/cancel",

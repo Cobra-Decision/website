@@ -187,7 +187,7 @@ CREATE TABLE IF NOT EXISTS scheduled_emails (
   subject TEXT NOT NULL,
   format TEXT NOT NULL DEFAULT 'html' CHECK (format IN ('html', 'markdown', 'text')),
   body TEXT NOT NULL,
-  target_mode TEXT NOT NULL CHECK (target_mode IN ('all', 'tags', 'domain', 'selected')),
+  target_mode TEXT NOT NULL CHECK (target_mode IN ('all', 'tags', 'domain', 'selected', 'meet_attendees', 'tag_followers')),
   target_payload TEXT NOT NULL DEFAULT '',
   scheduled_for DATETIME NOT NULL,
   status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'processing', 'sent', 'failed', 'cancelled')),
