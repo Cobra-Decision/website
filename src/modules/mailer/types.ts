@@ -42,8 +42,9 @@ export interface MailerStats {
 }
 
 export interface BatchFilterOptions {
-  mode: "all" | "tags" | "domain" | "selected";
+  mode: "all" | "tags" | "domain" | "selected" | "meet_attendees" | "tag_followers";
   tagIds?: string[];
   domain?: string;
   userIds?: string[];
+  meetId?: string;
 }

@@ -13,6 +13,7 @@ import {
   normalizeBaseUrl,
   type MeetEmailData,
 } from "./templates";
+import { formatLocalizedDate, formatCalendarUtc } from "../events/datetime";
 import { renderMarkdown } from "../../lib/markdown";
 import type { BatchFilterOptions, EmailMessage, EmailPayload, EmailProvider, MailerStats } from "./types";
 import { generateId } from "../../lib/id";
@@ -204,30 +205,52 @@ export class MailService {
     daysAhead = Number(process.env.MEET_REMINDER_DAYS_BEFORE ?? 1),
     baseUrl?: string,
     templateTitle?: string,
-    sendTime = "06:00"
+    sendTime = "06:00",
+    forceNow = false,
+    specificMeetId?: string
   ): Promise<number> {
     const cleanBase = normalizeBaseUrl(baseUrl);
 
-    // Query upcoming meets that could potentially match any timezone window (e.g. within daysAhead +- 2 days)
-    const upcomingMeets = database
-      .query<{
-        id: string;
-        title: string;
-        scheduled_date: string;
-        scheduled_time: string;
-        duration_minutes: number;
-        status: string;
-        access_status: string;
-        presenter_first_name: string | null;
-        presenter_last_name: string | null;
-      }, []>(
-        `SELECT m.id, m.title, m.scheduled_date, m.scheduled_time, m.duration_minutes, m.status, m.access_status,
-                u.first_name as presenter_first_name, u.last_name as presenter_last_name
-         FROM meets m
-         LEFT JOIN users u ON u.id = m.presenter_id
-         WHERE m.status = 'upcoming' AND m.publish_status = 'public' AND m.deleted_at IS NULL`
-      )
-      .all();
+    // Query upcoming meets (or specific meet if targeted)
+    const upcomingMeets = specificMeetId
+      ? database
+          .query<{
+            id: string;
+            title: string;
+            scheduled_date: string;
+            scheduled_time: string;
+            duration_minutes: number;
+            status: string;
+            access_status: string;
+            presenter_first_name: string | null;
+            presenter_last_name: string | null;
+          }, [string]>(
+            `SELECT m.id, m.title, m.scheduled_date, m.scheduled_time, m.duration_minutes, m.status, m.access_status,
+                    u.first_name as presenter_first_name, u.last_name as presenter_last_name
+             FROM meets m
+             LEFT JOIN users u ON u.id = m.presenter_id
+             WHERE m.id = ? AND m.deleted_at IS NULL`
+          )
+          .all(specificMeetId)
+      : database
+          .query<{
+            id: string;
+            title: string;
+            scheduled_date: string;
+            scheduled_time: string;
+            duration_minutes: number;
+            status: string;
+            access_status: string;
+            presenter_first_name: string | null;
+            presenter_last_name: string | null;
+          }, []>(
+            `SELECT m.id, m.title, m.scheduled_date, m.scheduled_time, m.duration_minutes, m.status, m.access_status,
+                    u.first_name as presenter_first_name, u.last_name as presenter_last_name
+             FROM meets m
+             LEFT JOIN users u ON u.id = m.presenter_id
+             WHERE m.status = 'upcoming' AND m.publish_status = 'public' AND m.deleted_at IS NULL`
+          )
+          .all();
 
     let count = 0;
     for (const meet of upcomingMeets) {
@@ -266,30 +289,34 @@ export class MailService {
       for (const user of matchingUsers) {
         const userTz = user.timezone || "Asia/Tehran";
 
-        // Check if user's local clock reached scheduled send_time (e.g. 06:00)
-        if (!isTimeToRun(sendTime, userTz)) {
+        // Check if user's local clock reached scheduled send_time (or forced)
+        if (!forceNow && !isTimeToRun(sendTime, userTz)) {
           continue;
         }
 
-        // Calculate target meet date according to user's timezone + daysAhead
-        const now = new Date();
-        const userDateStr = new Intl.DateTimeFormat("en-CA", { timeZone: userTz }).format(now); // YYYY-MM-DD
-        const userTargetDate = new Date(`${userDateStr}T00:00:00Z`);
-        userTargetDate.setUTCDate(userTargetDate.getUTCDate() + daysAhead);
-        const expectedMeetDateStr = userTargetDate.toISOString().slice(0, 10);
+        if (!forceNow) {
+          // Calculate target meet date according to user's timezone + daysAhead
+          const now = new Date();
+          const userDateStr = new Intl.DateTimeFormat("en-CA", { timeZone: userTz }).format(now); // YYYY-MM-DD
+          const userTargetDate = new Date(`${userDateStr}T00:00:00Z`);
+          userTargetDate.setUTCDate(userTargetDate.getUTCDate() + daysAhead);
+          const expectedMeetDateStr = userTargetDate.toISOString().slice(0, 10);
 
-        if (meet.scheduled_date !== expectedMeetDateStr) {
-          continue;
+          if (meet.scheduled_date !== expectedMeetDateStr) {
+            continue;
+          }
         }
 
-        // Check if reminder was already sent for this meet and user
-        const alreadySent = database
-          .query<{ id: string }, [string, string, string]>(
-            "SELECT id FROM email_reminder_logs WHERE rule_key = ? AND meet_id = ? AND user_id = ?"
-          )
-          .get("tag_reminder", meet.id, user.id);
+        // Check if reminder was already sent for this meet and user (skip check if forceNow & specificMeetId)
+        if (!forceNow) {
+          const alreadySent = database
+            .query<{ id: string }, [string, string, string]>(
+              "SELECT id FROM email_reminder_logs WHERE rule_key = ? AND meet_id = ? AND user_id = ?"
+            )
+            .get("tag_reminder", meet.id, user.id);
 
-        if (alreadySent) continue;
+          if (alreadySent) continue;
+        }
 
         const { subject, html, text } = renderTagReminderTemplate(
           meetData,
@@ -316,7 +343,8 @@ export class MailService {
     baseUrl?: string,
     templateTitle?: string,
     daysAhead = 0,
-    sendTime = "06:00"
+    sendTime = "06:00",
+    forceNow = false
   ): Promise<number> {
     const cleanBase = normalizeBaseUrl(baseUrl);
 
@@ -366,30 +394,32 @@ export class MailService {
     for (const attendee of attendees) {
       const userTz = attendee.timezone || "Asia/Tehran";
 
-      // Check if user's local clock reached scheduled send_time
-      if (!isTimeToRun(sendTime, userTz)) {
+      // Check if user's local clock reached scheduled send_time (or forced)
+      if (!forceNow && !isTimeToRun(sendTime, userTz)) {
         continue;
       }
 
-      // Calculate target meet date for user's timezone + daysAhead
-      const now = new Date();
-      const userDateStr = new Intl.DateTimeFormat("en-CA", { timeZone: userTz }).format(now); // YYYY-MM-DD
-      const userTargetDate = new Date(`${userDateStr}T00:00:00Z`);
-      userTargetDate.setUTCDate(userTargetDate.getUTCDate() + daysAhead);
-      const expectedMeetDateStr = userTargetDate.toISOString().slice(0, 10);
+      if (!forceNow) {
+        // Calculate target meet date for user's timezone + daysAhead
+        const now = new Date();
+        const userDateStr = new Intl.DateTimeFormat("en-CA", { timeZone: userTz }).format(now); // YYYY-MM-DD
+        const userTargetDate = new Date(`${userDateStr}T00:00:00Z`);
+        userTargetDate.setUTCDate(userTargetDate.getUTCDate() + daysAhead);
+        const expectedMeetDateStr = userTargetDate.toISOString().slice(0, 10);
 
-      if (meet.scheduled_date !== expectedMeetDateStr) {
-        continue;
+        if (meet.scheduled_date !== expectedMeetDateStr) {
+          continue;
+        }
+
+        // Check if reminder was already sent for this meet and attendee
+        const alreadySent = database
+          .query<{ id: string }, [string, string, string]>(
+            "SELECT id FROM email_reminder_logs WHERE rule_key = ? AND meet_id = ? AND user_id = ?"
+          )
+          .get("rsvp_reminder", meet.id, attendee.id);
+
+        if (alreadySent) continue;
       }
-
-      // Check if reminder was already sent for this meet and attendee
-      const alreadySent = database
-        .query<{ id: string }, [string, string, string]>(
-          "SELECT id FROM email_reminder_logs WHERE rule_key = ? AND meet_id = ? AND user_id = ?"
-        )
-        .get("rsvp_reminder", meet.id, attendee.id);
-
-      if (alreadySent) continue;
 
       const { subject, html, text } = renderAttendeesReminderTemplate(
         meetData,
@@ -416,45 +446,131 @@ export class MailService {
     format: "html" | "markdown" | "text" = "html",
     attachments?: import("./types").EmailAttachment[]
   ): Promise<number> {
-    let users: { email: string; first_name: string | null; last_name: string | null; username: string | null }[] = [];
+    let users: { id?: string; email: string; first_name: string | null; last_name: string | null; username: string | null }[] = [];
 
+    // 1. Resolve recipients based on mode
     if (filter.mode === "selected" && filter.userIds?.length) {
       const ph = filter.userIds.map(() => "?").join(",");
       users = database
         .query<
-          { email: string; first_name: string | null; last_name: string | null; username: string | null },
+          { id: string; email: string; first_name: string | null; last_name: string | null; username: string | null },
           any[]
-        >(`SELECT email, first_name, last_name, username FROM users WHERE id IN (${ph}) AND deleted_at IS NULL`)
+        >(`SELECT id, email, first_name, last_name, username FROM users WHERE id IN (${ph}) AND deleted_at IS NULL`)
         .all(...filter.userIds);
     } else if (filter.mode === "domain" && filter.domain) {
       const dom = filter.domain.startsWith("@") ? `%${filter.domain}` : `%@${filter.domain}`;
       users = database
         .query<
-          { email: string; first_name: string | null; last_name: string | null; username: string | null },
+          { id: string; email: string; first_name: string | null; last_name: string | null; username: string | null },
           [string]
-        >(`SELECT email, first_name, last_name, username FROM users WHERE email LIKE ? AND deleted_at IS NULL`)
+        >(`SELECT id, email, first_name, last_name, username FROM users WHERE email LIKE ? AND deleted_at IS NULL`)
         .all(dom);
     } else if (filter.mode === "tags" && filter.tagIds?.length) {
       const ph = filter.tagIds.map(() => "?").join(",");
       users = database
         .query<
-          { email: string; first_name: string | null; last_name: string | null; username: string | null },
+          { id: string; email: string; first_name: string | null; last_name: string | null; username: string | null },
           any[]
         >(
-          `SELECT DISTINCT u.email, u.first_name, u.last_name, u.username
+          `SELECT DISTINCT u.id, u.email, u.first_name, u.last_name, u.username
            FROM users u
            JOIN user_tags ut ON ut.user_id = u.id
            WHERE ut.tag_id IN (${ph}) AND u.deleted_at IS NULL`
         )
         .all(...filter.tagIds);
+    } else if (filter.mode === "meet_attendees" && filter.meetId) {
+      users = database
+        .query<
+          { id: string; email: string; first_name: string | null; last_name: string | null; username: string | null },
+          [string]
+        >(
+          `SELECT DISTINCT u.id, u.email, u.first_name, u.last_name, u.username
+           FROM users u
+           JOIN meet_attendees ma ON ma.user_id = u.id
+           WHERE ma.meet_id = ? AND u.deleted_at IS NULL`
+        )
+        .all(filter.meetId);
+    } else if (filter.mode === "tag_followers" && filter.meetId) {
+      users = database
+        .query<
+          { id: string; email: string; first_name: string | null; last_name: string | null; username: string | null },
+          [string]
+        >(
+          `SELECT DISTINCT u.id, u.email, u.first_name, u.last_name, u.username
+           FROM users u
+           JOIN user_tags ut ON ut.user_id = u.id
+           JOIN meet_tags mt ON mt.tag_id = ut.tag_id
+           WHERE mt.meet_id = ? AND u.deleted_at IS NULL`
+        )
+        .all(filter.meetId);
     } else {
       // all active users
       users = database
         .query<
-          { email: string; first_name: string | null; last_name: string | null; username: string | null },
+          { id: string; email: string; first_name: string | null; last_name: string | null; username: string | null },
           []
-        >(`SELECT email, first_name, last_name, username FROM users WHERE deleted_at IS NULL`)
+        >(`SELECT id, email, first_name, last_name, username FROM users WHERE deleted_at IS NULL`)
         .all();
+    }
+
+    // 2. Fetch contextual meeting data if meetId is provided
+    let meetVars: Record<string, any> = {};
+    if (filter.meetId) {
+      const meet = database
+        .query<{
+          id: string;
+          title: string;
+          scheduled_date: string;
+          scheduled_time: string;
+          duration_minutes: number;
+          status: string;
+          access_status: string;
+          presenter_first_name: string | null;
+          presenter_last_name: string | null;
+        }, [string]>(
+          `SELECT m.id, m.title, m.scheduled_date, m.scheduled_time, m.duration_minutes, m.status, m.access_status,
+                  u.first_name as presenter_first_name, u.last_name as presenter_last_name
+           FROM meets m
+           LEFT JOIN users u ON u.id = m.presenter_id
+           WHERE m.id = ? AND m.deleted_at IS NULL`
+        )
+        .get(filter.meetId);
+
+      if (meet) {
+        const cleanBase = normalizeBaseUrl();
+        const meetLink = `${cleanBase}/meets/${meet.id}?ref=gmail`;
+        const meetDateShamsi = formatLocalizedDate(meet.scheduled_date, "fa");
+        const cal = formatCalendarUtc(meet.scheduled_date, meet.scheduled_time, meet.duration_minutes);
+        const presenterName = [meet.presenter_first_name, meet.presenter_last_name].filter(Boolean).join(" ") || "CobraDecision";
+
+        const meetTags = database
+          .query<{ title: string }, [string]>(
+            `SELECT t.title FROM tags t
+             JOIN meet_tags mt ON mt.tag_id = t.id
+             WHERE mt.meet_id = ? AND t.deleted_at IS NULL`
+          )
+          .all(meet.id);
+        const tagTitles = meetTags.map((t) => t.title).join("، ");
+
+        meetVars = {
+          meet_id: meet.id,
+          meet_title: meet.title,
+          meet_title_encoded: encodeURIComponent(meet.title || ""),
+          meet_date: meet.scheduled_date,
+          meet_date_shamsi: meetDateShamsi,
+          meet_time: meet.scheduled_time,
+          meet_duration: meet.duration_minutes,
+          presenter_name: presenterName,
+          access_status: meet.access_status,
+          meet_link: meetLink,
+          meet_link_encoded: encodeURIComponent(meetLink),
+          meet_start_utc: cal.startUtc,
+          meet_end_utc: cal.endUtc,
+          meet_start_iso: cal.startIso,
+          meet_end_iso: cal.endIso,
+          tags: tagTitles,
+        };
+      }
     }
 
     // Process batch in chunks to avoid large memory spikes
@@ -474,6 +590,7 @@ export class MailService {
           unsubscribe_url: `${cleanBase}/dashboard/account`,
           date: new Date().toLocaleDateString(),
           date_shamsi: getShamsiToday(),
+          ...meetVars,
         };
 
         const interpolatedSubject = interpolateVariables(subject, vars);
@@ -552,6 +669,9 @@ export class MailService {
               filter.userIds = parsed.userIds;
             } else if (job.target_mode === "domain" && parsed.domain) {
               filter.domain = parsed.domain;
+            }
+            if (parsed.meetId) {
+              filter.meetId = parsed.meetId;
             }
           } catch {
             // Raw string domain fallback
