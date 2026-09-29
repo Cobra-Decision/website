@@ -2,6 +2,7 @@ import type { Locale } from "../lib/i18n/translations";
 import { t, isRtl } from "../lib/i18n/context";
 import { LanguageSwitch } from "./language-switch";
 import { MenuIcon, CopyIcon, CheckIcon, LinkIcon } from "./icons";
+import { Button, FormField, Input, Select } from "./forms";
 
 export type DashboardUser = {
   name: string;
@@ -63,27 +64,27 @@ export const UserProfileDropdown = ({
             </div>
           )}
 
-          <a class="btn btn-outline btn-sm mt-2" href={`/dashboard/account?from=${currentView}`}>
+          <Button outline size="sm" class="mt-2" href={`/dashboard/account?from=${currentView}`}>
             {t("nav.account", locale)}
-          </a>
+          </Button>
 
           {isAdmin && (
             currentView === "admin" ? (
-              <a class="btn btn-secondary btn-outline btn-sm mt-1" href="/dashboard/user/meets">
+              <Button variant="secondary" outline size="sm" class="mt-1" href="/dashboard/user/meets">
                 {rtl ? "مشاهده نمای کاربری" : "Switch to User View"}
-              </a>
+              </Button>
             ) : (
-              <a class="btn btn-primary btn-outline btn-sm mt-1" href="/dashboard/admin">
+              <Button variant="primary" outline size="sm" class="mt-1" href="/dashboard/admin">
                 {rtl ? "مشاهده داشبورد مدیریت" : "Switch to Admin Dashboard"}
-              </a>
+              </Button>
             )
           )}
 
           <div class="divider my-1"></div>
           <form hx-post="/auth/logout">
-            <button class="btn btn-error btn-outline btn-sm w-full" type="submit">
+            <Button variant="error" outline size="sm" block type="submit">
               {t("nav.logout", locale)}
-            </button>
+            </Button>
           </form>
         </div>
       </div>
@@ -159,24 +160,27 @@ export const MeetingLinkGenerator = ({
           <span class="text-[11px] text-base-content/60">Opens directly in Telegram</span>
         </div>
         <div class="flex gap-2">
-          <input
+          <Input
             id={`tg-direct-url-${meetId}`}
             type="text"
             readonly
             dir="ltr"
             aria-label="Telegram Mini App direct link"
-            class="input input-bordered input-sm w-full font-mono text-xs bg-base-200/50 text-base-content select-all"
+            size="sm"
+            class="font-mono text-xs bg-base-200/50 text-base-content select-all"
             value={tgDirectLink}
           />
-          <button
+          <Button
             type="button"
-            class="btn btn-primary btn-sm gap-1 shrink-0"
+            variant="primary"
+            size="sm"
+            class="gap-1 shrink-0"
+            icon={<CopyIcon class="h-3.5 w-3.5" />}
             aria-label="Copy Telegram Mini App direct link"
             x-on:click={`navigator.clipboard.writeText('${tgDirectLink}'); copied = true; setTimeout(() => copied = false, 2500)`}
           >
-            <CopyIcon class="h-3.5 w-3.5" />
             Copy Bot Link
-          </button>
+          </Button>
         </div>
         <div class="h-4 flex items-center">
           <span
@@ -196,11 +200,10 @@ export const MeetingLinkGenerator = ({
         </p>
 
         <div class="grid gap-3 sm:grid-cols-2">
-          <label class="form-control w-full">
-            <span class="label-text font-medium text-xs">Destination Platform</span>
-            <select
+          <FormField label="Destination Platform">
+            <Select
               id={`platform-select-${meetId}`}
-              class="select select-bordered select-sm w-full"
+              size="sm"
               onchange={`const input = document.getElementById('attributed-url-${meetId}'); if (input) input.value = window.location.origin + '/meets/${meetId}?platform=' + this.value;`}
             >
               {platforms.map((p) => (
@@ -208,21 +211,21 @@ export const MeetingLinkGenerator = ({
                   {p.name} ({p.slug})
                 </option>
               ))}
-            </select>
-          </label>
+            </Select>
+          </FormField>
 
-          <label class="form-control w-full">
-            <span class="label-text font-medium text-xs">Generated Attributed URL</span>
-            <input
+          <FormField label="Generated Attributed URL">
+            <Input
               id={`attributed-url-${meetId}`}
               type="text"
               readonly
               dir="ltr"
               aria-label="Generated attributed web URL"
-              class="input input-bordered input-sm w-full font-mono text-xs bg-base-100 text-base-content select-all"
+              size="sm"
+              class="font-mono text-xs bg-base-100 text-base-content select-all"
               value={`/meets/${meetId}?platform=telegram`}
             />
-          </label>
+          </FormField>
         </div>
 
         <div class="flex items-center justify-between pt-1">
@@ -236,9 +239,12 @@ export const MeetingLinkGenerator = ({
             Copy tracking URL for web browsers
           </span>
 
-          <button
+          <Button
             type="button"
-            class="btn btn-outline btn-sm gap-1.5"
+            outline
+            size="sm"
+            class="gap-1.5"
+            icon={<CopyIcon class="h-3.5 w-3.5" />}
             aria-label="Copy web link"
             onclick={`
               const select = document.getElementById('platform-select-${meetId}');
@@ -275,9 +281,8 @@ export const MeetingLinkGenerator = ({
               });
             `}
           >
-            <CopyIcon class="h-3.5 w-3.5" />
             Copy Web Link
-          </button>
+          </Button>
         </div>
       </div>
     </div>

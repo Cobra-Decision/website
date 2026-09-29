@@ -5,6 +5,7 @@ import { PhoneInput } from "../../../ui/phone-input";
 import type { Locale } from "../../../lib/i18n/translations";
 import { t, isRtl } from "../../../lib/i18n/context";
 import { LanguageSwitch } from "../../../ui/language-switch";
+import { FormField, Input, Button } from "../../../ui/forms";
 
 export function TelegramConnectionCard({
   telegramId,
@@ -39,18 +40,19 @@ export function TelegramConnectionCard({
                 hx-swap="outerHTML"
                 hx-confirm={t("account.telegram_disconnect_confirm", locale)}
               >
-                <button type="submit" class="btn btn-outline btn-error btn-sm">
+                <Button type="submit" variant="error" outline size="sm">
                   {t("account.telegram_disconnect_btn", locale)}
-                </button>
+                </Button>
               </form>
             ) : (
-              <button
+              <Button
                 type="button"
+                variant="primary"
+                size="sm"
                 onclick="document.getElementById('modal-telegram-instructions').showModal()"
-                class="btn btn-primary btn-sm"
               >
                 {t("account.telegram_connect_btn", locale)}
-              </button>
+              </Button>
             )}
           </div>
         </div>
@@ -68,7 +70,7 @@ export function TelegramConnectionCard({
             </div>
             <div class="modal-action flex justify-end">
               <form method="dialog">
-                <button class="btn btn-sm btn-ghost">{t("common.close", locale)}</button>
+                <Button size="sm" variant="ghost">{t("common.close", locale)}</Button>
               </form>
             </div>
           </div>
@@ -120,20 +122,20 @@ export function AccountPage({
 
           <div class="flex flex-wrap items-center gap-2">
             <LanguageSwitch currentLocale={locale} size="sm" />
-            <a href={backHref} class="btn btn-outline btn-sm">
+            <Button href={backHref} outline size="sm">
               {rtl ? "← بازگشت به داشبورد" : "← Back to Dashboard"}
-            </a>
+            </Button>
 
             {/* Role-Aware Dashboard Switcher */}
             {isAdmin && (
               from === "admin" ? (
-                <a href="/dashboard/user/meets" class="btn btn-secondary btn-sm">
+                <Button href="/dashboard/user/meets" variant="secondary" size="sm">
                   {rtl ? "مشاهده نمای کاربری" : "Switch to User View"}
-                </a>
+                </Button>
               ) : (
-                <a href="/dashboard/admin" class="btn btn-primary btn-sm">
+                <Button href="/dashboard/admin" variant="primary" size="sm">
                   {rtl ? "مشاهده داشبورد مدیریت" : "Switch to Admin Dashboard"}
-                </a>
+                </Button>
               )
             )}
           </div>
@@ -148,58 +150,47 @@ export function AccountPage({
 
             <form class="space-y-6 mt-4" hx-post="/dashboard/account" hx-target="#account-message" hx-swap="innerHTML">
               <div class="grid gap-4 sm:grid-cols-2">
-                <label class="form-control w-full">
-                  <span class="label-text font-medium text-xs">
-                    {rtl ? "نام" : "First Name"}
-                  </span>
-                  <input
-                    type="text"
+                <FormField label={rtl ? "نام" : "First Name"}>
+                  <Input
                     name="first_name"
                     value={user.first_name ?? ""}
                     placeholder={rtl ? "نام" : "First Name"}
-                    class="input input-bordered input-sm sm:input-md w-full"
+                    size="sm"
+                    class="sm:input-md"
                   />
-                </label>
+                </FormField>
 
-                <label class="form-control w-full">
-                  <span class="label-text font-medium text-xs">
-                    {rtl ? "نام خانوادگی" : "Last Name"}
-                  </span>
-                  <input
-                    type="text"
+                <FormField label={rtl ? "نام خانوادگی" : "Last Name"}>
+                  <Input
                     name="last_name"
                     value={user.last_name ?? ""}
                     placeholder={rtl ? "نام خانوادگی" : "Last Name"}
-                    class="input input-bordered input-sm sm:input-md w-full"
+                    size="sm"
+                    class="sm:input-md"
                   />
-                </label>
+                </FormField>
 
-                <label class="form-control w-full">
-                  <span class="label-text font-medium text-xs">
-                    {rtl ? "نام کاربری" : "Username"}
-                  </span>
-                  <input
-                    type="text"
+                <FormField label={rtl ? "نام کاربری" : "Username"}>
+                  <Input
                     name="username"
                     value={user.username ?? ""}
                     placeholder="username"
-                    class="input input-bordered input-sm sm:input-md w-full"
+                    size="sm"
+                    class="sm:input-md"
                   />
-                </label>
+                </FormField>
 
-                <label class="form-control w-full">
-                  <span class="label-text font-medium text-xs">
-                    {rtl ? "آدرس ایمیل" : "Email Address"}
-                  </span>
-                  <input
+                <FormField label={rtl ? "آدرس ایمیل" : "Email Address"} required>
+                  <Input
                     type="email"
                     name="email"
                     required
                     value={user.email}
                     placeholder="name@example.com"
-                    class="input input-bordered input-sm sm:input-md w-full"
+                    size="sm"
+                    class="sm:input-md"
                   />
-                </label>
+                </FormField>
 
                 <div class="sm:col-span-2">
                   <PhoneInput
@@ -232,37 +223,33 @@ export function AccountPage({
               </div>
 
               <div class="grid gap-4 sm:grid-cols-2">
-                <label class="form-control w-full">
-                  <span class="label-text font-medium text-xs">
-                    {rtl ? "رمز عبور جدید (اختیاری)" : "New Password (optional)"}
-                  </span>
-                  <input
+                <FormField label={rtl ? "رمز عبور جدید (اختیاری)" : "New Password (optional)"}>
+                  <Input
                     type="password"
                     name="password"
                     placeholder="••••••••"
-                    class="input input-bordered input-sm sm:input-md w-full"
+                    size="sm"
+                    class="sm:input-md"
                   />
-                </label>
+                </FormField>
 
-                <label class="form-control w-full">
-                  <span class="label-text font-medium text-xs">
-                    {rtl ? "تکرار رمز عبور جدید" : "Confirm New Password"}
-                  </span>
-                  <input
+                <FormField label={rtl ? "تکرار رمز عبور جدید" : "Confirm New Password"}>
+                  <Input
                     type="password"
                     name="password_confirmation"
                     placeholder="••••••••"
-                    class="input input-bordered input-sm sm:input-md w-full"
+                    size="sm"
+                    class="sm:input-md"
                   />
-                </label>
+                </FormField>
               </div>
 
               <div id="account-message"></div>
 
               <div class="flex items-center justify-between border-t border-base-200 pt-4">
-                <button type="submit" class="btn btn-primary btn-sm sm:btn-md">
+                <Button type="submit" variant="primary" size="sm" class="sm:btn-md">
                   {rtl ? "ذخیره تغییرات" : "Save Changes"}
-                </button>
+                </Button>
               </div>
             </form>
           </div>
@@ -283,9 +270,9 @@ export function AccountPage({
               </p>
             </div>
             <form hx-post="/auth/logout">
-              <button class="btn btn-outline btn-sm" type="submit">
+              <Button type="submit" outline size="sm">
                 {rtl ? "خروج از حساب" : "Log Out"}
-              </button>
+              </Button>
             </form>
           </div>
         </div>
@@ -302,13 +289,15 @@ export function AccountPage({
                   {t("account.delete_account_desc", locale)}
                 </p>
               </div>
-              <button
+              <Button
                 type="button"
+                variant="error"
+                size="sm"
+                class="shrink-0"
                 onclick="document.getElementById('modal-delete-account').showModal()"
-                class="btn btn-error btn-sm shrink-0"
               >
                 {t("account.delete_account_btn", locale)}
-              </button>
+              </Button>
             </div>
 
             {/* Account Delete Confirmation Modal */}
@@ -327,35 +316,31 @@ export function AccountPage({
                   hx-swap="innerHTML"
                   class="space-y-4 text-start"
                 >
-                  <div class="form-control">
-                    <label class="label py-1">
-                      <span class="label-text text-xs font-semibold">
-                        {t("account.delete_modal_password", locale)}
-                      </span>
-                    </label>
-                    <input
+                  <FormField label={t("account.delete_modal_password", locale)} required>
+                    <Input
                       type="password"
                       name="password"
                       required
                       placeholder="••••••••"
-                      class="input input-bordered input-error input-sm w-full"
+                      variant="error"
+                      size="sm"
                     />
-                  </div>
+                  </FormField>
 
                   <div id="delete-account-error"></div>
 
                   <div class="modal-action flex justify-end gap-2 pt-2">
-                    <button
+                    <Button
                       type="button"
+                      size="sm"
+                      variant="ghost"
                       onclick="document.getElementById('modal-delete-account').close()"
-                      class="btn btn-sm btn-ghost"
                     >
                       {t("common.cancel", locale)}
-                    </button>
-                    <button type="submit" class="btn btn-sm btn-error">
-                      <span class="htmx-indicator loading loading-spinner loading-xs"></span>
+                    </Button>
+                    <Button type="submit" size="sm" variant="error" htmxIndicator>
                       {t("account.delete_modal_btn", locale)}
-                    </button>
+                    </Button>
                   </div>
                 </form>
               </div>

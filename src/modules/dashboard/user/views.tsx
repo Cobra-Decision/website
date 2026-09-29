@@ -6,6 +6,7 @@ import { UnifiedMeetCard } from "../../../ui/meet-card";
 import { DatePicker } from "../../../ui/date-picker";
 import type { Locale } from "../../../lib/i18n/translations";
 import { t } from "../../../lib/i18n/context";
+import { Button, FormField, Input, Select } from "../../../ui/forms";
 
 export const RsvpButton = ({
   meet,
@@ -28,11 +29,6 @@ export const RsvpButton = ({
   }
 
   const isLeaving = isAttending;
-  const method = isLeaving ? "hx-delete" : "hx-post";
-  const btnClass = isLeaving
-    ? "btn-outline btn-success hover:btn-error"
-    : "btn-primary";
-  const actionBtnClass = isLeaving ? "btn-error" : "btn-primary";
   const title = isLeaving ? t("meet.confirm_leave_title", locale) : t("meet.confirm_attend_title", locale);
   const desc = isLeaving ? t("meet.confirm_leave_desc", locale) : t("meet.confirm_attend_desc", locale);
 
@@ -42,10 +38,13 @@ export const RsvpButton = ({
 
   return (
     <div class="rsvp-button" id={`rsvp-btn-${meet.id}`}>
-      <button
+      <Button
         type="button"
+        size="sm"
+        variant={isLeaving ? "success" : "primary"}
+        outline={isLeaving}
+        class={`gap-1 ${isLeaving ? "hover:btn-error" : ""}`}
         onclick={`document.getElementById('${modalId}').showModal()`}
-        class={`btn btn-sm gap-1 ${btnClass}`}
       >
         {isLeaving ? (
           <>
@@ -55,7 +54,7 @@ export const RsvpButton = ({
         ) : (
           <span>{t("meet.attend", locale)}</span>
         )}
-      </button>
+      </Button>
 
       <dialog id={modalId} class="modal modal-bottom sm:modal-middle text-start">
         <div class="modal-box">
@@ -67,18 +66,19 @@ export const RsvpButton = ({
           </div>
           <div class="modal-action">
             <form method="dialog">
-              <button class="btn btn-sm btn-ghost">{t("meet.cancel", locale)}</button>
+              <Button size="sm" variant="ghost">{t("meet.cancel", locale)}</Button>
             </form>
-            <button
+            <Button
               type="button"
+              size="sm"
+              variant={isLeaving ? "error" : "primary"}
               {...hxProps}
               hx-target={`#rsvp-btn-${meet.id}`}
               hx-swap="outerHTML"
               onclick={`document.getElementById('${modalId}').close()`}
-              class={`btn btn-sm ${actionBtnClass}`}
             >
               {t("meet.confirm", locale)}
-            </button>
+            </Button>
           </div>
         </div>
         <form method="dialog" class="modal-backdrop">
@@ -189,37 +189,34 @@ export const UserDashboard = ({
               >
                 <input type="hidden" name="attendedOnly" value={activeTab === "attended" ? "true" : "false"} />
 
-                <label class="form-control">
-                  <span class="label-text font-medium text-xs">{t("dashboard.search_label", locale)}</span>
-                  <input
-                    class="input input-bordered input-sm w-full"
+                <FormField label={t("dashboard.search_label", locale)}>
+                  <Input
+                    size="sm"
                     type="text"
                     name="q"
                     placeholder={t("dashboard.search_placeholder", locale)}
                   />
-                </label>
+                </FormField>
 
-                <label class="form-control">
-                  <span class="label-text font-medium text-xs mb-1">{t("dashboard.status_label", locale)}</span>
-                  <select class="select select-bordered select-sm w-full" name="status">
+                <FormField label={t("dashboard.status_label", locale)}>
+                  <Select size="sm" name="status">
                     <option value="" selected={currentStatus === ""}>{t("dashboard.all_statuses", locale)}</option>
                     <option value="upcoming" selected={currentStatus === "upcoming"}>{t("meet.status.upcoming", locale)}</option>
                     <option value="live" selected={currentStatus === "live"}>{t("meet.status.live", locale)}</option>
                     <option value="completed" selected={currentStatus === "completed"}>{t("meet.status.completed", locale)}</option>
-                  </select>
-                </label>
+                  </Select>
+                </FormField>
 
-                <label class="form-control">
-                  <span class="label-text font-medium text-xs mb-1">{t("dashboard.tag_label", locale)}</span>
-                  <select class="select select-bordered select-sm w-full" name="tagId">
+                <FormField label={t("dashboard.tag_label", locale)}>
+                  <Select size="sm" name="tagId">
                     <option value="">{t("dashboard.all_tags", locale)}</option>
                     {tags.map((tag) => (
                       <option value={tag.id} key={tag.id}>
                         {tag.title}
                       </option>
                     ))}
-                  </select>
-                </label>
+                  </Select>
+                </FormField>
 
                 <DatePicker
                   name="startDate"
