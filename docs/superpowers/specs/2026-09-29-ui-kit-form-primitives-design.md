@@ -1,7 +1,7 @@
 # Spec: Unified UI Kit - Form Primitives & View Migration
 
-**Date:** 2026-09-29  
-**Status:** In Review / Ready for Plan  
+**Date:** 2026-09-30  
+**Status:** Validated & Reviewed  
 **Target:** Standardize and unify all form controls, buttons, inputs, textareas, selects, checkboxes, toggles, date pickers, and form wrappers across the CobraDecision server-rendered JSX + HTMX stack.
 
 ---
@@ -30,6 +30,7 @@ Below is the full audit of all view files and their current form elements:
 | :--- | :--- | :--- |
 | **`src/modules/auth/views.tsx`** | `Field` helper, `<input>`, `<button class="btn btn-primary ...">`, `<altcha-widget>` | `<FormField>`, `<Input>`, `<Button>` |
 | **`src/modules/dashboard/account/views.tsx`** | First name, Last name, Username, Email inputs, Bio textarea, Telegram disconnect/connect buttons, Modal close buttons | `<FormField>`, `<Input>`, `<Textarea>`, `<Button>` |
+| **`src/modules/dashboard/user/views.tsx`** | `RsvpButton` modal join/leave actions | `<Button>` |
 | **`src/modules/admin/views.tsx`** | CRUD Search inputs, field `<select>`, bulk `<input type="checkbox">`, Add New `<button>`, Delete Selected `<button>`, Table sort `<button>`, MeetRelations `<select>` and `<button>` | `<FormField>`, `<Input>`, `<Select>`, `<Checkbox>`, `<Button>` |
 | **`src/modules/admin/files/views.tsx`** | Search input, File upload `<input type="file">`, bulk checkboxes, modal dialog buttons, refresh button | `<Input>`, `<Checkbox>`, `<Button>` |
 | **`src/modules/admin/mail-editor-views.tsx`** | Title/Subject inputs, Description input, Template body `<textarea>`, Format switch buttons, Save button | `<FormField>`, `<Input>`, `<Textarea>`, `<Button>` |
@@ -38,9 +39,11 @@ Below is the full audit of all view files and their current form elements:
 | **`src/modules/admin/platforms-views.tsx`** | Platform `<select>`, Meet title `<input>`, Filter submit/reset buttons, Table checkboxes, Delete visit buttons | `<FormField>`, `<Select>`, `<Input>`, `<Checkbox>`, `<Button>` |
 | **`src/modules/admin/database-views.tsx`** | Backup Now `<button>`, Run Migrations `<button>` | `<Button>` |
 | **`src/modules/admin/report-views.tsx`** | Schema field `<select>`, Search schema `<input>`, Filter / Reset buttons | `<FormField>`, `<Select>`, `<Input>`, `<Button>` |
+| **`src/modules/admin/pagination-view.tsx`** | Pagination navigation buttons (`btn btn-xs join-item`) | `<Button>` |
 | **`src/modules/events/views.tsx`** | `DynamicCtaButton` RSVP buttons, Attend/Cancel modal buttons | `<Button>` |
-| **`src/modules/dashboard/user/views.tsx`** | `RsvpButton` modal attend/leave buttons | `<Button>` |
 | **`src/modules/landing/views.tsx` & `support-views.tsx`** | Hero CTA buttons, donation links/buttons | `<Button>` |
+| **`src/ui/dashboard.tsx`** | User profile dropdown action buttons/links (`btn btn-outline btn-sm`) | `<Button>` |
+| **`src/ui/language-switch.tsx`** | Language toggle links (`btn btn-xs join-item`) | `<Button>` |
 | **`src/ui/date-picker.tsx`** | Internal `<input>`, toggle calendar `<button>`, navigation `<button>` | Standardize sizing & props with `<Input>` |
 | **`src/ui/phone-input.tsx`** | Country `<select>`, Phone `<input>` | Standardize with `<Select>` and `<Input>` |
 | **`src/ui/tag-selector.tsx`** | Tag search `<input>`, remove `<button>`, create tag `<button>` | Standardize with `<Input>`, `<Button>` |
@@ -49,7 +52,7 @@ Below is the full audit of all view files and their current form elements:
 
 ## 3. UI Kit Component Architecture & API Specs
 
-All components will reside in `src/ui/forms/` and be re-exported via `src/ui/forms/index.ts` and `src/ui/index.ts` (or direct `src/ui/` imports).
+All components reside in `src/ui/forms/` and are re-exported via `src/ui/forms/index.ts`.
 
 ### Common Types:
 ```typescript
@@ -68,7 +71,7 @@ export type ButtonVariant =
 ```
 
 ### 3.1 `<Button />` (`src/ui/forms/button.tsx`)
-A unified button component supporting both `<button>` and `<a>` (link button) rendering, with built-in loading indicator support, icons, and full HTMX attribute forwarding.
+A unified button component supporting both `<button>` and `<a>` (link button) rendering, with built-in loading indicator support, logical icon spacing (`me-2` / `ms-2`), and full HTMX attribute forwarding.
 
 ```typescript
 export interface ButtonProps {
@@ -82,19 +85,22 @@ export interface ButtonProps {
   circle?: boolean;
   square?: boolean;
   block?: boolean;
-  icon?: any; // JSX icon element
-  iconRight?: any;
+  icon?: any; // Leading JSX icon element (uses logical margin me-2)
+  iconRight?: any; // Trailing JSX icon element (uses logical margin ms-2)
   class?: string;
   children?: any;
   [key: string]: any; // Forward all HTMX (hx-*), Alpine (x-*), and HTML attributes
 }
 ```
-**Default styling:** `btn transition-all duration-150` with size map (`btn-xs`, `btn-sm`, `btn-md`, `btn-lg`) and variant map (`btn-primary`, `btn-outline btn-error`, etc.).
+**Behavioral Rules:**
+1. **Polymorphic Rendering**: If `href` is present, renders `<a>`. If `disabled={true}` on an `<a>`, adds `pointer-events-none opacity-50` and `aria-disabled="true"`. If `href` is absent, renders `<button type={type ?? "button"}>`.
+2. **Loading State**: When `loading={true}`, prepends `<span class="loading loading-spinner loading-xs me-2" aria-hidden="true"></span>` and automatically disables `<button>`.
+3. **Class composition**: Combines `btn`, variant class (`btn-primary`, `btn-outline btn-error`), size (`btn-xs`, `btn-sm`, `btn-md`, `btn-lg`), shapes (`btn-circle`, `btn-square`, `btn-block`), and custom `class`.
 
 ---
 
 ### 3.2 `<Input />` (`src/ui/forms/input.tsx`)
-Standard text/email/password/number/search/file input.
+Standard text/email/password/number/search/file input with full prop forwarding.
 
 ```typescript
 export interface InputProps {
@@ -113,7 +119,11 @@ export interface InputProps {
   [key: string]: any;
 }
 ```
-**Default styling:** `input input-bordered w-full focus:input-primary focus:outline-none` (or `file-input file-input-bordered` when `type="file"`).
+**Behavioral Rules:**
+1. **`type="hidden"`**: Renders raw `<input type="hidden" ... />` without daisyUI styling.
+2. **`type="file"`**: Uses `file-input file-input-bordered focus:file-input-primary` and size maps (`file-input-xs`, `file-input-sm`, etc.).
+3. **Standard Input**: Uses `input input-bordered focus:input-primary focus:outline-none` with size maps (`input-xs`, `input-sm`, etc.).
+4. **Value prop**: Undefined/null `value` does not render string `"undefined"`.
 
 ---
 
@@ -137,7 +147,9 @@ export interface TextareaProps {
   [key: string]: any;
 }
 ```
-**Default styling:** `textarea textarea-bordered w-full focus:textarea-primary focus:outline-none`.
+**Behavioral Rules:**
+- Renders `{value ?? children ?? ""}` inside the `<textarea>` tag.
+- Uses `textarea textarea-bordered w-full focus:textarea-primary focus:outline-none`.
 
 ---
 
@@ -156,7 +168,7 @@ export interface SelectProps {
   name?: string;
   size?: ComponentSize;
   options?: SelectOption[];
-  placeholder?: string; // Optional empty / unselected first option
+  placeholder?: string; // Rendered as <option value="" disabled selected={!value}>{placeholder}</option>
   value?: string | number;
   required?: boolean;
   disabled?: boolean;
@@ -166,7 +178,10 @@ export interface SelectProps {
   [key: string]: any;
 }
 ```
-**Default styling:** `select select-bordered w-full focus:select-primary focus:outline-none`.
+**Behavioral Rules:**
+- If `options` is supplied, automatically resolves `selected={opt.value === value || opt.selected}`.
+- If `children` is supplied, renders child elements directly.
+- Uses `select select-bordered w-full focus:select-primary focus:outline-none`.
 
 ---
 
@@ -180,16 +195,16 @@ export interface CheckboxProps {
   checked?: boolean;
   size?: ComponentSize;
   variant?: "primary" | "secondary" | "accent" | "success" | "error" | "warning" | "info";
-  label?: string; // If provided, wraps inside a label container
+  label?: string; // If provided, wraps inside a label container; if omitted, renders standalone input
   disabled?: boolean;
   id?: string;
   class?: string;
   [key: string]: any;
 }
 ```
-**Default styling:**
-- Checkbox: `checkbox checkbox-primary`
-- Toggle: `toggle toggle-primary`
+**Behavioral Rules:**
+- When `label` is provided: wraps input in `<label class="label cursor-pointer justify-start gap-2 [class]"><input ... /><span class="label-text">{label}</span></label>`.
+- When `label` is omitted: renders standalone `<input type="checkbox" class="checkbox checkbox-primary [sizeClass] [class]" ... />`.
 
 ---
 
@@ -211,17 +226,19 @@ export interface FormFieldProps {
 **Rendered Structure:**
 ```html
 <div class="form-control w-full space-y-1.5 [custom-class]">
-  <div class="flex items-center justify-between px-0.5">
-    <label class="label-text text-xs font-semibold text-base-content/90" for={id}>
-      {label} {required && <span class="text-error font-bold">*</span>}
-    </label>
-    {!required && optionalLabel && (
-      <span class="label-text-alt text-2xs text-base-content/50">{optionalLabel}</span>
-    )}
-  </div>
+  {label && (
+    <div class="flex items-center justify-between px-0.5">
+      <label class="label-text text-xs font-semibold text-base-content/90" for={id}>
+        {label} {required && <span class="text-error font-bold">*</span>}
+      </label>
+      {!required && optionalLabel && (
+        <span class="label-text-alt text-2xs text-base-content/50">{optionalLabel}</span>
+      )}
+    </div>
+  )}
   {children}
-  {hint && <p class="text-2xs text-base-content/60 px-0.5">{hint}</p>}
-  {error && <p class="text-2xs text-error font-medium px-0.5">{error}</p>}
+  {hint && <p class="text-2xs text-base-content/60 px-0.5 text-start">{hint}</p>}
+  {error && <p class="text-2xs text-error font-medium px-0.5 text-start">{error}</p>}
 </div>
 ```
 
@@ -229,12 +246,10 @@ export interface FormFieldProps {
 
 ## 4. Migration Plan & Step-by-Step Roadmap
 
-To make changes isolated, easily verifiable, and safe, the migration is structured into sequential phases:
-
 ### Phase 1: Core Primitives Creation & Unit Testing
 1. Create `src/ui/forms/button.tsx`, `src/ui/forms/input.tsx`, `src/ui/forms/textarea.tsx`, `src/ui/forms/select.tsx`, `src/ui/forms/checkbox.tsx`, `src/ui/forms/toggle.tsx`, `src/ui/forms/form-field.tsx`.
 2. Create `src/ui/forms/index.ts` to export all form components.
-3. Add unit tests in `src/ui/forms/forms.test.ts` to verify correct class composition, HTMX prop passthrough, size classes, and HTML output.
+3. Add unit tests in `src/ui/forms/forms.test.ts` verifying HTML output, attribute passthrough, size classes, and loading/polymorphic behavior.
 4. Run `bun test` and `bun run check`.
 
 ### Phase 2: Auth Module Migration
@@ -250,13 +265,13 @@ To make changes isolated, easily verifiable, and safe, the migration is structur
 1. Refactor `src/modules/admin/views.tsx` (CRUD search filters, field selects, bulk checkboxes, table buttons, relations).
 2. Refactor `src/modules/admin/files/views.tsx` (Search, upload file inputs, file checkboxes, action buttons).
 3. Refactor `src/modules/admin/mail-editor-views.tsx`, `mail-scheduler-views.tsx`, `mailer-views.tsx`.
-4. Refactor `src/modules/admin/platforms-views.tsx`, `database-views.tsx`, `report-views.tsx`.
+4. Refactor `src/modules/admin/platforms-views.tsx`, `database-views.tsx`, `report-views.tsx`, `pagination-view.tsx`.
 5. Run full admin tests: `bun test src/modules/admin/`.
 
 ### Phase 5: Events, Landing, and UI Integration
 1. Refactor `src/modules/events/views.tsx` (`DynamicCtaButton`, RSVP modals).
 2. Refactor `src/modules/landing/views.tsx` and `support-views.tsx`.
-3. Standardize `src/ui/date-picker.tsx`, `src/ui/phone-input.tsx`, `src/ui/tag-selector.tsx` to align with the new `<FormField>` and input sizing standards.
+3. Standardize `src/ui/date-picker.tsx`, `src/ui/phone-input.tsx`, `src/ui/tag-selector.tsx`, `src/ui/language-switch.tsx`, `src/ui/dashboard.tsx`.
 4. Run `bun run check`, `bun test`, `bun run build:css`.
 
 ---
