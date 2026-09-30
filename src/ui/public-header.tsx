@@ -2,6 +2,7 @@ import type { Locale } from "../lib/i18n/translations";
 import { t } from "../lib/i18n/context";
 import { LanguageSwitch } from "./language-switch";
 import { MenuIcon, XIcon } from "./icons";
+import { Badge } from "./forms/badge";
 
 export interface PublicHeaderProps {
   locale?: Locale;
@@ -135,7 +136,7 @@ export const PublicHeader = ({ locale = "en", activePage }: PublicHeaderProps) =
               >
                 <span>{link.label}</span>
                 {link.active && (
-                  <span class="badge badge-primary badge-xs" aria-hidden="true"></span>
+                  <Badge variant="primary" size="xs" aria-hidden="true" />
                 )}
               </a>
             </li>

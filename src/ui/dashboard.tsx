@@ -2,6 +2,7 @@ import type { Locale } from "../lib/i18n/translations";
 import { t, isRtl } from "../lib/i18n/context";
 import { LanguageSwitch } from "./language-switch";
 import { MenuIcon, CopyIcon, CheckIcon, LinkIcon } from "./icons";
+import { Badge } from "./forms/badge";
 
 export type DashboardUser = {
   name: string;
@@ -59,7 +60,7 @@ export const UserProfileDropdown = ({
           <p class="text-xs text-base-content/60">{user.email}</p>
           {user.role && (
             <div>
-              <span class="badge badge-sm badge-outline">{user.role}</span>
+              <Badge outline size="sm">{user.role}</Badge>
             </div>
           )}
 
@@ -146,7 +147,7 @@ export const MeetingLinkGenerator = ({
     >
       <div class="flex items-center justify-between">
         <h4 class="font-bold text-sm text-base-content">Meeting Links & Attribution</h4>
-        <span class="text-xs badge badge-ghost font-mono">/meets/{meetId}</span>
+        <Badge variant="ghost" size="xs" class="font-mono">/meets/{meetId}</Badge>
       </div>
 
       {/* Telegram Mini App Direct Link */}
