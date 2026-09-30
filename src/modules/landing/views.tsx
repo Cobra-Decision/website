@@ -60,7 +60,7 @@ export const Landing = ({ data, locale = "en" }: { data: LandingCache; locale?: 
           <div class="mx-auto max-w-7xl px-5 sm:px-8">
             <StatsBar
               totalUsers={data.totalUsers}
-              totalMeetHours={data.totalMeetHours}
+              totalMeetMinutes={data.totalMeetMinutes}
               totalMeets={data.totalMeets}
               locale={locale}
             />

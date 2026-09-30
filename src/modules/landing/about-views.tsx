@@ -200,7 +200,7 @@ export const AboutView = ({ data, locale = "en" }: { data: LandingCache; locale?
             </h2>
             <StatsBar
               totalUsers={data.totalUsers}
-              totalMeetHours={data.totalMeetHours}
+              totalMeetMinutes={data.totalMeetMinutes}
               totalMeets={data.totalMeets}
               locale={locale}
             />

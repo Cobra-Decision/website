@@ -5,7 +5,7 @@ import type { MeetWithDetails } from "../modules/events/types";
 const limit = 100;
 const cache = new Map<string, unknown>();
 
-export type LandingCache = { totalUsers: number; totalMeetHours: number; totalMeets: number; meets: MeetWithDetails[] };
+export type LandingCache = { totalUsers: number; totalMeetMinutes: number; totalMeets: number; meets: MeetWithDetails[] };
 export type ErrorMessage = { type: "info" | "error" | "success" | "warning"; title: string; description: string };
 
 export function initCache(database: Database) {
@@ -17,12 +17,12 @@ export function refreshLandingCache(database: Database) {
   const hasTable = (name: string) => Boolean(database.query("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?").get(name));
   const totalUsers = hasTable("users") ? database.query<{ total: number }, []>("SELECT COUNT(*) total FROM users WHERE deleted_at IS NULL").get()!.total : 0;
   if (!hasTable("meets")) {
-    setCache("landing", { totalUsers, totalMeetHours: 0, totalMeets: 0, meets: [] } satisfies LandingCache);
+    setCache("landing", { totalUsers, totalMeetMinutes: 0, totalMeets: 0, meets: [] } satisfies LandingCache);
     return;
   }
   const totalMeets = database.query<{ total: number }, []>("SELECT COUNT(*) total FROM meets WHERE publish_status = 'public' AND deleted_at IS NULL").get()!.total;
   const totalMinutes = database.query<{ total: number }, []>("SELECT COALESCE(SUM(duration_minutes), 0) total FROM meets WHERE publish_status = 'public' AND deleted_at IS NULL").get()!.total;
-  setCache("landing", { totalUsers, totalMeetHours: Math.ceil(totalMinutes / 60), totalMeets, meets: getUpcomingMeets(database, 5) } satisfies LandingCache);
+  setCache("landing", { totalUsers, totalMeetMinutes: totalMinutes, totalMeets, meets: getUpcomingMeets(database, 5) } satisfies LandingCache);
 }
 
 export function refreshErrorCache(database: Database) {
@@ -36,7 +36,7 @@ export function getErrorMessage(title: string): ErrorMessage | undefined {
 }
 
 export function getLandingCache(): LandingCache {
-  return (getCache("landing") as LandingCache) ?? { totalUsers: 0, totalMeetHours: 0, totalMeets: 0, meets: [] };
+  return (getCache("landing") as LandingCache) ?? { totalUsers: 0, totalMeetMinutes: 0, totalMeets: 0, meets: [] };
 }
 
 export function getCache(key: string) {
