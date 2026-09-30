@@ -28,7 +28,7 @@ export const TagBadge = ({
       variant={isOutline ? undefined : variant}
       outline={isOutline}
       size={size}
-      class={`inline-flex items-center gap-1 shrink-0 font-medium py-[1px] h-auto ${customClass}`.trim()}
+      class={`inline-flex items-center gap-1 shrink-0 font-medium py-[2px] h-auto ${customClass}`.trim()}
       {...props}
     >
       {onRemoveHref ? <span>{title}</span> : title}
