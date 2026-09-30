@@ -8,6 +8,7 @@ import { PublicHeader } from "../../ui/public-header";
 import { MeetStatusBadge, MeetAccessBadge, MeetPublishBadge } from "../../ui/meet-badges";
 import { VideoIcon, FileTextIcon, DownloadIcon, ChevronDownIcon, ChevronUpIcon } from "../../ui/icons";
 import { Footer } from "../../ui/footer";
+import { Badge } from "../../ui/forms/badge";
 
 export const DynamicCtaButton = ({
   meetId,
@@ -246,9 +247,9 @@ export const MeetingDetailPage = ({
                 <MeetStatusBadge status={meet.status} locale={locale} size="sm" />
                 <MeetPublishBadge publishStatus={meet.publish_status} locale={locale} size="sm" />
                 <MeetAccessBadge accessStatus={meet.access_status} locale={locale} size="sm" />
-                <span class="badge badge-neutral font-medium">{formattedDate}</span>
-                <span class="badge badge-outline">{formattedTime}</span>
-                <span class="badge badge-ghost">{formattedDuration} {t("meet.minutes", locale)}</span>
+                <Badge variant="neutral" class="font-medium">{formattedDate}</Badge>
+                <Badge outline>{formattedTime}</Badge>
+                <Badge variant="ghost">{formattedDuration} {t("meet.minutes", locale)}</Badge>
               </div>
               <h1 class="text-3xl font-extrabold tracking-tight sm:text-5xl text-base-content">
                 {meet.title}
