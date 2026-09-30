@@ -676,7 +676,7 @@ export const MailSchedulerView = ({
                     <span class="font-bold text-base-content">{locale === "fa" ? "موضوع:" : "Subject:"}</span>
                     <span class="font-semibold text-primary" x-text="subject || '(No subject)'"></span>
                   </div>
-                  <span class="badge badge-xs badge-outline uppercase font-mono" x-text="format"></span>
+                  <Badge outline size="xs" class="uppercase font-mono" x-text="format" />
                 </div>
                 <div class="p-4 bg-white text-slate-900 min-h-[160px]" x-html="interpolatedPreview"></div>
               </div>
