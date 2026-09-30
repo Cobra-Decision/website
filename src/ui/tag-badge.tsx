@@ -1,4 +1,6 @@
-export type TagBadgeProps = {
+import { Badge, type BadgeProps } from "./forms/badge";
+
+export interface TagBadgeProps extends Omit<BadgeProps, "variant"> {
   title: string;
   description?: string | null;
   size?: "xs" | "sm" | "md";
@@ -6,7 +8,8 @@ export type TagBadgeProps = {
   onRemoveHref?: string;
   removeTarget?: string;
   removeAriaLabel?: string;
-};
+  class?: string;
+}
 
 export const TagBadge = ({
   title,
@@ -16,15 +19,20 @@ export const TagBadge = ({
   onRemoveHref,
   removeTarget,
   removeAriaLabel,
+  class: customClass = "",
+  ...props
 }: TagBadgeProps) => {
-  const sizeClass = size === "xs" ? "badge-xs" : size === "md" ? "badge-md" : "badge-sm";
-  const variantClass = variant === "outline" ? "badge-outline" : `badge-${variant}`;
-  const badgeClasses = `badge ${variantClass} ${sizeClass} inline-flex items-center gap-1 shrink-0 font-medium`;
-
-  if (onRemoveHref) {
-    const badgeContent = (
-      <span class={badgeClasses}>
-        <span>{title}</span>
+  const isOutline = variant === "outline";
+  const badgeElement = (
+    <Badge
+      variant={isOutline ? undefined : variant}
+      outline={isOutline}
+      size={size}
+      class={`inline-flex items-center gap-1 shrink-0 font-medium ${customClass}`.trim()}
+      {...props}
+    >
+      {onRemoveHref ? <span>{title}</span> : title}
+      {onRemoveHref && (
         <button
           type="button"
           class="ms-0.5 inline-flex items-center justify-center opacity-60 hover:opacity-100 transition-opacity"
@@ -35,27 +43,17 @@ export const TagBadge = ({
         >
           ×
         </button>
-      </span>
-    );
-
-    if (description) {
-      return (
-        <span class="tooltip" data-tip={description}>
-          {badgeContent}
-        </span>
-      );
-    }
-
-    return badgeContent;
-  }
+      )}
+    </Badge>
+  );
 
   if (description) {
     return (
       <span class="tooltip" data-tip={description}>
-        <span class={badgeClasses}>{title}</span>
+        {badgeElement}
       </span>
     );
   }
 
-  return <span class={badgeClasses}>{title}</span>;
+  return badgeElement;
 };
