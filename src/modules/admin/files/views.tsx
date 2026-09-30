@@ -2,6 +2,7 @@ import type { Locale } from "../../../lib/i18n/translations";
 import { t } from "../../../lib/i18n/context";
 import { Pagination } from "../pagination-view";
 import type { PaginationState } from "../pagination";
+import { Button, Input, Checkbox, FormField } from "../../../ui/forms";
 
 export type FileItem = {
   name: string;
@@ -39,29 +40,33 @@ export function FileGrid({
           </p>
         </div>
         <div class="flex flex-wrap gap-2">
-          <button
-            class="btn btn-primary btn-sm"
+          <Button
+            variant="primary"
+            size="sm"
             hx-get="/dashboard/admin/files/upload-modal"
             hx-target="#file-modal"
           >
             {t("admin.files.upload_btn", locale)}
-          </button>
-          <button
-            class="btn btn-outline btn-error btn-sm"
+          </Button>
+          <Button
+            variant="error"
+            outline
+            size="sm"
             hx-post="/dashboard/admin/files/bulk-confirm"
             hx-include="#files-bulk-form"
             hx-target="#file-modal"
           >
             {t("admin.delete_selected", locale)}
-          </button>
-          <button
-            class="btn btn-outline btn-sm"
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
             hx-get="/dashboard/admin/files"
             hx-target="#files-table"
             hx-swap="outerHTML"
           >
             {t("admin.files.refresh", locale)}
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -73,22 +78,22 @@ export function FileGrid({
         hx-swap="outerHTML"
       >
         <div class="grid gap-3 sm:grid-cols-[1fr_auto_auto] sm:items-end">
-          <label class="form-control">
-            <span class="label-text font-medium text-xs">{t("admin.search", locale)}</span>
-            <input
-              class="input input-bordered input-sm w-full font-mono text-sm"
+          <FormField label={t("admin.search", locale)}>
+            <Input
+              size="sm"
+              class="font-mono text-sm"
               name="q"
               value={query.q ?? ""}
               placeholder={t("admin.files.search_placeholder", locale)}
             />
-          </label>
+          </FormField>
 
-          <button class="btn btn-primary btn-sm" type="submit">
+          <Button variant="primary" size="sm" type="submit">
             {t("admin.search", locale)}
-          </button>
-          <a class="btn btn-ghost btn-sm" href="/dashboard/admin/files">
+          </Button>
+          <Button variant="ghost" size="sm" href="/dashboard/admin/files">
             {t("admin.reset", locale)}
-          </a>
+          </Button>
         </div>
       </form>
 
@@ -99,9 +104,8 @@ export function FileGrid({
             <thead class="bg-base-200/50 text-xs font-semibold uppercase tracking-wider text-base-content/70">
               <tr>
                 <th class="w-10">
-                  <input
-                    type="checkbox"
-                    class="checkbox checkbox-sm"
+                  <Checkbox
+                    size="sm"
                     onclick="const checked = this.checked; document.querySelectorAll('#files-bulk-form input[name=filenames]').forEach(el => el.checked = checked)"
                     aria-label="Select all files"
                   />
@@ -148,11 +152,10 @@ export function FileGrid({
                 files.map((file) => (
                   <tr key={file.name} class="hover">
                     <td>
-                      <input
-                        type="checkbox"
+                      <Checkbox
+                        size="sm"
                         name="filenames"
                         value={file.name}
-                        class="checkbox checkbox-sm"
                       />
                     </td>
                     <td>
@@ -192,52 +195,53 @@ export function FileGrid({
                     <td class="text-xs text-base-content/70">{file.modifiedAt}</td>
                     <td class="text-right">
                       <div class="flex items-center justify-end gap-1.5" x-data={`{ copied: false, url: '${file.url}' }`}>
-                        <button
-                          type="button"
-                          class="btn btn-xs btn-outline"
+                        <Button
+                          size="xs"
+                          variant="outline"
                           hx-get={`/dashboard/admin/files/preview-modal?name=${encodeURIComponent(file.name)}`}
                           hx-target="#file-modal"
                         >
                           {t("common.preview", locale)}
-                        </button>
+                        </Button>
 
-                        <button
-                          type="button"
-                          class="btn btn-xs btn-outline"
+                        <Button
+                          size="xs"
+                          variant="outline"
                           x-on:click="navigator.clipboard.writeText(window.location.origin + url); copied = true; setTimeout(() => copied = false, 2000)"
                           x-text={`copied ? '${t("common.copied", locale)}' : '${t("common.copy_url", locale)}'`}
                         >
                           {t("common.copy_url", locale)}
-                        </button>
+                        </Button>
 
-                        <button
-                          type="button"
-                          class="btn btn-xs btn-outline"
+                        <Button
+                          size="xs"
+                          variant="outline"
                           hx-get={`/dashboard/admin/files/rename-modal?name=${encodeURIComponent(file.name)}`}
                           hx-target="#file-modal"
                         >
                           {t("common.rename", locale)}
-                        </button>
+                        </Button>
 
-                        <button
-                          type="button"
-                          class="btn btn-xs btn-outline"
+                        <Button
+                          size="xs"
+                          variant="outline"
                           hx-post="/dashboard/admin/files/duplicate"
                           hx-vals={JSON.stringify({ filename: file.name })}
                           hx-target="#files-table"
                           hx-swap="outerHTML"
                         >
                           {t("common.duplicate", locale)}
-                        </button>
+                        </Button>
 
-                        <button
-                          type="button"
-                          class="btn btn-xs btn-error btn-outline"
+                        <Button
+                          size="xs"
+                          variant="error"
+                          outline
                           hx-get={`/dashboard/admin/files/confirm-delete?name=${encodeURIComponent(file.name)}`}
                           hx-target="#file-modal"
                         >
                           {t("common.delete", locale)}
-                        </button>
+                        </Button>
                       </div>
                     </td>
                   </tr>
@@ -306,32 +310,34 @@ export function FilePreviewModal({ file, locale = "en" }: { file: FileItem; loca
 
         <div class="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
           <div class="w-full sm:flex-1">
-            <input
+            <Input
               type="text"
               readonly
               value={file.url}
-              class="input input-bordered input-sm w-full font-mono text-xs select-all bg-base-200"
+              size="sm"
+              class="font-mono text-xs select-all bg-base-200"
             />
           </div>
 
           <div class="flex items-center gap-2 w-full sm:w-auto justify-end" x-data={`{ copied: false, url: '${file.url}' }`}>
-            <a
+            <Button
               href={file.url}
               target="_blank"
               rel="noopener noreferrer"
-              class="btn btn-outline btn-sm"
+              variant="outline"
+              size="sm"
             >
               Open in Tab ↗
-            </a>
+            </Button>
 
-            <button
-              type="button"
-              class="btn btn-primary btn-sm"
+            <Button
+              variant="primary"
+              size="sm"
               x-on:click="navigator.clipboard.writeText(window.location.origin + url); copied = true; setTimeout(() => copied = false, 2000)"
               x-text={`copied ? '${t("common.copied", locale)}' : '${t("common.copy_url", locale)}'`}
             >
               {t("common.copy_url", locale)}
-            </button>
+            </Button>
           </div>
         </div>
       </div>
@@ -355,23 +361,22 @@ export function UploadModal({ locale = "en" }: { locale?: Locale }) {
           hx-swap="outerHTML"
           class="mt-4 space-y-4"
         >
-          <label class="form-control w-full">
-            <span class="label-text text-xs font-medium">{t("admin.files.upload_btn", locale)}</span>
-            <input
+          <FormField label={t("admin.files.upload_btn", locale)}>
+            <Input
               type="file"
               name="file"
               required
-              class="file-input file-input-bordered file-input-sm w-full"
+              size="sm"
             />
-          </label>
+          </FormField>
 
           <div class="modal-action">
-            <button type="button" class="btn btn-sm" onclick="this.closest('dialog').remove()">
+            <Button size="sm" onclick="this.closest('dialog').remove()">
               {t("common.cancel", locale)}
-            </button>
-            <button type="submit" class="btn btn-primary btn-sm">
+            </Button>
+            <Button variant="primary" size="sm" type="submit">
               {t("common.upload", locale)}
-            </button>
+            </Button>
           </div>
         </form>
       </div>
@@ -394,23 +399,23 @@ export function RenameModal({ filename, locale = "en" }: { filename: string; loc
         >
           <input type="hidden" name="oldName" value={filename} />
 
-          <label class="form-control w-full">
-            <span class="label-text text-xs font-medium">New Filename</span>
-            <input
-              class="input input-bordered input-sm w-full font-mono text-sm"
+          <FormField label="New Filename">
+            <Input
+              size="sm"
+              class="font-mono text-sm"
               name="newName"
               value={filename}
               required
             />
-          </label>
+          </FormField>
 
           <div class="modal-action">
-            <button type="button" class="btn btn-sm" onclick="this.closest('dialog').remove()">
+            <Button size="sm" onclick="this.closest('dialog').remove()">
               {t("common.cancel", locale)}
-            </button>
-            <button type="submit" class="btn btn-primary btn-sm">
+            </Button>
+            <Button variant="primary" size="sm" type="submit">
               {t("common.save", locale)}
-            </button>
+            </Button>
           </div>
         </form>
       </div>
@@ -429,18 +434,18 @@ export function FileConfirmDeleteModal({ filename, locale = "en" }: { filename: 
         <p class="font-mono text-xs text-primary mt-1">{filename}</p>
 
         <div class="modal-action">
-          <button type="button" class="btn btn-sm" onclick="this.closest('dialog').remove()">
+          <Button size="sm" onclick="this.closest('dialog').remove()">
             {t("common.cancel", locale)}
-          </button>
-          <button
-            type="button"
-            class="btn btn-error btn-sm"
+          </Button>
+          <Button
+            variant="error"
+            size="sm"
             hx-delete={`/dashboard/admin/files/${encodeURIComponent(filename)}`}
             hx-target="#files-table"
             hx-swap="outerHTML"
           >
             {t("common.delete", locale)}
-          </button>
+          </Button>
         </div>
       </div>
     </dialog>
@@ -470,15 +475,16 @@ export function FileBulkConfirmDeleteModal({ filenames, locale = "en" }: { filen
           {filenames.map((f) => (
             <input type="hidden" name="filenames" value={f} key={f} />
           ))}
-          <button type="button" class="btn btn-sm" onclick="this.closest('dialog').remove()">
+          <Button size="sm" onclick="this.closest('dialog').remove()">
             {t("common.cancel", locale)}
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="error"
+            size="sm"
             type="submit"
-            class="btn btn-error btn-sm"
           >
             {t("admin.delete_selected", locale)} ({filenames.length})
-          </button>
+          </Button>
         </form>
       </div>
     </dialog>

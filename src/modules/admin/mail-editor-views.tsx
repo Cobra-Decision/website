@@ -4,6 +4,7 @@ import { MailPlaceholdersToolbar } from "./mail-placeholders-component";
 import { formatUtcDateTime } from "../events/datetime";
 import type { Locale } from "../../lib/i18n/translations";
 import { t, formatLocalizedNumber } from "../../lib/i18n/context";
+import { Button, Input, Textarea, Select, FormField } from "../../ui/forms";
 
 export const MailEditorView = ({
   templates,
@@ -128,9 +129,9 @@ export const MailEditorView = ({
           </p>
         </div>
         <div class="flex gap-2">
-          <button type="button" class="btn btn-sm btn-outline" x-on:click="resetForm()">
+          <Button variant="outline" size="sm" x-on:click="resetForm()">
             {t("admin.mail.new_template", locale)}
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -172,9 +173,10 @@ export const MailEditorView = ({
                           {formatUtcDateTime(tpl.updated_at, locale, timeZone).full || tpl.updated_at}
                         </span>
                         <div class="flex gap-1">
-                          <button
-                            type="button"
-                            class="btn btn-xs btn-ghost text-primary"
+                          <Button
+                            size="xs"
+                            variant="ghost"
+                            class="text-primary"
                             x-on:click={`
                               templateId = ${JSON.stringify(tpl.id)};
                               title = ${JSON.stringify(tpl.title)};
@@ -185,16 +187,16 @@ export const MailEditorView = ({
                             `}
                           >
                             {t("admin.edit", locale)}
-                          </button>
+                          </Button>
                           <form
                             hx-post={`/dashboard/admin/mail-editor/delete?id=${tpl.id}`}
                             hx-confirm={locale === "fa" ? "آیا از حذف این قالب ایمیل مطمئن هستید؟" : "Are you sure you want to delete this email template?"}
                             hx-target="main"
                             hx-select="main > *"
                           >
-                            <button type="submit" class="btn btn-xs btn-ghost text-error">
+                            <Button size="xs" variant="ghost" class="text-error" type="submit">
                               ✕
-                            </button>
+                            </Button>
                           </form>
                         </div>
                       </div>
@@ -214,44 +216,45 @@ export const MailEditorView = ({
               <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between items-start gap-3 border-b border-base-200 pb-3">
                 <div class="flex items-center gap-2 flex-wrap">
                   <span class="text-xs font-semibold text-base-content shrink-0">{t("admin.mail.load_sample", locale)}:</span>
-                  <select
-                    class="select select-bordered select-xs"
+                  <Select
+                    size="xs"
                     x-model="selectedSample"
                     x-on:change="loadSample(selectedSample)"
+                    class="w-auto"
                   >
                     <option value="">{t("admin.mail.choose_sample", locale)}</option>
                     <template x-for="s in samples" x-bind:key="s.title">
                       <option x-bind:value="s.title" x-text="s.title"></option>
                     </template>
-                  </select>
+                  </Select>
                 </div>
 
                 {/* Format switcher */}
                 <div class="join shrink-0">
-                  <button
-                    type="button"
-                    class="btn btn-xs join-item"
+                  <Button
+                    size="xs"
+                    class="join-item"
                     x-bind:class="format === 'html' ? 'btn-primary' : 'btn-ghost'"
                     x-on:click="format = 'html'"
                   >
                     HTML
-                  </button>
-                  <button
-                    type="button"
-                    class="btn btn-xs join-item"
+                  </Button>
+                  <Button
+                    size="xs"
+                    class="join-item"
                     x-bind:class="format === 'markdown' ? 'btn-primary' : 'btn-ghost'"
                     x-on:click="format = 'markdown'"
                   >
                     Markdown
-                  </button>
-                  <button
-                    type="button"
-                    class="btn btn-xs join-item"
+                  </Button>
+                  <Button
+                    size="xs"
+                    class="join-item"
                     x-bind:class="format === 'text' ? 'btn-primary' : 'btn-ghost'"
                     x-on:click="format = 'text'"
                   >
                     Plain Text
-                  </button>
+                  </Button>
                 </div>
               </div>
 
@@ -266,75 +269,66 @@ export const MailEditorView = ({
                 <input type="hidden" name="format" x-bind:value="format" />
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div class="form-control">
-                    <label class="label py-1">
-                      <span class="label-text font-semibold text-xs">{t("admin.mail.template_title", locale)} *</span>
-                    </label>
-                    <input
-                      type="text"
+                  <FormField label={t("admin.mail.template_title", locale)} required>
+                    <Input
                       name="title"
                       required
                       placeholder="e.g. welcome_email, spring_meetup"
                       x-model="title"
-                      class="input input-bordered input-sm font-mono text-xs w-full"
+                      size="sm"
+                      class="font-mono text-xs"
                     />
-                  </div>
+                  </FormField>
 
-                  <div class="form-control">
-                    <label class="label py-1">
-                      <span class="label-text font-semibold text-xs">{t("admin.mail.email_subject", locale)} *</span>
-                    </label>
-                    <input
-                      type="text"
+                  <FormField label={t("admin.mail.email_subject", locale)} required>
+                    <Input
                       name="subject"
                       required
                       placeholder="Email subject with {{variables}} supported"
                       x-model="subject"
-                      class="input input-bordered input-sm text-xs w-full"
+                      size="sm"
+                      class="text-xs"
                     />
-                  </div>
+                  </FormField>
                 </div>
 
-                <div class="form-control">
-                  <label class="label py-1">
-                    <span class="label-text font-semibold text-xs">{locale === "fa" ? "توضیحات (اختیاری)" : "Description (Optional)"}</span>
-                  </label>
-                  <input
-                    type="text"
+                <FormField label={locale === "fa" ? "توضیحات (اختیاری)" : "Description (Optional)"}>
+                  <Input
                     name="description"
                     placeholder="Short summary of when this email is triggered"
                     x-model="description"
-                    class="input input-bordered input-sm text-xs w-full"
+                    size="sm"
+                    class="text-xs"
                   />
-                </div>
+                </FormField>
 
                 {/* Variable insertion bar */}
                 <div class="space-y-1.5 pt-2">
                   <div class="flex flex-wrap items-center justify-between gap-2">
                     <span class="text-xs font-semibold text-base-content/70">{t("admin.mail.insert_placeholder", locale)}:</span>
-                    <button
-                      type="button"
-                      class="btn btn-xs btn-ghost text-2xs"
+                    <Button
+                      size="xs"
+                      variant="ghost"
+                      class="text-2xs"
                       x-on:click="preview = !preview"
                     >
                       <span x-text="preview ? 'Hide Live Preview' : 'Show Live Preview'"></span>
-                    </button>
+                    </Button>
                   </div>
                   <MailPlaceholdersToolbar onInsertMethod="insertTag" />
                 </div>
 
                 {/* Body Textarea */}
-                <div class="form-control">
-                  <textarea
-                    x-ref="bodyTextarea"
-                    name="value"
-                    required
-                    x-model="value"
-                    rows={12}
-                    placeholder="Enter template body (HTML, Markdown, or Text)..."
-                    class="textarea textarea-bordered font-mono text-xs w-full leading-relaxed"
-                  ></textarea>
-                </div>
+                <Textarea
+                  x-ref="bodyTextarea"
+                  name="value"
+                  required
+                  x-model="value"
+                  rows={12}
+                  size="sm"
+                  placeholder="Enter template body (HTML, Markdown, or Text)..."
+                  class="font-mono text-xs leading-relaxed"
+                />
 
                 {/* Live Preview Panel */}
                 <div x-show="preview" x-cloak class="space-y-2">
@@ -352,17 +346,16 @@ export const MailEditorView = ({
 
                 {/* Form Actions */}
                 <div class="flex items-center justify-between pt-2 border-t border-base-200">
-                  <button
-                    type="button"
-                    class="btn btn-sm btn-ghost"
+                  <Button
+                    size="sm"
+                    variant="ghost"
                     x-on:click="resetForm()"
                   >
                     {t("admin.reset", locale)}
-                  </button>
-                  <button class="btn btn-primary btn-sm gap-2" type="submit">
-                    <span class="htmx-indicator loading loading-spinner loading-xs"></span>
+                  </Button>
+                  <Button variant="primary" size="sm" type="submit" htmxIndicator>
                     <span x-text="templateId ? 'Update Template' : 'Save New Template'"></span>
-                  </button>
+                  </Button>
                 </div>
               </form>
             </div>

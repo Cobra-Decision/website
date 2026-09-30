@@ -5,6 +5,7 @@ import { formatUtcDateTime } from "../events/datetime";
 import type { Locale } from "../../lib/i18n/translations";
 import { t, formatLocalizedNumber } from "../../lib/i18n/context";
 import { DatePicker } from "../../ui/date-picker";
+import { Button, Input, Textarea, Select, Checkbox, Toggle, FormField } from "../../ui/forms";
 
 export const AutomationRuleCard = ({
   rule,
@@ -57,15 +58,12 @@ export const AutomationRuleCard = ({
               hx-swap="outerHTML"
               class="flex items-center shrink-0"
             >
-              <label class="label cursor-pointer p-0">
-                <input
-                  type="checkbox"
-                  class="toggle toggle-primary toggle-sm cursor-pointer"
-                  checked={isEnabled}
-                  onchange="this.form.requestSubmit()"
-                  aria-label={`Toggle status for ${rule.title}`}
-                />
-              </label>
+              <Toggle
+                size="sm"
+                checked={isEnabled}
+                onchange="this.form.requestSubmit()"
+                aria-label={`Toggle status for ${rule.title}`}
+              />
             </form>
           </div>
 
@@ -112,13 +110,15 @@ export const AutomationRuleCard = ({
             hx-target={`#rule-card-${rule.id}`}
             hx-swap="outerHTML"
           >
-            <button
+            <Button
               type="submit"
-              class="btn btn-xs btn-outline btn-primary"
+              size="xs"
+              variant="primary"
+              outline
               title="Force run this automated trigger now"
             >
               {locale === "fa" ? "اجرا اکنون" : "Run Now"}
-            </button>
+            </Button>
           </form>
 
           <details class="dropdown dropdown-end dropdown-top sm:dropdown-bottom relative z-50">
@@ -131,9 +131,8 @@ export const AutomationRuleCard = ({
                 hx-swap="outerHTML"
                 class="space-y-3"
               >
-                <div class="form-control">
-                  <label class="label py-0.5"><span class="label-text text-2xs font-semibold">{t("admin.mail.template_title", locale)}</span></label>
-                  <select name="templateTitle" class="select select-bordered select-xs w-full">
+                <FormField label={t("admin.mail.template_title", locale)}>
+                  <Select name="templateTitle" size="xs">
                     {templates.map((tpl) => (
                       <option
                         key={tpl.id}
@@ -143,36 +142,34 @@ export const AutomationRuleCard = ({
                         {tpl.title}
                       </option>
                     ))}
-                  </select>
-                </div>
+                  </Select>
+                </FormField>
 
                 {typeof config.days_ahead !== "undefined" && (
                   <>
-                    <div class="form-control">
-                      <label class="label py-0.5"><span class="label-text text-2xs font-semibold">{locale === "fa" ? "روزهای قبل" : "Days Ahead"}</span></label>
-                      <input
+                    <FormField label={locale === "fa" ? "روزهای قبل" : "Days Ahead"}>
+                      <Input
                         type="number"
                         name="daysAhead"
                         min="0"
                         max="30"
                         value={config.days_ahead}
-                        class="input input-bordered input-xs w-full"
+                        size="xs"
                       />
-                    </div>
+                    </FormField>
 
-                    <div class="form-control">
-                      <label class="label py-0.5"><span class="label-text text-2xs font-semibold">{locale === "fa" ? "ساعت ارسال" : "Send Time (HH:MM)"}</span></label>
-                      <input
+                    <FormField label={locale === "fa" ? "ساعت ارسال" : "Send Time (HH:MM)"}>
+                      <Input
                         type="time"
                         name="sendTime"
                         value={config.send_time || "06:00"}
-                        class="input input-bordered input-xs w-full"
+                        size="xs"
                       />
-                    </div>
+                    </FormField>
                   </>
                 )}
 
-                <button type="submit" class="btn btn-primary btn-xs w-full">{t("admin.save", locale)}</button>
+                <Button type="submit" variant="primary" size="xs" block>{t("admin.save", locale)}</Button>
               </form>
             </div>
           </details>
@@ -344,14 +341,15 @@ export const MailSchedulerView = ({
             {t("admin.mail.scheduler_subtitle", locale)}
           </p>
         </div>
-        <button
+        <Button
           hx-get="/dashboard/admin/mail-scheduler"
           hx-target="main"
           hx-select="main > *"
-          class="btn btn-sm btn-outline"
+          variant="outline"
+          size="sm"
         >
           {t("admin.files.refresh", locale)}
-        </button>
+        </Button>
       </div>
 
       {/* Navigation Tabs */}
@@ -416,30 +414,30 @@ export const MailSchedulerView = ({
             </div>
 
             <div class="join shrink-0">
-              <button
-                type="button"
-                class="btn btn-sm join-item"
+              <Button
+                size="sm"
+                class="join-item"
                 x-bind:class="format === 'html' ? 'btn-primary' : 'btn-ghost'"
                 x-on:click="format = 'html'"
               >
                 HTML
-              </button>
-              <button
-                type="button"
-                class="btn btn-sm join-item"
+              </Button>
+              <Button
+                size="sm"
+                class="join-item"
                 x-bind:class="format === 'markdown' ? 'btn-primary' : 'btn-ghost'"
                 x-on:click="format = 'markdown'"
               >
                 Markdown
-              </button>
-              <button
-                type="button"
-                class="btn btn-sm join-item"
+              </Button>
+              <Button
+                size="sm"
+                class="join-item"
                 x-bind:class="format === 'text' ? 'btn-primary' : 'btn-ghost'"
                 x-on:click="format = 'text'"
               >
                 Plain Text
-              </button>
+              </Button>
             </div>
           </div>
 
@@ -453,10 +451,9 @@ export const MailSchedulerView = ({
 
             {/* Template Selector & Title */}
             <div class="grid gap-4 sm:grid-cols-2">
-              <div class="form-control">
-                <label class="label py-1"><span class="label-text font-semibold text-xs">{t("admin.mail.select_template", locale)}</span></label>
-                <select
-                  class="select select-bordered select-sm w-full"
+              <FormField label={t("admin.mail.select_template", locale)}>
+                <Select
+                  size="sm"
                   name="templateId"
                   x-model="selectedTemplateId"
                   x-on:change="loadTemplate(selectedTemplateId)"
@@ -467,28 +464,26 @@ export const MailSchedulerView = ({
                       {t.title} ({t.format})
                     </option>
                   ))}
-                </select>
-              </div>
+                </Select>
+              </FormField>
 
-              <div class="form-control">
-                <label class="label py-1"><span class="label-text font-semibold text-xs">{t("admin.mail.template_title", locale)} *</span></label>
-                <input
-                  type="text"
+              <FormField label={t("admin.mail.template_title", locale)} required>
+                <Input
                   name="title"
                   required
                   placeholder="e.g. September Community Meetup"
                   x-model="title"
-                  class="input input-bordered input-sm w-full text-xs"
+                  size="sm"
+                  class="text-xs"
                 />
-              </div>
+              </FormField>
             </div>
 
             {/* Target Audience Mode & Meeting Context */}
             <div class="grid gap-4 sm:grid-cols-2">
-              <div class="form-control">
-                <label class="label py-1"><span class="label-text font-semibold text-xs">{locale === "fa" ? "جلسه / رویداد مرتبط (اختیاری)" : "Event / Meet Context (Optional)"}</span></label>
-                <select
-                  class="select select-bordered select-sm w-full"
+              <FormField label={locale === "fa" ? "جلسه / رویداد مرتبط (اختیاری)" : "Event / Meet Context (Optional)"}>
+                <Select
+                  size="sm"
                   name="meetId"
                   x-model="selectedMeetId"
                   x-on:change="onMeetChange()"
@@ -497,13 +492,12 @@ export const MailSchedulerView = ({
                   <template x-for="m in allMeets" x-bind:key="m.id">
                     <option x-bind:value="m.id" x-text="m.title + ' (' + m.date + ' ' + m.time + ')'"></option>
                   </template>
-                </select>
-              </div>
+                </Select>
+              </FormField>
 
-              <div class="form-control">
-                <label class="label py-1"><span class="label-text font-semibold text-xs">{t("admin.mail.recipient_mode", locale)} *</span></label>
-                <select
-                  class="select select-bordered select-sm w-full"
+              <FormField label={t("admin.mail.recipient_mode", locale)} required>
+                <Select
+                  size="sm"
                   name="targetMode"
                   x-model="targetMode"
                 >
@@ -513,23 +507,19 @@ export const MailSchedulerView = ({
                   <option value="tags">{t("admin.mail.mode_tags", locale)}</option>
                   <option value="domain">{locale === "fa" ? "فیلتر بر اساس دامنه ایمیل (مثلاً gmail.com)" : "Filter by Email Domain (e.g. gmail.com)"}</option>
                   <option value="selected">{t("admin.mail.mode_users", locale)}</option>
-                </select>
-              </div>
+                </Select>
+              </FormField>
 
               <div class="form-control sm:col-span-2 flex flex-col md:flex-row md:items-end justify-between gap-4 p-4 bg-base-200/50 rounded-xl border border-base-300">
                 <div class="flex items-center gap-3">
-                  <label class="label cursor-pointer gap-2 p-0">
-                    <input
-                      type="checkbox"
-                      name="sendNow"
-                      value="true"
-                      x-model="sendNow"
-                      class="checkbox checkbox-primary checkbox-sm"
-                    />
-                    <span class="label-text font-bold text-xs">
-                      {locale === "fa" ? "ارسال فوری (Run Now) بدون زمانبندی آینده" : "Send Immediately (Run Now without future schedule)"}
-                    </span>
-                  </label>
+                  <Checkbox
+                    size="sm"
+                    name="sendNow"
+                    value="true"
+                    x-model="sendNow"
+                    label={locale === "fa" ? "ارسال فوری (Run Now) بدون زمانبندی آینده" : "Send Immediately (Run Now without future schedule)"}
+                    class="font-bold text-xs"
+                  />
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full md:w-auto" x-show="!sendNow" x-cloak>
@@ -540,15 +530,15 @@ export const MailSchedulerView = ({
                       locale={locale}
                     />
                   </div>
-                  <div class="form-control">
-                    <label class="label py-1"><span class="label-text font-semibold text-xs">{locale === "fa" ? "ساعت ارسال" : "Schedule Time"}</span></label>
-                    <input
+                  <FormField label={locale === "fa" ? "ساعت ارسال" : "Schedule Time"}>
+                    <Input
                       type="time"
                       name="scheduleTime"
                       x-model="scheduleTime"
-                      class="input input-bordered input-sm w-full text-xs"
+                      size="sm"
+                      class="text-xs"
                     />
-                  </div>
+                  </FormField>
                 </div>
               </div>
 
@@ -559,25 +549,23 @@ export const MailSchedulerView = ({
                     {t("admin.mail.mode_tags", locale)} (<span x-text="selectedTagIds.length"></span>)
                   </label>
                   <div class="flex gap-1">
-                    <button type="button" class="btn btn-xs btn-ghost" x-on:click="selectAllFilteredTags()">{t("admin.select_all", locale)}</button>
-                    <button type="button" class="btn btn-xs btn-ghost" x-on:click="clearSelectedTags()">{t("admin.reset", locale)}</button>
+                    <Button size="xs" variant="ghost" x-on:click="selectAllFilteredTags()">{t("admin.select_all", locale)}</Button>
+                    <Button size="xs" variant="ghost" x-on:click="clearSelectedTags()">{t("admin.reset", locale)}</Button>
                   </div>
                 </div>
-                <input
-                  type="text"
+                <Input
                   placeholder={locale === "fa" ? "جستجوی برچسب‌ها..." : "Search tags..."}
                   x-model="tagSearch"
-                  class="input input-bordered input-xs w-full"
+                  size="xs"
                 />
                 <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-40 overflow-y-auto p-2 border border-base-300 rounded-lg bg-base-200/40">
                   <template x-for="tag in filteredTags" x-bind:key="tag.id">
                     <label class="cursor-pointer label justify-start gap-2 py-1 px-2 rounded hover:bg-base-200 bg-base-100 border border-base-300/50">
-                      <input
-                        type="checkbox"
+                      <Checkbox
+                        size="xs"
                         name="tagIds"
                         x-bind:value="tag.id"
                         x-model="selectedTagIds"
-                        class="checkbox checkbox-primary checkbox-xs"
                       />
                       <span class="label-text text-xs truncate" x-text="tag.title"></span>
                     </label>
@@ -587,13 +575,14 @@ export const MailSchedulerView = ({
 
               {/* Domain Input */}
               <div class="form-control sm:col-span-2" x-show="targetMode === 'domain'" x-cloak>
-                <label class="label py-1"><span class="label-text font-semibold text-xs">{locale === "fa" ? "دامنه ایمیل" : "Email Domain Filter"}</span></label>
-                <input
-                  type="text"
-                  name="domain"
-                  placeholder="e.g. gmail.com or company.org"
-                  class="input input-bordered input-sm w-full text-xs"
-                />
+                <FormField label={locale === "fa" ? "دامنه ایمیل" : "Email Domain Filter"}>
+                  <Input
+                    name="domain"
+                    placeholder="e.g. gmail.com or company.org"
+                    size="sm"
+                    class="text-xs"
+                  />
+                </FormField>
               </div>
 
               {/* Selected Users */}
@@ -603,25 +592,23 @@ export const MailSchedulerView = ({
                     {t("admin.mail.mode_users", locale)} (<span x-text="selectedUserIds.length"></span>)
                   </label>
                   <div class="flex gap-1">
-                    <button type="button" class="btn btn-xs btn-ghost" x-on:click="selectAllFilteredUsers()">{t("admin.select_all", locale)}</button>
-                    <button type="button" class="btn btn-xs btn-ghost" x-on:click="clearSelectedUsers()">{t("admin.reset", locale)}</button>
+                    <Button size="xs" variant="ghost" x-on:click="selectAllFilteredUsers()">{t("admin.select_all", locale)}</Button>
+                    <Button size="xs" variant="ghost" x-on:click="clearSelectedUsers()">{t("admin.reset", locale)}</Button>
                   </div>
                 </div>
-                <input
-                  type="text"
+                <Input
                   placeholder={locale === "fa" ? "جستجوی کاربران بر اساس نام یا ایمیل..." : "Search users by name or email..."}
                   x-model="userSearch"
-                  class="input input-bordered input-xs w-full"
+                  size="xs"
                 />
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto p-2 border border-base-300 rounded-lg bg-base-200/40">
                   <template x-for="u in filteredUsers" x-bind:key="u.id">
                     <label class="cursor-pointer label justify-start gap-2 py-1 px-2 rounded hover:bg-base-200 bg-base-100 border border-base-300/50">
-                      <input
-                        type="checkbox"
+                      <Checkbox
+                        size="xs"
                         name="userIds"
                         x-bind:value="u.id"
                         x-model="selectedUserIds"
-                        class="checkbox checkbox-primary checkbox-xs"
                       />
                       <span class="label-text text-xs truncate">
                         <strong x-text="u.email"></strong>
@@ -634,53 +621,53 @@ export const MailSchedulerView = ({
             </div>
 
             {/* Subject */}
-            <div class="form-control">
-              <label class="label py-1"><span class="label-text font-semibold text-xs">{t("admin.mail.email_subject", locale)} *</span></label>
-              <input
-                type="text"
+            <FormField label={t("admin.mail.email_subject", locale)} required>
+              <Input
                 name="subject"
                 required
                 placeholder="Important Announcement from CobraDecision"
                 x-model="subject"
-                class="input input-bordered input-sm w-full text-xs"
+                size="sm"
+                class="text-xs"
               />
-            </div>
+            </FormField>
 
             {/* Body Textarea & Live Preview */}
             <div class="space-y-2">
               <div class="flex items-center justify-between">
                 <label class="label py-0"><span class="label-text font-semibold text-xs">{t("admin.mail.body_content", locale)} *</span></label>
                 <div class="join">
-                  <button
-                    type="button"
-                    class="btn btn-2xs join-item"
+                  <Button
+                    size="xs"
+                    class="join-item btn-2xs"
                     x-bind:class="editorSubTab === 'compose' ? 'btn-primary' : 'btn-ghost'"
                     x-on:click="editorSubTab = 'compose'"
                   >
                     {locale === "fa" ? "ویرایش متن" : "Compose"}
-                  </button>
-                  <button
-                    type="button"
-                    class="btn btn-2xs join-item"
+                  </Button>
+                  <Button
+                    size="xs"
+                    class="join-item btn-2xs"
                     x-bind:class="editorSubTab === 'preview' ? 'btn-primary' : 'btn-ghost'"
                     x-on:click="editorSubTab = 'preview'"
                   >
                     {locale === "fa" ? "پیش‌نمایش زنده" : "Live Preview"}
-                  </button>
+                  </Button>
                 </div>
               </div>
 
               <div x-show="editorSubTab === 'compose'" class="space-y-1">
                 <MailPlaceholdersToolbar onInsertMethod="insertTag" />
-                <textarea
+                <Textarea
                   x-ref="bodyTextarea"
                   name="body"
                   required
                   x-model="body"
                   rows={7}
+                  size="sm"
                   placeholder="Compose scheduled email body. {{name}}, {{email}}, {{date}}, {{date_shamsi}}, {{meet_title}}, {{meet_link}} supported."
-                  class="textarea textarea-bordered font-mono text-xs w-full leading-relaxed"
-                ></textarea>
+                  class="font-mono text-xs leading-relaxed"
+                />
               </div>
 
               <div x-show="editorSubTab === 'preview'" x-cloak class="rounded-xl border border-base-300 bg-base-200/30 overflow-hidden">
@@ -700,12 +687,11 @@ export const MailSchedulerView = ({
                 {locale === "fa" ? "⚡ ایمیل‌ها بلافاصله پس از کلیک به صف ارسال افزوده خواهند شد." : "⚡ Emails will be enqueued for immediate delivery upon clicking send."}
               </span>
               <span x-show="!sendNow"></span>
-              <button class="btn btn-primary btn-sm gap-2" type="submit">
-                <span class="htmx-indicator loading loading-spinner loading-xs"></span>
+              <Button variant="primary" size="sm" type="submit" htmxIndicator>
                 <span x-text={`sendNow ? '${locale === "fa" ? "ارسال فوری (Run Now)" : "Send Immediately (Run Now)"}' : '${t("admin.mail.send_now", locale)}'`}>
                   {t("admin.mail.send_now", locale)}
                 </span>
-              </button>
+              </Button>
             </div>
           </form>
         </div>
@@ -787,9 +773,9 @@ export const MailSchedulerView = ({
                               hx-target="main"
                               hx-select="main > *"
                             >
-                              <button type="submit" class="btn btn-xs btn-outline btn-warning">
+                              <Button type="submit" size="xs" variant="warning" outline>
                                 {t("admin.cancel", locale)}
-                              </button>
+                              </Button>
                             </form>
                           )}
                           <form
@@ -797,9 +783,9 @@ export const MailSchedulerView = ({
                             hx-target="main"
                             hx-select="main > *"
                           >
-                            <button type="submit" class="btn btn-xs btn-outline btn-info" title="Repeat this broadcast in queue">
+                            <Button type="submit" size="xs" variant="info" outline title="Repeat this broadcast in queue">
                               {locale === "fa" ? "تکرار" : "Repeat"}
-                            </button>
+                            </Button>
                           </form>
                           <form
                             hx-post={`/dashboard/admin/mail-scheduler/delete?id=${job.id}`}
@@ -807,9 +793,9 @@ export const MailSchedulerView = ({
                             hx-target="main"
                             hx-select="main > *"
                           >
-                            <button type="submit" class="btn btn-xs btn-ghost text-error">
+                            <Button type="submit" size="xs" variant="ghost" class="text-error">
                               {t("admin.delete", locale)}
-                            </button>
+                            </Button>
                           </form>
                         </div>
                       </td>

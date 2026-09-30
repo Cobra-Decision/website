@@ -3,6 +3,7 @@ import type { Tag } from "../events/types";
 import { MailPlaceholdersToolbar } from "./mail-placeholders-component";
 import type { Locale } from "../../lib/i18n/translations";
 import { t, formatLocalizedNumber } from "../../lib/i18n/context";
+import { Button, Input, Textarea, Select, Checkbox, FormField } from "../../ui/forms";
 
 export const MailerDashboardView = ({
   stats,
@@ -129,14 +130,16 @@ export const MailerDashboardView = ({
             {t("admin.mail.management_subtitle", locale)}
           </p>
         </div>
-        <button
+        <Button
           hx-get="/dashboard/admin/mailer"
           hx-target="main"
           hx-select="main > *"
-          class="btn btn-sm btn-outline gap-2"
+          variant="outline"
+          size="sm"
+          class="gap-2"
         >
           {t("admin.files.refresh", locale)}
-        </button>
+        </Button>
       </div>
 
       {/* Stats Cards */}
@@ -180,30 +183,30 @@ export const MailerDashboardView = ({
             </div>
             {/* Format Style Selector */}
             <div class="join shrink-0">
-              <button
-                type="button"
-                class="btn btn-sm join-item"
+              <Button
+                size="sm"
+                class="join-item"
                 x-bind:class="format === 'html' ? 'btn-primary' : 'btn-ghost'"
                 x-on:click="format = 'html'"
               >
                 HTML
-              </button>
-              <button
-                type="button"
-                class="btn btn-sm join-item"
+              </Button>
+              <Button
+                size="sm"
+                class="join-item"
                 x-bind:class="format === 'markdown' ? 'btn-primary' : 'btn-ghost'"
                 x-on:click="format = 'markdown'"
               >
                 Markdown
-              </button>
-              <button
-                type="button"
-                class="btn btn-sm join-item"
+              </Button>
+              <Button
+                size="sm"
+                class="join-item"
                 x-bind:class="format === 'text' ? 'btn-primary' : 'btn-ghost'"
                 x-on:click="format = 'text'"
               >
                 Plain Text
-              </button>
+              </Button>
             </div>
           </div>
 
@@ -218,10 +221,9 @@ export const MailerDashboardView = ({
 
             {/* Target Audience Select */}
             <div class="grid gap-4 sm:grid-cols-2">
-              <div class="form-control sm:col-span-2">
-                <label class="label"><span class="label-text font-semibold text-xs">{t("admin.mail.recipient_mode", locale)}</span></label>
-                <select
-                  class="select select-bordered select-sm w-full"
+              <FormField label={t("admin.mail.recipient_mode", locale)} class="sm:col-span-2">
+                <Select
+                  size="sm"
                   name="targetMode"
                   x-model="targetMode"
                 >
@@ -229,8 +231,8 @@ export const MailerDashboardView = ({
                   <option value="tags">{t("admin.mail.mode_tags", locale)}</option>
                   <option value="domain">{locale === "fa" ? "فیلتر بر اساس دامنه ایمیل (مثلاً gmail.com)" : "Filter by Email Domain (e.g. gmail.com)"}</option>
                   <option value="selected">{t("admin.mail.mode_users", locale)}</option>
-                </select>
-              </div>
+                </Select>
+              </FormField>
 
               {/* Tag selector with Search and Filter */}
               <div class="form-control sm:col-span-2 space-y-2" x-show="targetMode === 'tags'" x-cloak>
@@ -239,25 +241,23 @@ export const MailerDashboardView = ({
                     {t("admin.mail.mode_tags", locale)} (<span x-text="selectedTagIds.length"></span>)
                   </label>
                   <div class="flex gap-1">
-                    <button type="button" class="btn btn-xs btn-ghost" x-on:click="selectAllFilteredTags()">{t("admin.select_all", locale)}</button>
-                    <button type="button" class="btn btn-xs btn-ghost" x-on:click="clearSelectedTags()">{t("admin.reset", locale)}</button>
+                    <Button size="xs" variant="ghost" x-on:click="selectAllFilteredTags()">{t("admin.select_all", locale)}</Button>
+                    <Button size="xs" variant="ghost" x-on:click="clearSelectedTags()">{t("admin.reset", locale)}</Button>
                   </div>
                 </div>
-                <input
-                  type="text"
+                <Input
                   placeholder={locale === "fa" ? "جستجوی برچسب‌ها..." : "Search tags..."}
                   x-model="tagSearch"
-                  class="input input-bordered input-xs w-full"
+                  size="xs"
                 />
                 <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-40 overflow-y-auto p-2 border border-base-300 rounded-lg bg-base-200/40">
                   <template x-for="tag in filteredTags" x-bind:key="tag.id">
                     <label class="cursor-pointer label justify-start gap-2 py-1 px-2 rounded hover:bg-base-200 bg-base-100 border border-base-300/50">
-                      <input
-                        type="checkbox"
+                      <Checkbox
+                        size="xs"
                         name="tagIds"
                         x-bind:value="tag.id"
                         x-model="selectedTagIds"
-                        class="checkbox checkbox-primary checkbox-xs"
                       />
                       <span class="label-text text-xs truncate" x-text="tag.title"></span>
                     </label>
@@ -267,13 +267,13 @@ export const MailerDashboardView = ({
 
               {/* Domain Input */}
               <div class="form-control sm:col-span-2" x-show="targetMode === 'domain'" x-cloak>
-                <label class="label"><span class="label-text font-semibold text-xs">{locale === "fa" ? "دامنه ایمیل" : "Email Domain"}</span></label>
-                <input
-                  type="text"
-                  name="domain"
-                  placeholder="gmail.com or company.org"
-                  class="input input-bordered input-sm w-full"
-                />
+                <FormField label={locale === "fa" ? "دامنه ایمیل" : "Email Domain"}>
+                  <Input
+                    name="domain"
+                    placeholder="gmail.com or company.org"
+                    size="sm"
+                  />
+                </FormField>
               </div>
 
               {/* Selected Users with Search and Filter */}
@@ -283,25 +283,23 @@ export const MailerDashboardView = ({
                     {t("admin.mail.mode_users", locale)} (<span x-text="selectedUserIds.length"></span>)
                   </label>
                   <div class="flex gap-1">
-                    <button type="button" class="btn btn-xs btn-ghost" x-on:click="selectAllFilteredUsers()">{t("admin.select_all", locale)}</button>
-                    <button type="button" class="btn btn-xs btn-ghost" x-on:click="clearSelectedUsers()">{t("admin.reset", locale)}</button>
+                    <Button size="xs" variant="ghost" x-on:click="selectAllFilteredUsers()">{t("admin.select_all", locale)}</Button>
+                    <Button size="xs" variant="ghost" x-on:click="clearSelectedUsers()">{t("admin.reset", locale)}</Button>
                   </div>
                 </div>
-                <input
-                  type="text"
+                <Input
                   placeholder={locale === "fa" ? "جستجوی کاربران..." : "Search users by name or email..."}
                   x-model="userSearch"
-                  class="input input-bordered input-xs w-full"
+                  size="xs"
                 />
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto p-2 border border-base-300 rounded-lg bg-base-200/40">
                   <template x-for="u in filteredUsers" x-bind:key="u.id">
                     <label class="cursor-pointer label justify-start gap-2 py-1 px-2 rounded hover:bg-base-200 bg-base-100 border border-base-300/50">
-                      <input
-                        type="checkbox"
+                      <Checkbox
+                        size="xs"
                         name="userIds"
                         x-bind:value="u.id"
                         x-model="selectedUserIds"
-                        class="checkbox checkbox-primary checkbox-xs"
                       />
                       <span class="label-text text-xs truncate">
                         <strong x-text="u.email"></strong>
@@ -314,29 +312,26 @@ export const MailerDashboardView = ({
             </div>
 
             {/* Subject */}
-            <div class="form-control">
-              <label class="label"><span class="label-text font-semibold text-xs">{t("admin.mail.email_subject", locale)}</span></label>
-              <input
-                type="text"
+            <FormField label={t("admin.mail.email_subject", locale)} required>
+              <Input
                 name="subject"
                 required
                 placeholder="Important Announcement from CobraDecision"
-                class="input input-bordered input-sm w-full"
+                size="sm"
               />
-            </div>
+            </FormField>
 
             {/* File Attachment Upload */}
-            <div class="form-control">
-              <label class="label">
-                <span class="label-text font-semibold text-xs">{locale === "fa" ? "پیوست فایل (اختیاری)" : "Attach Files (Optional)"}</span>
-                <span class="label-text-alt text-base-content/60 text-2xs">PDF, Images, Documents (max 25MB)</span>
-              </label>
-              <input
+            <FormField
+              label={locale === "fa" ? "پیوست فایل (اختیاری)" : "Attach Files (Optional)"}
+              optionalLabel="PDF, Images, Documents (max 25MB)"
+            >
+              <Input
                 type="file"
                 name="attachment"
-                class="file-input file-input-bordered file-input-sm w-full"
+                size="sm"
               />
-            </div>
+            </FormField>
 
             {/* Email Body Editor & Live Tag Replacement */}
             <div class="form-control space-y-1">
@@ -344,19 +339,20 @@ export const MailerDashboardView = ({
                 <label class="label-text font-semibold text-xs">
                   <span x-text="format === 'html' ? 'Email HTML Body' : format === 'markdown' ? 'Email Markdown Body' : 'Email Plain Text Body'"></span>
                 </label>
-                <button
-                  type="button"
+                <Button
+                  size="xs"
+                  variant="ghost"
+                  class="text-2xs"
                   x-on:click="preview = !preview"
-                  class="btn btn-xs btn-ghost text-2xs"
                 >
                   <span x-text="preview ? 'Hide Live Preview' : 'Show Live Preview'"></span>
-                </button>
+                </Button>
               </div>
 
               {/* Shared Variables Toolbar */}
               <MailPlaceholdersToolbar onInsertMethod="insertTag" />
 
-              <textarea
+              <Textarea
                 x-ref="bodyTextarea"
                 name="body"
                 required
@@ -365,8 +361,8 @@ export const MailerDashboardView = ({
                 placeholder={
                   "Enter email content here...\n{{name}}, {{email}}, {{date}}, {{date_shamsi}} supported."
                 }
-                class="textarea textarea-bordered font-mono text-sm w-full"
-              ></textarea>
+                class="font-mono text-sm"
+              />
 
               {/* Live Preview Pane with Tag Replacement */}
               <div
@@ -385,10 +381,9 @@ export const MailerDashboardView = ({
             <div id="composer-result"></div>
 
             <div class="flex justify-end">
-              <button class="btn btn-primary btn-sm gap-2" type="submit">
-                <span class="htmx-indicator loading loading-spinner loading-xs"></span>
+              <Button variant="primary" size="sm" type="submit" htmxIndicator>
                 <span>{t("admin.mail.send_now", locale)}</span>
-              </button>
+              </Button>
             </div>
           </form>
         </div>
