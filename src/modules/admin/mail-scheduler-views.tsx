@@ -5,6 +5,7 @@ import { formatUtcDateTime } from "../events/datetime";
 import type { Locale } from "../../lib/i18n/translations";
 import { t, formatLocalizedNumber } from "../../lib/i18n/context";
 import { DatePicker } from "../../ui/date-picker";
+import { Badge } from "../../ui/forms";
 
 export const AutomationRuleCard = ({
   rule,
@@ -36,19 +37,19 @@ export const AutomationRuleCard = ({
           {/* Header Badges & Toggle */}
           <div class="flex items-center justify-between gap-3">
             <div class="flex items-center gap-1.5 flex-wrap">
-              <span class="badge badge-outline badge-xs font-mono uppercase tracking-wider font-semibold">
+              <Badge outline size="xs" class="font-mono uppercase tracking-wider font-semibold">
                 {rule.trigger_type}
-              </span>
-              <span
-                class={`badge badge-xs font-semibold gap-1 ${
-                  isEnabled
-                    ? "badge-success text-success-content"
-                    : "badge-ghost text-base-content/60"
+              </Badge>
+              <Badge
+                variant={isEnabled ? "success" : "ghost"}
+                size="xs"
+                class={`font-semibold gap-1 ${
+                  isEnabled ? "text-success-content" : "text-base-content/60"
                 }`}
               >
                 <span class={`inline-block w-1.5 h-1.5 rounded-full ${isEnabled ? "bg-success-content animate-pulse" : "bg-base-content/40"}`}></span>
                 {isEnabled ? t("admin.mail.active", locale) : t("admin.mail.disabled", locale)}
-              </span>
+              </Badge>
             </div>
 
             <form
@@ -601,33 +602,37 @@ export const MailSchedulerView = ({
                   scheduledList.map((job) => (
                     <tr key={job.id}>
                       <td>
-                        <span
-                          class={`badge badge-sm ${
+                        <Badge
+                          variant={
                             job.status === "sent"
-                              ? "badge-success text-white"
+                              ? "success"
                               : job.status === "processing"
-                              ? "badge-info text-white"
+                              ? "info"
                               : job.status === "failed"
-                              ? "badge-error text-white"
+                              ? "error"
                               : job.status === "cancelled"
-                              ? "badge-ghost"
-                              : "badge-warning"
-                          }`}
+                              ? "ghost"
+                              : "warning"
+                          }
+                          size="sm"
+                          class={job.status === "sent" || job.status === "processing" || job.status === "failed" ? "text-white" : ""}
                         >
                           {job.status}
-                        </span>
+                        </Badge>
                       </td>
                       <td class="font-medium">
                         <div>{job.title}</div>
                         <div class="text-2xs text-base-content/60 truncate max-w-xs">{job.subject}</div>
                       </td>
                       <td>
-                        <span class="badge badge-outline badge-xs uppercase font-mono">
+                        <Badge outline size="xs" class="uppercase font-mono">
                           {job.target_mode}
-                        </span>
+                        </Badge>
                       </td>
                       <td>
-                        <span class="badge badge-ghost badge-xs uppercase font-mono">{job.format}</span>
+                        <Badge variant="ghost" size="xs" class="uppercase font-mono">
+                          {job.format}
+                        </Badge>
                       </td>
                       <td class="text-xs" title={job.scheduled_for}>
                         {formatUtcDateTime(job.scheduled_for, locale, timeZone).full || new Date(job.scheduled_for).toLocaleString()}

@@ -28,6 +28,7 @@ import { logger } from "../../lib/logger";
 import { createDatabaseAdminRoutes } from "./database-routes";
 import { ImageCropEditor } from "../../ui/image-crop-editor";
 import { PlatformsDataView, getPlatformFunnelStats } from "./platforms-views";
+import { Badge } from "../../ui/forms";
 
 type AdminEnv = {
   Variables: {
@@ -609,7 +610,7 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
             <h4 class="font-semibold text-base">{t("admin.crud.endpoint_permissions", locale)}</h4>
             <p class="text-xs text-base-content/70">{t("admin.crud.endpoint_permissions_desc", locale)}</p>
           </div>
-          <span class="badge badge-sm badge-outline">{mappings.length} {t("admin.crud.assigned", locale)}</span>
+          <Badge outline size="sm">{mappings.length} {t("admin.crud.assigned", locale)}</Badge>
         </div>
 
         {/* Searchable Add Endpoint Section */}

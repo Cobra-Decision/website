@@ -3,6 +3,7 @@ import type { Tag } from "../events/types";
 import { MailPlaceholdersToolbar } from "./mail-placeholders-component";
 import type { Locale } from "../../lib/i18n/translations";
 import { t, formatLocalizedNumber } from "../../lib/i18n/context";
+import { Badge } from "../../ui/forms";
 
 export const MailerDashboardView = ({
   stats,
@@ -376,7 +377,7 @@ export const MailerDashboardView = ({
               >
                 <div class="flex items-center justify-between border-b pb-1 mb-2">
                   <span class="text-xs font-bold uppercase text-gray-400">{t("admin.mail.live_preview", locale)}</span>
-                  <span class="badge badge-xs badge-ghost font-mono uppercase" x-text="format"></span>
+                  <Badge variant="ghost" size="xs" class="font-mono uppercase" x-text="format" />
                 </div>
                 <div x-html="interpolatedPreview" class="prose max-w-none"></div>
               </div>
@@ -428,22 +429,24 @@ export const MailerDashboardView = ({
                   buffer.map((msg) => (
                     <tr key={msg.id}>
                       <td>
-                        <span
-                          class={`badge badge-sm ${
+                        <Badge
+                          variant={
                             msg.status === "sent"
-                              ? "badge-success text-white"
+                              ? "success"
                               : msg.status === "failed"
-                              ? "badge-error text-white"
-                              : "badge-warning"
-                          }`}
+                              ? "error"
+                              : "warning"
+                          }
+                          size="sm"
+                          class={msg.status === "sent" || msg.status === "failed" ? "text-white" : ""}
                         >
                           {msg.status}
-                        </span>
+                        </Badge>
                       </td>
                       <td class="font-mono text-xs">{msg.to}</td>
                       <td class="font-medium max-w-xs truncate">{msg.subject}</td>
                       <td>
-                        <span class="badge badge-ghost badge-xs">{msg.format ?? "html"}</span>
+                        <Badge variant="ghost" size="xs">{msg.format ?? "html"}</Badge>
                       </td>
                       <td class="text-xs opacity-75">{msg.provider}</td>
                       <td class="text-xs opacity-75">

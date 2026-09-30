@@ -1,6 +1,7 @@
 import type { Database } from "bun:sqlite";
 import type { Locale } from "../../lib/i18n/translations";
 import { t } from "../../lib/i18n/context";
+import { Badge } from "../../ui/forms";
 
 type SchemaRow = { table_name: string; name: string; type: string; notnull: number; dflt_value: string | null; pk: number };
 const fields = ["table_name", "name", "type", "notnull", "dflt_value", "pk"] as const;
@@ -79,9 +80,9 @@ export function SchemaTable({
                   <td class="font-mono font-medium text-xs text-primary">{row.table_name}</td>
                   <td class="font-mono text-xs">{row.name}</td>
                   <td><code class="rounded bg-base-300 px-1.5 py-0.5 text-xs text-secondary font-mono">{row.type || "ANY"}</code></td>
-                  <td>{row.notnull ? <span class="badge badge-error badge-xs font-semibold">NOT NULL</span> : <span class="text-base-content/40 text-xs">{t("admin.report.nullable", locale)}</span>}</td>
+                  <td>{row.notnull ? <Badge variant="error" size="xs" class="font-semibold">NOT NULL</Badge> : <span class="text-base-content/40 text-xs">{t("admin.report.nullable", locale)}</span>}</td>
                   <td class="font-mono text-xs">{row.dflt_value ?? <span class="text-base-content/40">—</span>}</td>
-                  <td>{row.pk ? <span class="badge badge-primary badge-xs font-semibold">{t("admin.report.primary_key", locale)}</span> : ""}</td>
+                  <td>{row.pk ? <Badge variant="primary" size="xs" class="font-semibold">{t("admin.report.primary_key", locale)}</Badge> : ""}</td>
                 </tr>
               ))
             ) : (
