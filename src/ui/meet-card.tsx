@@ -75,12 +75,12 @@ export const UnifiedMeetCard = ({
           loading={imagePriority || isFeatured ? "eager" : "lazy"}
           {...(imagePriority || isFeatured ? { fetchpriority: "high" } : {})}
         />
-        <Badge as="div" class="absolute start-3 top-3 border-0 bg-base-100/90 text-xs font-medium text-base-content backdrop-blur-sm z-20">
+        <Badge as="div" size="sm" class="absolute start-3 top-3 border-0 bg-base-100/90 text-xs font-medium text-base-content backdrop-blur-sm z-20">
           {isFeatured ? `${t("hero.up_next", locale)} · ${formattedDate}` : formattedDate}
         </Badge>
-        <Badge as="div" class="absolute end-3 top-3 border-0 p-0 text-xs font-medium z-20">
+        <div class="absolute end-3 top-3 z-20">
           <MeetStatusBadge status={meet.status} locale={locale} size="sm" />
-        </Badge>
+        </div>
       </div>
 
       {/* Card Body */}

@@ -23,7 +23,7 @@ export const RsvpButton = ({
   if (isCompleted) {
     return (
       <div class="rsvp-button" id={`rsvp-btn-${meet.id}`}>
-        <Badge variant="ghost" size="sm" class="py-2 px-3">{t("meet.status.completed", locale)}</Badge>
+        <Badge variant="ghost" size="sm">{t("meet.status.completed", locale)}</Badge>
       </div>
     );
   }
