@@ -4,7 +4,7 @@ import { MailPlaceholdersToolbar } from "./mail-placeholders-component";
 import { formatUtcDateTime } from "../events/datetime";
 import type { Locale } from "../../lib/i18n/translations";
 import { t, formatLocalizedNumber } from "../../lib/i18n/context";
-import { Button, Input, Textarea, Select, FormField } from "../../ui/forms";
+import { Button, Input, Textarea, Select, FormField, Badge } from "../../ui/forms";
 
 export const MailEditorView = ({
   templates,
@@ -160,9 +160,9 @@ export const MailEditorView = ({
                         <span class="font-semibold text-xs text-primary font-mono truncate">
                           {tpl.title}
                         </span>
-                        <span class="badge badge-ghost badge-xs uppercase font-mono">
+                        <Badge variant="ghost" size="xs" class="uppercase font-mono">
                           {tpl.format}
-                        </span>
+                        </Badge>
                       </div>
                       <p class="text-xs text-base-content/70 truncate">{tpl.subject || "No subject"}</p>
                       {tpl.description && (
@@ -336,7 +336,7 @@ export const MailEditorView = ({
                     <span class="text-xs font-bold uppercase text-base-content/50">
                       {t("admin.mail.live_preview", locale)}
                     </span>
-                    <span class="badge badge-sm badge-ghost font-mono text-2xs" x-text="format"></span>
+                    <Badge variant="ghost" size="sm" class="font-mono text-2xs" x-text="format" />
                   </div>
                   <div
                     class="rounded-xl border border-base-300 bg-white p-4 text-slate-800 shadow-inner overflow-x-auto min-h-[140px]"

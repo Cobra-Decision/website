@@ -6,7 +6,7 @@ import { UnifiedMeetCard } from "../../../ui/meet-card";
 import { DatePicker } from "../../../ui/date-picker";
 import type { Locale } from "../../../lib/i18n/translations";
 import { t } from "../../../lib/i18n/context";
-import { Button, FormField, Input, Select } from "../../../ui/forms";
+import { Button, FormField, Input, Select, Badge } from "../../../ui/forms";
 
 export const RsvpButton = ({
   meet,
@@ -23,7 +23,7 @@ export const RsvpButton = ({
   if (isCompleted) {
     return (
       <div class="rsvp-button" id={`rsvp-btn-${meet.id}`}>
-        <span class="badge badge-ghost text-xs py-2 px-3">{t("meet.status.completed", locale)}</span>
+        <Badge variant="ghost" size="sm" class="py-2 px-3">{t("meet.status.completed", locale)}</Badge>
       </div>
     );
   }

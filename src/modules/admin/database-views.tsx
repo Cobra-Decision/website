@@ -3,7 +3,7 @@ import { getCurrentVersion, migrations } from "../../lib/database/migration";
 import type { Locale } from "../../lib/i18n/translations";
 import { t, formatLocalizedNumber } from "../../lib/i18n/context";
 import { DatabaseBackupIcon, UploadIcon, DownloadIcon } from "../../ui/icons";
-import { Button } from "../../ui/forms";
+import { Button, Badge } from "../../ui/forms";
 
 export interface DatabaseStats {
   sqliteVersion: string;
@@ -112,7 +112,7 @@ export function DatabaseManagementView({
         <div class="card bg-base-100 border border-base-300 shadow-sm p-4">
           <div class="text-xs uppercase font-bold text-base-content/50">{t("admin.db.file_size", locale)}</div>
           <div class="text-xl font-bold mt-1 text-base-content">{stats.databaseSizeFormatted}</div>
-          <div class="text-xs text-base-content/60 mt-1">{t("admin.db.integrity", locale)}: <span class="badge badge-success badge-xs font-mono">{stats.integrityStatus}</span></div>
+          <div class="text-xs text-base-content/60 mt-1">{t("admin.db.integrity", locale)}: <Badge variant="success" size="xs" class="font-mono">{stats.integrityStatus}</Badge></div>
         </div>
 
         <div class="card bg-base-100 border border-base-300 shadow-sm p-4">
@@ -169,9 +169,9 @@ export function DatabaseManagementView({
               </div>
               <div class="flex flex-wrap gap-1.5 pt-1">
                 {stats.tables.map((tbl) => (
-                  <span key={tbl.name} class="badge badge-neutral badge-sm font-mono">
+                  <Badge key={tbl.name} variant="neutral" size="sm" class="font-mono">
                     {tbl.name}: {formatLocalizedNumber(tbl.rowCount, locale)}
-                  </span>
+                  </Badge>
                 ))}
               </div>
             </div>
@@ -232,9 +232,9 @@ export function DatabaseManagementView({
               </div>
               <div class="flex justify-between items-center py-1 border-b border-base-200">
                 <span class="text-base-content/70">{t("admin.db.ftp_mirroring", locale)}:</span>
-                <span class={stats.ftpConfigured ? "badge badge-success badge-sm" : "badge badge-ghost badge-sm"}>
+                <Badge variant={stats.ftpConfigured ? "success" : "ghost"} size="sm">
                   {stats.ftpConfigured ? t("admin.db.ftp_configured", locale) : t("admin.db.ftp_disabled", locale)}
-                </span>
+                </Badge>
               </div>
               <div class="flex justify-between items-center py-1 border-b border-base-200">
                 <span class="text-base-content/70">{t("admin.db.ftp_retention", locale)}:</span>

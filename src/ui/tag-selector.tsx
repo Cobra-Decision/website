@@ -2,7 +2,7 @@ import type { Tag } from "../modules/events/types";
 import type { Locale } from "../lib/i18n/translations";
 import { isRtl } from "../lib/i18n/context";
 import { CheckIcon, AlertTriangleIcon } from "./icons";
-import { FormField } from "./forms";
+import { FormField, Badge } from "./forms";
 
 export const TagSelector = ({
   tags,
@@ -42,12 +42,13 @@ export const TagSelector = ({
             </span>
           </div>
           {minRequired > 0 && (
-            <span
-              class="badge badge-sm font-medium transition-colors shrink-0 whitespace-nowrap"
+            <Badge
+              size="sm"
+              class="font-medium transition-colors shrink-0 whitespace-nowrap"
               x-bind:class="isValid ? 'badge-success text-success-content' : 'badge-warning text-warning-content'"
             >
               <span x-text="count">{selectedTagIds.length}</span> / {minRequired}
-            </span>
+            </Badge>
           )}
         </div>
       }
@@ -81,9 +82,11 @@ export const TagSelector = ({
           {tags.map((tag) => {
             const isInitial = selectedSet.has(tag.id);
             return (
-              <label
+              <Badge
+                as="label"
                 key={tag.id}
-                class="badge badge-lg gap-1.5 cursor-pointer select-none py-3 px-3.5 transition-all text-xs font-medium border"
+                size="lg"
+                class="gap-1.5 cursor-pointer select-none py-3 px-3.5 transition-all text-xs font-medium border"
                 x-bind:class={`isSelected('${tag.id}') ? 'badge-primary shadow-xs font-bold border-primary' : 'badge-ghost border-base-300 hover:border-primary/50 opacity-80 hover:opacity-100'`}
                 title={tag.description ?? tag.title}
               >
@@ -104,7 +107,7 @@ export const TagSelector = ({
                   <CheckIcon class="h-3 w-3" />
                 </span>
                 <span>{tag.title}</span>
-              </label>
+              </Badge>
             );
           })}
         </div>

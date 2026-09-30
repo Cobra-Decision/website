@@ -2,7 +2,7 @@ import type { Database } from "bun:sqlite";
 import type { Locale } from "../../lib/i18n/translations";
 import { t, formatLocalizedNumber } from "../../lib/i18n/context";
 import { formatUtcDateTime } from "../events/datetime";
-import { Button, Checkbox, Input, Select } from "../../ui/forms";
+import { Button, Checkbox, Input, Select, Badge } from "../../ui/forms";
 
 export interface PlatformFunnelStats {
   totalVisits: number;
@@ -217,7 +217,7 @@ export function PlatformsDataView({
             <div class="space-y-1.5">
               <div class="flex justify-between text-xs font-semibold">
                 <span class="flex items-center gap-1.5">
-                  <span class="badge badge-primary badge-xs">1</span> {t("admin.platforms.step1_visits", locale)}
+                  <Badge variant="primary" size="xs">1</Badge> {t("admin.platforms.step1_visits", locale)}
                 </span>
                 <span>{formatLocalizedNumber(stats.totalVisits.toLocaleString(), locale)} ({formatLocalizedNumber(100, locale)}%)</span>
               </div>
@@ -233,7 +233,7 @@ export function PlatformsDataView({
             <div class="space-y-1.5">
               <div class="flex justify-between text-xs font-semibold">
                 <span class="flex items-center gap-1.5">
-                  <span class="badge badge-success badge-xs">2</span> {t("admin.platforms.step2_rsvps", locale)}
+                  <Badge variant="success" size="xs">2</Badge> {t("admin.platforms.step2_rsvps", locale)}
                 </span>
                 <span>
                   {formatLocalizedNumber(stats.totalAttendees.toLocaleString(), locale)} ({formatLocalizedNumber(Math.min(100, stats.overallConversionRate).toFixed(1), locale)}%)
@@ -276,9 +276,9 @@ export function PlatformsDataView({
                   stats.platforms.map((p) => (
                     <tr key={p.slug ?? "direct"} class="hover">
                       <td class="font-medium flex items-center gap-2">
-                        <span class={`badge badge-sm ${p.slug ? "badge-info badge-outline" : "badge-ghost"}`}>
+                        <Badge variant={p.slug ? "info" : "ghost"} outline={Boolean(p.slug)} size="sm">
                           {p.slug ?? "direct"}
-                        </span>
+                        </Badge>
                         {p.name}
                       </td>
                       <td class="text-right font-mono font-semibold">{formatLocalizedNumber(p.visits.toLocaleString(), locale)}</td>
@@ -386,7 +386,7 @@ export function PlatformsDataView({
                         </a>
                       </td>
                       <td>
-                        <span class="badge badge-sm badge-ghost">{v.platform_name}</span>
+                        <Badge variant="ghost" size="sm">{v.platform_name}</Badge>
                       </td>
                       <td class="font-mono text-xs text-base-content/70" title={v.created_at}>
                         {formatUtcDateTime(v.created_at, locale, timeZone).full || v.created_at}

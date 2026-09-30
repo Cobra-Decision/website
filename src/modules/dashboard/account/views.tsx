@@ -5,7 +5,7 @@ import { PhoneInput } from "../../../ui/phone-input";
 import type { Locale } from "../../../lib/i18n/translations";
 import { t, isRtl } from "../../../lib/i18n/context";
 import { LanguageSwitch } from "../../../ui/language-switch";
-import { FormField, Input, Button } from "../../../ui/forms";
+import { FormField, Input, Button, Badge } from "../../../ui/forms";
 
 export function TelegramConnectionCard({
   telegramId,
@@ -115,7 +115,7 @@ export function AccountPage({
             <div>
               <h1 class="text-2xl font-bold tracking-tight text-base-content">{name}</h1>
               <p class="text-sm text-base-content/60">
-                {user.email} · <span class="badge badge-sm badge-outline">{user.role_title}</span>
+                {user.email} · <Badge outline size="sm">{user.role_title}</Badge>
               </p>
             </div>
           </div>

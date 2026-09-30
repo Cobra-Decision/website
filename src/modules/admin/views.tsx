@@ -1,7 +1,7 @@
 import { Layout } from "../../ui/layout";
 import { DashboardNavbar, type DashboardUser } from "../../ui/dashboard";
 import { TagBadge } from "../../ui/tag-badge";
-import { Button, Checkbox, Input, Select } from "../../ui/forms";
+import { Button, Checkbox, Input, Select, Badge } from "../../ui/forms";
 import type { Locale } from "../../lib/i18n/translations";
 import { t } from "../../lib/i18n/context";
 import { formatUtcDateTime, formatLocalizedDate, formatLocalizedTime } from "../events/datetime";
@@ -185,23 +185,32 @@ function renderCellContent(column: string, rawVal: string | number | null, local
   }
 
   if (column === "status") {
-    const badgeColor = str === "live" ? "badge-success" : str === "completed" ? "badge-ghost" : "badge-primary";
-    return <span class={`badge ${badgeColor} badge-sm font-medium`}>{str}</span>;
+    const variant = str === "live" ? "success" : str === "completed" ? "ghost" : "primary";
+    return (
+      <Badge variant={variant} size="sm" class="font-medium">
+        {str}
+      </Badge>
+    );
   }
 
   if (column === "publish_status") {
-    const badgeColor =
-      str === "restricted"
-        ? "badge-warning"
-        : str === "private"
-        ? "badge-neutral"
-        : "badge-success badge-outline";
-    return <span class={`badge ${badgeColor} badge-sm font-medium`}>{str}</span>;
+    const variant = str === "restricted" ? "warning" : str === "private" ? "neutral" : "success";
+    const outline = str !== "restricted" && str !== "private";
+    return (
+      <Badge variant={variant} outline={outline} size="sm" class="font-medium">
+        {str}
+      </Badge>
+    );
   }
 
   if (column === "access_status") {
-    const badgeColor = str === "private" ? "badge-warning badge-outline" : "badge-ghost";
-    return <span class={`badge ${badgeColor} badge-sm font-medium`}>{str}</span>;
+    const variant = str === "private" ? "warning" : "ghost";
+    const outline = str === "private";
+    return (
+      <Badge variant={variant} outline={outline} size="sm" class="font-medium">
+        {str}
+      </Badge>
+    );
   }
 
   if (column.endsWith("_url") || str.startsWith("http://") || str.startsWith("https://") || str.startsWith("/uploads/")) {

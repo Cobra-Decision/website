@@ -4,6 +4,7 @@ import { t } from "../../lib/i18n/context";
 import { PublicHeader } from "../../ui/public-header";
 import { StatsBar } from "../../ui/stats-bar";
 import { Footer } from "../../ui/footer";
+import { Badge } from "../../ui/forms/badge";
 
 export const AboutView = ({ data, locale = "en" }: { data: LandingCache; locale?: Locale }) => {
   const tracks = [
@@ -71,7 +72,7 @@ export const AboutView = ({ data, locale = "en" }: { data: LandingCache; locale?
         <section id="mission" class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 scroll-mt-24">
           <div class="grid gap-6 sm:gap-8 md:grid-cols-2">
             <div class="card border border-base-300 bg-base-200/50 p-6 sm:p-8 shadow-sm">
-              <div class="badge badge-primary badge-sm mb-4 font-bold">{t("about.mission_title", locale)}</div>
+              <Badge as="div" variant="primary" size="sm" class="mb-4 font-bold">{t("about.mission_title", locale)}</Badge>
               <h2 class="text-xl sm:text-2xl font-bold text-base-content">
                 <a href="#mission" class="hover:text-primary transition-colors inline-flex items-center gap-2 group">
                   <span>{t("about.mission_subtitle", locale)}</span>
@@ -83,7 +84,7 @@ export const AboutView = ({ data, locale = "en" }: { data: LandingCache; locale?
               </p>
             </div>
             <div id="vision" class="card border border-base-300 bg-base-200/50 p-6 sm:p-8 shadow-sm scroll-mt-24">
-              <div class="badge badge-secondary badge-sm mb-4 font-bold">{t("about.vision_title", locale)}</div>
+              <Badge as="div" variant="secondary" size="sm" class="mb-4 font-bold">{t("about.vision_title", locale)}</Badge>
               <h2 class="text-xl sm:text-2xl font-bold text-base-content">
                 <a href="#vision" class="hover:text-primary transition-colors inline-flex items-center gap-2 group">
                   <span>{t("about.vision_subtitle", locale)}</span>
@@ -148,14 +149,14 @@ export const AboutView = ({ data, locale = "en" }: { data: LandingCache; locale?
             </div>
             <div class="grid gap-6 sm:gap-8 md:grid-cols-2 max-w-4xl mx-auto">
               <div class="card bg-base-100 border border-base-300 p-6 sm:p-8 shadow-sm">
-                <span class="badge badge-primary badge-sm font-semibold mb-3">{t("about.formats.roundtables_badge", locale)}</span>
+                <Badge variant="primary" size="sm" class="font-semibold mb-3">{t("about.formats.roundtables_badge", locale)}</Badge>
                 <h3 class="text-xl sm:text-2xl font-bold">{t("about.formats.roundtables", locale)}</h3>
                 <p class="mt-3 sm:mt-4 text-sm sm:text-base text-base-content/75 leading-relaxed">
                   {t("about.formats.roundtables_desc", locale)}
                 </p>
               </div>
               <div class="card bg-base-100 border border-base-300 p-6 sm:p-8 shadow-sm">
-                <span class="badge badge-secondary badge-sm font-semibold mb-3">{t("about.formats.talks_badge", locale)}</span>
+                <Badge variant="secondary" size="sm" class="font-semibold mb-3">{t("about.formats.talks_badge", locale)}</Badge>
                 <h3 class="text-xl sm:text-2xl font-bold">{t("about.formats.talks", locale)}</h3>
                 <p class="mt-3 sm:mt-4 text-sm sm:text-base text-base-content/75 leading-relaxed">
                   {t("about.formats.talks_desc", locale)}

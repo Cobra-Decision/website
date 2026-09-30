@@ -1,3 +1,5 @@
+import { Badge } from "../../ui/forms";
+
 export interface PlaceholderDef {
   tag: string;
   label: string;
@@ -42,15 +44,18 @@ export const MailPlaceholdersToolbar = ({
     <div class="flex flex-wrap items-center gap-1.5 py-1">
       <span class="text-2xs font-semibold uppercase text-base-content/60 me-1">Variables:</span>
       {placeholders.map((p) => (
-        <button
+        <Badge
           key={p.tag}
+          as="button"
           type="button"
-          class="badge badge-sm badge-outline hover:badge-primary font-mono text-2xs cursor-pointer transition"
+          outline
+          size="sm"
+          class="hover:badge-primary font-mono text-2xs cursor-pointer transition"
           x-on:click={`${onInsertMethod}('${p.tag}')`}
           title={`Insert ${p.tag}`}
         >
           {p.label}
-        </button>
+        </Badge>
       ))}
     </div>
   );

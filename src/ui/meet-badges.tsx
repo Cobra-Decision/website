@@ -2,6 +2,7 @@ import type { MeetStatus, MeetAccessStatus, MeetPublishStatus } from "../modules
 import type { Locale } from "../lib/i18n/translations";
 import { t } from "../lib/i18n/context";
 import { LockIcon } from "./icons";
+import { Badge, type BadgeProps } from "./forms/badge";
 
 export function getMeetStatusMeta(status: MeetStatus, locale: Locale = "en") {
   switch (status) {
@@ -26,74 +27,88 @@ export function getMeetStatusMeta(status: MeetStatus, locale: Locale = "en") {
   }
 }
 
+export interface MeetStatusBadgeProps extends BadgeProps {
+  status?: MeetStatus;
+  locale?: Locale;
+}
+
 export const MeetStatusBadge = ({
   status = "upcoming",
   locale = "en",
   size = "sm",
   class: extraClass = "",
-}: {
-  status?: MeetStatus;
-  locale?: Locale;
-  size?: "xs" | "sm" | "md";
-  class?: string;
-}) => {
+  ...props
+}: MeetStatusBadgeProps) => {
   const meta = getMeetStatusMeta(status, locale);
-  const sizeClass = size === "xs" ? "badge-xs" : size === "sm" ? "badge-sm" : "";
   const pulseClass = meta.pulse ? "animate-pulse" : "";
+  const customClass = `${meta.badgeClass} ${pulseClass} ${extraClass}`.trim();
 
   return (
-    <span class={`badge ${meta.badgeClass} ${sizeClass} ${pulseClass} ${extraClass}`.trim()}>
+    <Badge size={size} class={customClass} {...props}>
       {meta.label}
-    </span>
+    </Badge>
   );
 };
+
+export interface MeetAccessBadgeProps extends BadgeProps {
+  accessStatus?: MeetAccessStatus;
+  locale?: Locale;
+}
 
 export const MeetAccessBadge = ({
   accessStatus = "public",
   locale = "en",
   size = "sm",
   class: extraClass = "",
-}: {
-  accessStatus?: MeetAccessStatus;
-  locale?: Locale;
-  size?: "xs" | "sm" | "md";
-  class?: string;
-}) => {
+  ...props
+}: MeetAccessBadgeProps) => {
   const isPublic = accessStatus === "public";
   const label = isPublic ? t("meet.public", locale) : t("meet.private", locale);
-  const badgeClass = isPublic ? "badge-outline" : "badge-warning badge-outline";
-  const sizeClass = size === "xs" ? "badge-xs" : size === "sm" ? "badge-sm" : "";
+  const lockIcon = !isPublic ? (
+    <LockIcon class={size === "xs" ? "h-2.5 w-2.5" : "h-3 w-3"} />
+  ) : undefined;
 
   return (
-    <span class={`badge ${badgeClass} ${sizeClass} gap-1 ${extraClass}`.trim()}>
-      {!isPublic && <LockIcon class={size === "xs" ? "h-2.5 w-2.5" : "h-3 w-3"} />}
+    <Badge
+      variant={isPublic ? undefined : "warning"}
+      outline
+      size={size}
+      icon={lockIcon}
+      class={`gap-1 ${extraClass}`.trim()}
+      {...props}
+    >
       {label}
-    </span>
+    </Badge>
   );
 };
+
+export interface MeetPublishBadgeProps extends BadgeProps {
+  publishStatus?: MeetPublishStatus;
+  locale?: Locale;
+}
 
 export const MeetPublishBadge = ({
   publishStatus = "public",
   locale = "en",
   size = "sm",
   class: extraClass = "",
-}: {
-  publishStatus?: MeetPublishStatus;
-  locale?: Locale;
-  size?: "xs" | "sm" | "md";
-  class?: string;
-}) => {
+  ...props
+}: MeetPublishBadgeProps) => {
   if (publishStatus === "public") return null;
 
   const isRestricted = publishStatus === "restricted";
   const label = isRestricted ? t("meet.restricted", locale) : t("meet.private", locale);
-  const badgeClass = isRestricted ? "badge-warning" : "badge-neutral";
-  const sizeClass = size === "xs" ? "badge-xs" : size === "sm" ? "badge-sm" : "";
+  const lockIcon = <LockIcon class={size === "xs" ? "h-2.5 w-2.5" : "h-3 w-3"} />;
 
   return (
-    <span class={`badge ${badgeClass} ${sizeClass} gap-1 ${extraClass}`.trim()}>
-      <LockIcon class={size === "xs" ? "h-2.5 w-2.5" : "h-3 w-3"} />
+    <Badge
+      variant={isRestricted ? "warning" : "neutral"}
+      size={size}
+      icon={lockIcon}
+      class={`gap-1 ${extraClass}`.trim()}
+      {...props}
+    >
       {label}
-    </span>
+    </Badge>
   );
 };
