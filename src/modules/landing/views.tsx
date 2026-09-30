@@ -6,6 +6,7 @@ import { UnifiedMeetCard } from "../../ui/meet-card";
 import { Carousel } from "../../ui/carousel";
 import { StatsBar } from "../../ui/stats-bar";
 import { Footer } from "../../ui/footer";
+import { Button } from "../../ui/forms";
 
 export const Landing = ({ data, locale = "en" }: { data: LandingCache; locale?: Locale }) => {
   const featured = data.meets[0];
@@ -31,8 +32,12 @@ export const Landing = ({ data, locale = "en" }: { data: LandingCache; locale?: 
                 {t("hero.subtitle", locale)}
               </p>
               <div class="mt-9 flex flex-wrap gap-3">
-                <a class="btn btn-primary px-6 shadow-md" href="#meets">{t("hero.cta_explore", locale)}</a>
-                <a class="btn btn-ghost px-4" href="#how-it-works">{t("hero.cta_how", locale)}</a>
+                <Button href="#meets" variant="primary" class="px-6 shadow-md">
+                  {t("hero.cta_explore", locale)}
+                </Button>
+                <Button href="#how-it-works" variant="ghost" class="px-4">
+                  {t("hero.cta_how", locale)}
+                </Button>
               </div>
             </div>
 

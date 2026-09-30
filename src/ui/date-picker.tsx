@@ -1,6 +1,7 @@
 import type { Locale } from "../lib/i18n/translations";
 import { isRtl, toPersianDigits } from "../lib/i18n/context";
 import { formatJalaliDisplay } from "../lib/datetime/jalali";
+import { Input, Button, FormField } from "./forms";
 
 export interface DatePickerProps {
   name: string;
@@ -327,229 +328,244 @@ export function DatePicker({
   const nextLabel = isPersian ? "ماه بعد" : "Next Month";
 
   return (
-    <div class={`form-control w-full ${isPersian ? "font-vazir" : ""}`} x-data={alpineData} dir={rtl ? "rtl" : "ltr"}>
-      {label && <span class="label-text font-medium text-xs mb-1">{label}</span>}
+    <FormField label={label} required={required} id={inputId} class={isPersian ? "font-vazir" : ""}>
+      <div class="w-full" x-data={alpineData} dir={rtl ? "rtl" : "ltr"}>
+        {/* Real form input submitted to backend with standard ISO date (e.g. 2026-08-23) */}
+        <Input
+          type="hidden"
+          name={name}
+          {...({ "x-ref": "hiddenInput", "x-model": "isoValue" } as any)}
+          required={required}
+        />
 
-      {/* Real form input submitted to backend with standard ISO date (e.g. 2026-08-23) */}
-      <input
-        type="hidden"
-        name={name}
-        {...({ "x-ref": "hiddenInput", "x-model": "isoValue" } as any)}
-        required={required}
-      />
-
-      <div class="relative w-full">
-        {/* Visible input box with embedded calendar icon inside */}
-        <div
-          class="relative flex items-center w-full cursor-pointer"
-          {...({ "x-on:click": "toggleOpen()" } as any)}
-        >
-          <input
-            id={inputId}
-            type="text"
-            readonly
-            placeholder={placeholder || defaultPlaceholder}
-            {...({ "x-model": "displayValue" } as any)}
-            class={`input input-bordered input-sm w-full cursor-pointer px-3 ${rtl ? "pl-9 text-right font-vazir" : "pr-9 text-left"} ${className}`}
-          />
-
-          <span
-            class="absolute top-0 bottom-0 flex items-center pointer-events-none text-base-content/60"
-            style={rtl ? "left: 0.75rem;" : "right: 0.75rem;"}
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-            </svg>
-          </span>
-        </div>
-
-        {/* Calendar Popover */}
-        <div
-          {...({
-            "x-show": "open",
-            "x-ref": "popover",
-            "x-on:click.outside": "open = false",
-            "x-transition": "",
-          } as any)}
-          class={`absolute top-full start-0 z-50 mt-1.5 w-72 rounded-2xl border border-base-300 bg-base-100 p-3 shadow-2xl ${isPersian ? "font-vazir" : ""}`}
-          style="display: none;"
-        >
-          {/* Navigation header */}
-          <div class="flex items-center justify-between border-b border-base-200 pb-2 mb-2">
-            <template {...({ "x-if": "viewMode === 'days'" } as any)}>
-              <div class="flex items-center justify-between w-full">
-                <button
-                  type="button"
-                  {...({ "x-on:click": "prevMonth()" } as any)}
-                  class="btn btn-ghost btn-xs btn-square text-base-content hover:text-primary"
-                  aria-label={prevLabel}
-                >
-                  {rtl ? "→" : "←"}
-                </button>
-
-                <div class="flex items-center gap-1.5 select-none">
-                  <button
-                    type="button"
-                    {...({ "x-on:click": "viewMode = 'months'; scrollToSelected()" } as any)}
-                    class="btn btn-xs btn-outline border-base-300 hover:btn-primary text-xs font-bold transition-colors"
-                  >
-                    <span {...({ "x-text": "monthNames[month - 1]" } as any)}></span>
-                    <span class="text-[10px] opacity-70">▾</span>
-                  </button>
-                  <button
-                    type="button"
-                    {...({ "x-on:click": "viewMode = 'years'; scrollToSelected()" } as any)}
-                    class="btn btn-xs btn-outline border-base-300 hover:btn-primary text-xs font-bold transition-colors"
-                  >
-                    <span {...({ "x-text": "toDisplayNum(year)" } as any)}></span>
-                    <span class="text-[10px] opacity-70">▾</span>
-                  </button>
-                </div>
-
-                <button
-                  type="button"
-                  {...({ "x-on:click": "nextMonth()" } as any)}
-                  class="btn btn-ghost btn-xs btn-square text-base-content hover:text-primary"
-                  aria-label={nextLabel}
-                >
-                  {rtl ? "←" : "→"}
-                </button>
-              </div>
-            </template>
-
-            <template {...({ "x-if": "viewMode === 'months'" } as any)}>
-              <div class="flex items-center justify-between w-full">
-                <span class="text-xs font-bold text-primary px-1">{selectMonthLabel}</span>
-                <button
-                  type="button"
-                  {...({ "x-on:click": "viewMode = 'days'" } as any)}
-                  class="btn btn-ghost btn-xs text-xs hover:bg-base-200"
-                >
-                  {backLabel}
-                </button>
-              </div>
-            </template>
-
-            <template {...({ "x-if": "viewMode === 'years'" } as any)}>
-              <div class="flex items-center justify-between w-full">
-                <span class="text-xs font-bold text-primary px-1">{selectYearLabel}</span>
-                <button
-                  type="button"
-                  {...({ "x-on:click": "viewMode = 'days'" } as any)}
-                  class="btn btn-ghost btn-xs text-xs hover:bg-base-200"
-                >
-                  {backLabel}
-                </button>
-              </div>
-            </template>
-          </div>
-
-          {/* Month selector view - Vertical Scrollable List */}
+        <div class="relative w-full">
+          {/* Visible input box with embedded calendar icon inside */}
           <div
-            {...({
-              "x-show": "viewMode === 'months'",
-              "x-ref": "monthList",
-              "x-init": "$watch('viewMode', (mode) => { if (mode === 'months') scrollToSelected() })",
-            } as any)}
-            class="flex flex-col gap-1.5 p-1 max-h-56 overflow-y-auto"
+            class="relative flex items-center w-full cursor-pointer"
+            {...({ "x-on:click": "toggleOpen()" } as any)}
           >
-            <template {...({ "x-for": "(mName, idx) in monthNames", ":key": "'month-' + idx" } as any)}>
-              <button
-                type="button"
-                {...({
-                  "x-on:click": "selectMonth(idx + 1)",
-                  ":class": "month === (idx + 1) ? 'btn-primary text-primary-content selected-item shadow font-bold' : 'btn-ghost hover:bg-base-200 text-base-content font-medium'",
-                  "x-text": "mName",
-                } as any)}
-                class={`btn btn-sm py-2 w-full text-sm rounded-lg flex items-center justify-center text-center shrink-0 ${isPersian ? "font-vazir" : ""}`}
-              ></button>
-            </template>
-          </div>
+            <Input
+              id={inputId}
+              type="text"
+              size="sm"
+              readonly
+              placeholder={placeholder || defaultPlaceholder}
+              {...({ "x-model": "displayValue" } as any)}
+              class={`cursor-pointer px-3 ${rtl ? "pl-9 text-right font-vazir" : "pr-9 text-left"} ${className}`}
+            />
 
-          {/* Year selector view - Vertical Scrollable List */}
-          <div
-            {...({
-              "x-show": "viewMode === 'years'",
-              "x-ref": "yearList",
-              "x-init": "$watch('viewMode', (mode) => { if (mode === 'years') scrollToSelected() })",
-            } as any)}
-            class="flex flex-col gap-1.5 p-1 max-h-56 overflow-y-auto"
-          >
-            <template {...({ "x-for": "y in getYearList()", ":key": "'year-' + y" } as any)}>
-              <button
-                type="button"
-                {...({
-                  "x-on:click": "selectYear(y)",
-                  ":class": "year === y ? 'btn-primary text-primary-content selected-item shadow font-bold' : 'btn-ghost hover:bg-base-200 text-base-content font-medium'",
-                  "x-text": "toDisplayNum(y)",
-                } as any)}
-                class={`btn btn-sm py-2 w-full text-sm rounded-lg flex items-center justify-center text-center shrink-0 ${isPersian ? "font-vazir" : ""}`}
-              ></button>
-            </template>
-          </div>
-
-          {/* Days View Wrapper */}
-          <div {...({ "x-show": "viewMode === 'days'" } as any)}>
-            {/* Weekday headers */}
-            <div
-              style="display: grid; grid-template-columns: repeat(7, minmax(0, 1fr));"
-              class="gap-1 text-center text-[10px] font-bold text-base-content/70 mb-1"
+            <span
+              class="absolute top-0 bottom-0 flex items-center pointer-events-none text-base-content/60"
+              style={rtl ? "left: 0.75rem;" : "right: 0.75rem;"}
             >
-              <template {...({ "x-for": "(wDay, idx) in weekdays", ":key": "'wday-' + idx" } as any)}>
-                <div
-                  {...({
-                    ":class": "(isPersian && idx === 6) || (!isPersian && (idx === 0 || idx === 6)) ? 'py-1 text-error font-bold' : 'py-1'",
-                    "x-text": "wDay",
-                  } as any)}
-                ></div>
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+            </span>
+          </div>
+
+          {/* Calendar Popover */}
+          <div
+            {...({
+              "x-show": "open",
+              "x-ref": "popover",
+              "x-on:click.outside": "open = false",
+              "x-transition": "",
+            } as any)}
+            class={`absolute top-full start-0 z-50 mt-1.5 w-72 rounded-2xl border border-base-300 bg-base-100 p-3 shadow-2xl ${isPersian ? "font-vazir" : ""}`}
+            style="display: none;"
+          >
+            {/* Navigation header */}
+            <div class="flex items-center justify-between border-b border-base-200 pb-2 mb-2">
+              <template {...({ "x-if": "viewMode === 'days'" } as any)}>
+                <div class="flex items-center justify-between w-full">
+                  <Button
+                    type="button"
+                    size="xs"
+                    variant="ghost"
+                    square
+                    {...({ "x-on:click": "prevMonth()" } as any)}
+                    class="text-base-content hover:text-primary"
+                    aria-label={prevLabel}
+                  >
+                    {rtl ? "→" : "←"}
+                  </Button>
+
+                  <div class="flex items-center gap-1.5 select-none">
+                    <button
+                      type="button"
+                      {...({ "x-on:click": "viewMode = 'months'; scrollToSelected()" } as any)}
+                      class="btn btn-xs btn-outline border-base-300 hover:btn-primary text-xs font-bold transition-colors"
+                    >
+                      <span {...({ "x-text": "monthNames[month - 1]" } as any)}></span>
+                      <span class="text-[10px] opacity-70">▾</span>
+                    </button>
+                    <button
+                      type="button"
+                      {...({ "x-on:click": "viewMode = 'years'; scrollToSelected()" } as any)}
+                      class="btn btn-xs btn-outline border-base-300 hover:btn-primary text-xs font-bold transition-colors"
+                    >
+                      <span {...({ "x-text": "toDisplayNum(year)" } as any)}></span>
+                      <span class="text-[10px] opacity-70">▾</span>
+                    </button>
+                  </div>
+
+                  <Button
+                    type="button"
+                    size="xs"
+                    variant="ghost"
+                    square
+                    {...({ "x-on:click": "nextMonth()" } as any)}
+                    class="text-base-content hover:text-primary"
+                    aria-label={nextLabel}
+                  >
+                    {rtl ? "←" : "→"}
+                  </Button>
+                </div>
+              </template>
+
+              <template {...({ "x-if": "viewMode === 'months'" } as any)}>
+                <div class="flex items-center justify-between w-full">
+                  <span class="text-xs font-bold text-primary px-1">{selectMonthLabel}</span>
+                  <Button
+                    type="button"
+                    size="xs"
+                    variant="ghost"
+                    {...({ "x-on:click": "viewMode = 'days'" } as any)}
+                    class="text-xs hover:bg-base-200"
+                  >
+                    {backLabel}
+                  </Button>
+                </div>
+              </template>
+
+              <template {...({ "x-if": "viewMode === 'years'" } as any)}>
+                <div class="flex items-center justify-between w-full">
+                  <span class="text-xs font-bold text-primary px-1">{selectYearLabel}</span>
+                  <Button
+                    type="button"
+                    size="xs"
+                    variant="ghost"
+                    {...({ "x-on:click": "viewMode = 'days'" } as any)}
+                    class="text-xs hover:bg-base-200"
+                  >
+                    {backLabel}
+                  </Button>
+                </div>
               </template>
             </div>
 
-            {/* Calendar days 7-column grid */}
+            {/* Month selector view - Vertical Scrollable List */}
             <div
-              style="display: grid; grid-template-columns: repeat(7, minmax(0, 1fr));"
-              class="gap-1 text-center"
+              {...({
+                "x-show": "viewMode === 'months'",
+                "x-ref": "monthList",
+                "x-init": "$watch('viewMode', (mode) => { if (mode === 'months') scrollToSelected() })",
+              } as any)}
+              class="flex flex-col gap-1.5 p-1 max-h-56 overflow-y-auto"
             >
-              {/* Empty padding days */}
-              <template {...({ "x-for": "(_, idx) in getEmptyCells()", ":key": "'empty-' + idx" } as any)}>
-                <div class="h-8 w-8"></div>
-              </template>
-
-              {/* Days of current month */}
-              <template {...({ "x-for": "day in getMonthDays()", ":key": "'day-' + day" } as any)}>
+              <template {...({ "x-for": "(mName, idx) in monthNames", ":key": "'month-' + idx" } as any)}>
                 <button
                   type="button"
                   {...({
-                    "x-on:click": "selectDate(day)",
-                    ":class": "isSelected(day) ? 'btn-primary text-primary-content selected-item shadow font-bold' : 'btn-ghost hover:bg-base-200 text-base-content font-medium'",
-                    "x-text": "toDisplayNum(day)",
+                    "x-on:click": "selectMonth(idx + 1)",
+                    ":class": "month === (idx + 1) ? 'btn-primary text-primary-content selected-item shadow font-bold' : 'btn-ghost hover:bg-base-200 text-base-content font-medium'",
+                    "x-text": "mName",
                   } as any)}
-                  class={`btn btn-xs h-8 w-8 p-0 rounded-lg text-xs flex items-center justify-center transition-colors mx-auto ${isPersian ? "font-vazir" : ""}`}
+                  class={`btn btn-sm py-2 w-full text-sm rounded-lg flex items-center justify-center text-center shrink-0 ${isPersian ? "font-vazir" : ""}`}
                 ></button>
               </template>
             </div>
-          </div>
 
-          {/* Quick action buttons */}
-          <div class="flex items-center justify-between border-t border-base-200 pt-2 mt-2">
-            <button
-              type="button"
-              {...({ "x-on:click": "selectToday()" } as any)}
-              class="btn btn-ghost btn-xs text-primary font-medium"
+            {/* Year selector view - Vertical Scrollable List */}
+            <div
+              {...({
+                "x-show": "viewMode === 'years'",
+                "x-ref": "yearList",
+                "x-init": "$watch('viewMode', (mode) => { if (mode === 'years') scrollToSelected() })",
+              } as any)}
+              class="flex flex-col gap-1.5 p-1 max-h-56 overflow-y-auto"
             >
-              {todayLabel}
-            </button>
-            <button
-              type="button"
-              {...({ "x-on:click": "clear()" } as any)}
-              class="btn btn-ghost btn-xs text-base-content/50 hover:text-error"
-            >
-              {clearLabel}
-            </button>
+              <template {...({ "x-for": "y in getYearList()", ":key": "'year-' + y" } as any)}>
+                <button
+                  type="button"
+                  {...({
+                    "x-on:click": "selectYear(y)",
+                    ":class": "year === y ? 'btn-primary text-primary-content selected-item shadow font-bold' : 'btn-ghost hover:bg-base-200 text-base-content font-medium'",
+                    "x-text": "toDisplayNum(y)",
+                  } as any)}
+                  class={`btn btn-sm py-2 w-full text-sm rounded-lg flex items-center justify-center text-center shrink-0 ${isPersian ? "font-vazir" : ""}`}
+                ></button>
+              </template>
+            </div>
+
+            {/* Days View Wrapper */}
+            <div {...({ "x-show": "viewMode === 'days'" } as any)}>
+              {/* Weekday headers */}
+              <div
+                style="display: grid; grid-template-columns: repeat(7, minmax(0, 1fr));"
+                class="gap-1 text-center text-[10px] font-bold text-base-content/70 mb-1"
+              >
+                <template {...({ "x-for": "(wDay, idx) in weekdays", ":key": "'wday-' + idx" } as any)}>
+                  <div
+                    {...({
+                      ":class": "(isPersian && idx === 6) || (!isPersian && (idx === 0 || idx === 6)) ? 'py-1 text-error font-bold' : 'py-1'",
+                      "x-text": "wDay",
+                    } as any)}
+                  ></div>
+                </template>
+              </div>
+
+              {/* Calendar days 7-column grid */}
+              <div
+                style="display: grid; grid-template-columns: repeat(7, minmax(0, 1fr));"
+                class="gap-1 text-center"
+              >
+                {/* Empty padding days */}
+                <template {...({ "x-for": "(_, idx) in getEmptyCells()", ":key": "'empty-' + idx" } as any)}>
+                  <div class="h-8 w-8"></div>
+                </template>
+
+                {/* Days of current month */}
+                <template {...({ "x-for": "day in getMonthDays()", ":key": "'day-' + day" } as any)}>
+                  <button
+                    type="button"
+                    {...({
+                      "x-on:click": "selectDate(day)",
+                      ":class": "isSelected(day) ? 'btn-primary text-primary-content selected-item shadow font-bold' : 'btn-ghost hover:bg-base-200 text-base-content font-medium'",
+                      "x-text": "toDisplayNum(day)",
+                    } as any)}
+                    class={`btn btn-xs h-8 w-8 p-0 rounded-lg text-xs flex items-center justify-center transition-colors mx-auto ${isPersian ? "font-vazir" : ""}`}
+                  ></button>
+                </template>
+              </div>
+            </div>
+
+            {/* Quick action buttons */}
+            <div class="flex items-center justify-between border-t border-base-200 pt-2 mt-2">
+              <Button
+                type="button"
+                size="xs"
+                variant="ghost"
+                {...({ "x-on:click": "selectToday()" } as any)}
+                class="text-primary font-medium"
+              >
+                {todayLabel}
+              </Button>
+              <Button
+                type="button"
+                size="xs"
+                variant="ghost"
+                {...({ "x-on:click": "clear()" } as any)}
+                class="text-base-content/50 hover:text-error"
+              >
+                {clearLabel}
+              </Button>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </FormField>
   );
 }
 

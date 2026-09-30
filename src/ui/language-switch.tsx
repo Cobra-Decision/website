@@ -1,4 +1,5 @@
 import type { Locale } from "../lib/i18n/translations";
+import { Button } from "./forms";
 
 export const LanguageSwitch = ({
   currentLocale = "en",
@@ -9,24 +10,26 @@ export const LanguageSwitch = ({
   size?: "xs" | "sm" | "md";
   className?: string;
 }) => {
-  const sizeClass = size === "xs" ? "btn-xs" : size === "sm" ? "btn-sm" : "btn-md";
-
   return (
     <div class={`join ${className}`}>
-      <a
+      <Button
         href="/locale/en"
-        class={`btn ${sizeClass} join-item ${currentLocale === "en" ? "btn-primary font-bold shadow-xs" : "btn-ghost"}`}
+        size={size}
+        variant={currentLocale === "en" ? "primary" : "ghost"}
+        class={`join-item ${currentLocale === "en" ? "font-bold shadow-xs" : ""}`}
         aria-label="Switch to English"
       >
         EN
-      </a>
-      <a
+      </Button>
+      <Button
         href="/locale/fa"
-        class={`btn ${sizeClass} join-item ${currentLocale === "fa" ? "btn-primary font-bold shadow-xs" : "btn-ghost"}`}
+        size={size}
+        variant={currentLocale === "fa" ? "primary" : "ghost"}
+        class={`join-item ${currentLocale === "fa" ? "font-bold shadow-xs" : ""}`}
         aria-label="تغییر به زبان فارسی"
       >
         فا
-      </a>
+      </Button>
     </div>
   );
 };

@@ -8,6 +8,7 @@ import { PublicHeader } from "../../ui/public-header";
 import { MeetStatusBadge, MeetAccessBadge, MeetPublishBadge } from "../../ui/meet-badges";
 import { VideoIcon, FileTextIcon, DownloadIcon, ChevronDownIcon, ChevronUpIcon } from "../../ui/icons";
 import { Footer } from "../../ui/footer";
+import { Button } from "../../ui/forms";
 
 export const DynamicCtaButton = ({
   meetId,
@@ -32,17 +33,16 @@ export const DynamicCtaButton = ({
 
   if (!isAuthenticated) {
     return (
-      <a href="/auth" class="btn btn-primary w-full shadow-sm">
+      <Button href="/auth" variant="primary" class="w-full shadow-sm">
         {t("meet.sign_in_to_attend", locale)}
-      </a>
+      </Button>
     );
   }
 
   const isLeaving = isAttending;
   const modalId = `modal-rsvp-${meetId}`;
   const method = isLeaving ? "hx-delete" : "hx-post";
-  const btnClass = isLeaving ? "btn-outline btn-error hover:btn-error" : "btn-primary shadow-md";
-  const actionBtnClass = isLeaving ? "btn-error" : "btn-primary";
+  const btnVariant = isLeaving ? "error" : "primary";
   const btnLabel = isLeaving ? t("meet.cancel_attend", locale) : t("meet.attend", locale);
   const title = isLeaving ? t("meet.confirm_leave_title", locale) : t("meet.confirm_attend_title", locale);
   const desc = isLeaving ? t("meet.confirm_leave_desc", locale) : t("meet.confirm_attend_desc", locale);
@@ -53,31 +53,36 @@ export const DynamicCtaButton = ({
 
   return (
     <div class="w-full">
-      <button
+      <Button
         type="button"
+        variant={btnVariant}
+        outline={isLeaving}
         onclick={`document.getElementById('${modalId}').showModal()`}
-        class={`btn w-full transition-all ${btnClass}`}
+        class={`w-full transition-all ${isLeaving ? "hover:btn-error" : "shadow-md"}`}
       >
         {btnLabel}
-      </button>
+      </Button>
       <dialog id={modalId} class="modal modal-bottom sm:modal-middle text-start">
         <div class="modal-box">
           <h3 class="font-bold text-lg text-base-content">{title}</h3>
           <p class="py-4 text-sm text-base-content/80">{desc}</p>
           <div class="modal-action">
             <form method="dialog">
-              <button class="btn btn-sm btn-ghost">{t("meet.cancel", locale)}</button>
+              <Button type="submit" size="sm" variant="ghost">
+                {t("meet.cancel", locale)}
+              </Button>
             </form>
-            <button
+            <Button
               type="button"
+              size="sm"
+              variant={btnVariant}
               {...hxProps}
               hx-target="#attend-action"
               hx-swap="innerHTML"
               onclick={`document.getElementById('${modalId}').close()`}
-              class={`btn btn-sm ${actionBtnClass}`}
             >
               {t("meet.confirm", locale)}
-            </button>
+            </Button>
           </div>
         </div>
         <form method="dialog" class="modal-backdrop">

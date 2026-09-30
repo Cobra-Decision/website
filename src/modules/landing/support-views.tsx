@@ -2,6 +2,7 @@ import type { Locale } from "../../lib/i18n/translations";
 import { t } from "../../lib/i18n/context";
 import { PublicHeader } from "../../ui/public-header";
 import { Footer } from "../../ui/footer";
+import { Button } from "../../ui/forms";
 
 export const SupportView = ({ locale = "en" }: { locale?: Locale }) => {
   const faqs = [
@@ -76,14 +77,16 @@ export const SupportView = ({ locale = "en" }: { locale?: Locale }) => {
               </div>
 
               <div class="mt-6 sm:mt-8 pt-4 border-t border-base-300/60">
-                <a
-                  class="btn btn-outline btn-sm sm:btn-md font-medium w-full sm:w-auto"
+                <Button
                   href="https://donate.sudoshz.ir/u/cobra-decision"
                   target="_blank"
                   rel="noopener noreferrer"
+                  outline
+                  size="sm"
+                  class="sm:btn-md font-medium w-full sm:w-auto"
                 >
                   {t("support.yavar_direct_btn", locale)}
-                </a>
+                </Button>
               </div>
             </div>
 
@@ -122,14 +125,16 @@ export const SupportView = ({ locale = "en" }: { locale?: Locale }) => {
                     {t("support.transparency_track_desc", locale)}
                   </p>
                 </div>
-                <a
-                  class="btn btn-primary btn-sm sm:btn-md w-full sm:w-auto shadow-xs"
+                <Button
                   href="https://donate.sudoshz.ir/u/cobra-decision"
                   target="_blank"
                   rel="noopener noreferrer"
+                  variant="primary"
+                  size="sm"
+                  class="sm:btn-md w-full sm:w-auto shadow-xs"
                 >
                   {t("support.transparency_track_btn", locale)}
-                </a>
+                </Button>
               </div>
             </div>
           </div>
