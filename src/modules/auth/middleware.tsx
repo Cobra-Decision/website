@@ -9,6 +9,7 @@ export type Claims = { sub: string; username: string; role_title: string; role_i
 const permissionCache = new Map<string, Set<string>>();
 
 export const ADMIN_SECTION_ENDPOINTS = [
+  "/dashboard/admin/calendar",
   "/dashboard/admin/users",
   "/dashboard/admin/meets",
   "/dashboard/admin/tags",
@@ -19,6 +20,7 @@ export const ADMIN_SECTION_ENDPOINTS = [
   "/dashboard/admin/mail-scheduler",
   "/dashboard/admin/mail-management",
   "/dashboard/admin/mailer",
+  "/dashboard/admin/platforms-data",
   "/dashboard/admin/database",
   "/dashboard/admin/report",
 ] as const;
@@ -45,7 +47,7 @@ export function getRoleAllowedEndpoints(db: Database, roleId: string): Set<strin
 export function getFirstAllowedAdminPath(db: Database, roleId: string): string {
   const allowed = getRoleAllowedEndpoints(db, roleId);
   const isSuperAdmin = db.query<{ title: string }, [string]>("SELECT title FROM roles WHERE id = ? AND deleted_at IS NULL").get(roleId)?.title === "Super Admin";
-  if (isSuperAdmin) return "/dashboard/admin/users";
+  if (isSuperAdmin) return "/dashboard/admin/calendar";
   for (const ep of ADMIN_SECTION_ENDPOINTS) {
     if (allowed.has(ep)) return ep;
   }
@@ -101,7 +103,7 @@ export const authGuard = (jwtSecret = process.env.JWT_SECRET ?? "development-sec
       const reqTz = getTimezone(c, "");
       if (reqTz) {
         database.run(
-          "UPDATE users SET timezone = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND timezone != ?",
+          "UPDATE users SET timezone = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND (timezone IS NULL OR timezone != ?)",
           [reqTz, claims.sub, reqTz]
         );
       }

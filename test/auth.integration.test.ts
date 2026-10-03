@@ -123,7 +123,7 @@ test("login redirects to dashboard and dashboard shows the profile", async () =>
 
   const dashboard = await app.request("/dashboard/admin", { headers: { cookie } });
   expect(dashboard.status).toBe(302);
-  expect(dashboard.headers.get("location")).toBe("/dashboard/admin/users");
+  expect(dashboard.headers.get("location")).toBe("/dashboard/admin/calendar");
 });
 
 test("seeded admin can open the dashboard admin area", async () => {
@@ -134,7 +134,7 @@ test("seeded admin can open the dashboard admin area", async () => {
   const login = await app.request("/auth/login", { method: "POST", body: form });
   const response = await app.request("/dashboard/admin", { headers: { cookie: login.headers.get("set-cookie")!.split(";")[0] } });
   expect(response.status).toBe(302);
-  expect(response.headers.get("location")).toBe("/dashboard/admin/users");
+  expect(response.headers.get("location")).toBe("/dashboard/admin/calendar");
 });
 
 test("admin user form exposes profile fields and hashes its password", async () => {

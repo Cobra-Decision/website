@@ -318,7 +318,7 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
           </h3>
           <form
             hx-post={`/dashboard/admin/${resource}${id ? `/${id}` : ""}`}
-            hx-target={`#${resource}-table`}
+            hx-target={`#${resource}-table, #admin-calendar-grid`}
             hx-swap="outerHTML"
             hx-encoding="multipart/form-data"
             class="grid gap-3 mt-4 sm:grid-cols-2"

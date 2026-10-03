@@ -150,12 +150,13 @@ describe("Permissions & Endpoint Integrity Suite", () => {
     test("getFirstAllowedAdminPath picks earliest valid endpoint in order", () => {
       const adminRole = db.query<{ id: string }, [string]>("SELECT id FROM roles WHERE title = ?").get("admin")!;
 
-      expect(getFirstAllowedAdminPath(db, adminRole.id)).toBe("/dashboard/admin/users");
+      expect(getFirstAllowedAdminPath(db, adminRole.id)).toBe("/dashboard/admin/calendar");
 
-      // Revoke users & meets
+      // Revoke calendar, users & meets
+      const epCalendar = db.query<{ id: string }, [string]>("SELECT id FROM endpoints WHERE title = ?").get("/dashboard/admin/calendar")!;
       const epUsers = db.query<{ id: string }, [string]>("SELECT id FROM endpoints WHERE title = ?").get("/dashboard/admin/users")!;
       const epMeets = db.query<{ id: string }, [string]>("SELECT id FROM endpoints WHERE title = ?").get("/dashboard/admin/meets")!;
-      db.run("DELETE FROM role_endpoints WHERE role_id = ? AND endpoint_id IN (?, ?)", [adminRole.id, epUsers.id, epMeets.id]);
+      db.run("DELETE FROM role_endpoints WHERE role_id = ? AND endpoint_id IN (?, ?, ?)", [adminRole.id, epCalendar.id, epUsers.id, epMeets.id]);
       clearPermissionCache(adminRole.id);
 
       expect(getFirstAllowedAdminPath(db, adminRole.id)).toBe("/dashboard/admin/tags");
@@ -256,9 +257,10 @@ describe("Permissions & Endpoint Integrity Suite", () => {
         "SELECT id, username, role_id FROM users WHERE email = ?"
       ).get("alex.admin@example.com")!;
 
-      // Remove /dashboard/admin/users from admin
+      // Remove /dashboard/admin/calendar and /dashboard/admin/users from admin
+      const epCalendar = db.query<{ id: string }, [string]>("SELECT id FROM endpoints WHERE title = ?").get("/dashboard/admin/calendar")!;
       const epUsers = db.query<{ id: string }, [string]>("SELECT id FROM endpoints WHERE title = ?").get("/dashboard/admin/users")!;
-      db.run("DELETE FROM role_endpoints WHERE role_id = ? AND endpoint_id = ?", [admin.role_id, epUsers.id]);
+      db.run("DELETE FROM role_endpoints WHERE role_id = ? AND endpoint_id IN (?, ?)", [admin.role_id, epCalendar.id, epUsers.id]);
       clearPermissionCache(admin.role_id);
 
       const cookie = await createAuthCookie({

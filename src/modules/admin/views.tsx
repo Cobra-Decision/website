@@ -433,7 +433,19 @@ export function CrudTable({
           locale={locale}
         />
       )}
-      <div id="modal"></div>
+      <div
+        id="modal"
+        {...(query.modal
+          ? {
+              "hx-get":
+                query.modal === "new"
+                  ? `/dashboard/admin/${resource}/new`
+                  : `/dashboard/admin/${resource}/${query.modal}/edit`,
+              "hx-trigger": "load",
+              "hx-swap": "innerHTML",
+            }
+          : {})}
+      ></div>
     </div>
   );
 }
