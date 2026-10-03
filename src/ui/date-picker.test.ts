@@ -1,6 +1,13 @@
 import { test, expect } from "bun:test";
 import { DatePicker } from "./date-picker";
+import { DatePicker as FormsDatePicker } from "./forms/date-picker";
+import { DatePicker as BarrelDatePicker } from "./forms";
 import { gregorianToJalali, jalaliToGregorian, formatJalaliDisplay } from "../lib/datetime/jalali";
+
+test("DatePicker is exported identically across all paths", () => {
+  expect(DatePicker).toBe(FormsDatePicker);
+  expect(FormsDatePicker).toBe(BarrelDatePicker);
+});
 
 test("Jalali <-> Gregorian conversion algorithm matches bidirectional dates", () => {
   // 2026-08-25 -> 1405-06-03
@@ -26,6 +33,7 @@ test("DatePicker component renders SSR JSX with hidden input and Alpine data", (
     value: "2026-08-25",
     locale: "en",
     required: true,
+    size: "md",
   });
   expect(compEn).toBeDefined();
 
@@ -34,6 +42,7 @@ test("DatePicker component renders SSR JSX with hidden input and Alpine data", (
     value: "2026-08-25",
     locale: "fa",
     required: true,
+    size: "xs",
   });
   expect(compFa).toBeDefined();
 });

@@ -7,3 +7,4 @@ export * from "./checkbox";
 export * from "./toggle";
 export * from "./form-field";
 export * from "./badge";
+export * from "./date-picker";
