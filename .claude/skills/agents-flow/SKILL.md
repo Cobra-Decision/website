@@ -1,6 +1,6 @@
 ---
 name: agents-flow
-description: Runs sequential multi-agent review pipeline: ui-reviewer, db-reviewer, security-reviewer, refactorer, and verifier.
+description: "Runs sequential multi-agent review pipeline: ui-reviewer, db-reviewer, security-reviewer, refactorer, and verifier."
 ---
 
 # Sequential Agents Review Pipeline
