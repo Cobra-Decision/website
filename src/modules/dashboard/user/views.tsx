@@ -3,10 +3,9 @@ import type { Profile } from "../../auth/views";
 import { Layout } from "../../../ui/layout";
 import { DashboardNavbar } from "../../../ui/dashboard";
 import { UnifiedMeetCard } from "../../../ui/meet-card";
-import { DatePicker } from "../../../ui/date-picker";
 import type { Locale } from "../../../lib/i18n/translations";
 import { t } from "../../../lib/i18n/context";
-import { Button, FormField, Input, Select, Badge } from "../../../ui/forms";
+import { Button, FormField, Input, Select, Badge, DatePicker } from "../../../ui/forms";
 
 export const RsvpButton = ({
   meet,

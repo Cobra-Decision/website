@@ -14,7 +14,7 @@ import { handleImageUpload, handlePresentationUpload, handleVideoUpload } from "
 import { createFileAdminRoutes } from "./files/routes";
 import { MeetingLinkGenerator } from "../../ui/dashboard";
 import { MarkdownEditor } from "../../ui/markdown-editor";
-import { DatePicker } from "../../ui/date-picker";
+import { DatePicker } from "../../ui/forms";
 import { getLocale, getTimezone, toEnglishDigits } from "../../lib/i18n/context";
 import { t } from "../../lib/i18n/translations";
 import { toUtcIso } from "../events/datetime";
