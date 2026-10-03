@@ -102,64 +102,88 @@ export function AdminCalendarGrid({
   const dayCells = Array.from({ length: daysCount }, (_, i) => i + 1);
 
   return (
-    <div id="admin-calendar-grid" class={`space-y-4 ${isPersian ? "font-vazir" : ""}`} dir={rtl ? "rtl" : "ltr"}>
-      {/* Calendar Header / Toolbar */}
-      <div class="flex flex-wrap items-center justify-between gap-4 bg-base-100 p-4 rounded-2xl border border-base-300 shadow-sm">
-        <div class="flex items-center gap-3">
-          <div class="p-2.5 rounded-xl bg-primary/10 text-primary">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-            </svg>
-          </div>
-          <div>
-            <h2 class="text-lg sm:text-xl font-bold text-base-content flex items-center gap-2">
-              <span>{monthLabel}</span>
-              <span class="text-primary font-extrabold">{yearLabel}</span>
-            </h2>
-            <p class="text-xs text-base-content/60">
-              {isPersian ? "برنامه زمان‌بندی و تقویم کلیه جلسات" : "Scheduled community and administrative sessions"}
-            </p>
-          </div>
+    <div id="admin-calendar-grid" class={`space-y-6 ${isPersian ? "font-vazir" : ""}`} dir={rtl ? "rtl" : "ltr"}>
+      {/* Header section matching CrudTable and PlatformsView */}
+      <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 class="text-2xl font-bold tracking-tight text-base-content capitalize sm:text-3xl">
+            {isPersian ? "تقویم و برنامه‌ریزی جلسات" : "Calendar Schedule"}
+          </h1>
+          <p class="text-sm text-base-content/60">
+            {isPersian ? "نمای تقویمی جامع و وضعیت زمان‌بندی جلسات سیستم" : "Monthly schedule overview and active community meetings"}
+          </p>
         </div>
-
-        {/* Navigation buttons with HTMX partial swapping */}
-        <div class="flex items-center gap-2">
-          <a
-            href={`/dashboard/admin/calendar?year=${prevYear}&month=${prevMonth}`}
-            hx-get={`/dashboard/admin/calendar?year=${prevYear}&month=${prevMonth}`}
-            hx-target="#admin-calendar-grid"
-            hx-swap="outerHTML"
-            class="btn btn-sm btn-outline border-base-300 hover:btn-primary"
-            aria-label="Previous Month"
+        <div class="flex flex-wrap gap-2">
+          <Button
+            size="sm"
+            variant="primary"
+            hx-get="/dashboard/admin/meets/new"
+            hx-target="#modal"
           >
-            {rtl ? "→ ماه قبل" : "← Prev"}
-          </a>
-
-          <a
-            href="/dashboard/admin/calendar"
-            hx-get="/dashboard/admin/calendar"
-            hx-target="#admin-calendar-grid"
-            hx-swap="outerHTML"
-            class="btn btn-sm btn-ghost hover:bg-base-200"
+            {t("admin.add_new", locale)}
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            href="/dashboard/admin/meets"
           >
-            {isPersian ? "امروز" : "Today"}
-          </a>
-
-          <a
-            href={`/dashboard/admin/calendar?year=${nextYear}&month=${nextMonth}`}
-            hx-get={`/dashboard/admin/calendar?year=${nextYear}&month=${nextMonth}`}
-            hx-target="#admin-calendar-grid"
-            hx-swap="outerHTML"
-            class="btn btn-sm btn-outline border-base-300 hover:btn-primary"
-            aria-label="Next Month"
-          >
-            {rtl ? "ماه بعد ←" : "Next →"}
-          </a>
+            {t("admin.nav.meets", locale)}
+          </Button>
         </div>
       </div>
 
-      {/* Calendar Grid Container */}
-      <div class="bg-base-100 rounded-2xl border border-base-300 shadow-sm overflow-hidden">
+      {/* Interactive Calendar Control Bar Card */}
+      <div class="card border border-base-300 bg-base-100 p-4 shadow-sm">
+        <div class="flex flex-wrap items-center justify-between gap-4">
+          <div class="flex items-center gap-3">
+            <h2 class="text-xl font-bold text-base-content flex items-center gap-2">
+              <span>{monthLabel}</span>
+              <span class="text-primary font-extrabold">{yearLabel}</span>
+            </h2>
+          </div>
+
+          {/* Navigation buttons with HTMX partial swapping */}
+          <div class="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              href={`/dashboard/admin/calendar?year=${prevYear}&month=${prevMonth}`}
+              hx-get={`/dashboard/admin/calendar?year=${prevYear}&month=${prevMonth}`}
+              hx-target="#admin-calendar-grid"
+              hx-swap="outerHTML"
+              aria-label="Previous Month"
+            >
+              {rtl ? "→ ماه قبل" : "← Prev"}
+            </Button>
+
+            <Button
+              size="sm"
+              variant="ghost"
+              href="/dashboard/admin/calendar"
+              hx-get="/dashboard/admin/calendar"
+              hx-target="#admin-calendar-grid"
+              hx-swap="outerHTML"
+            >
+              {isPersian ? "امروز" : "Today"}
+            </Button>
+
+            <Button
+              size="sm"
+              variant="outline"
+              href={`/dashboard/admin/calendar?year=${nextYear}&month=${nextMonth}`}
+              hx-get={`/dashboard/admin/calendar?year=${nextYear}&month=${nextMonth}`}
+              hx-target="#admin-calendar-grid"
+              hx-swap="outerHTML"
+              aria-label="Next Month"
+            >
+              {rtl ? "ماه بعد ←" : "Next →"}
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* Calendar Grid Card */}
+      <div class="card border border-base-300 bg-base-100 shadow-sm overflow-hidden">
         {/* Weekday Headers */}
         <div style="display: grid; grid-template-columns: repeat(7, minmax(0, 1fr));" class="bg-base-200/60 border-b border-base-300 text-center font-bold text-xs">
           {weekdays.map((w, idx) => (
@@ -185,7 +209,6 @@ export function AdminCalendarGrid({
           {dayCells.map((dayNum) => {
             const isToday = dayNum === todayDay;
             const meetsForDay = dayMeetsMap[dayNum]?.items ?? [];
-            const iso = dayMeetsMap[dayNum]?.isoDate;
 
             return (
               <div
@@ -221,7 +244,7 @@ export function AdminCalendarGrid({
                         ? "error"
                         : meet.status === "upcoming"
                         ? "primary"
-                        : "neutral";
+                        : "ghost";
 
                     return (
                       <div
@@ -232,23 +255,15 @@ export function AdminCalendarGrid({
                           <span class="font-bold truncate text-base-content hover:text-primary">
                             {meet.title}
                           </span>
-                          <span
-                            class={`badge badge-xs ${
-                              meet.status === "live"
-                                ? "badge-error text-error-content"
-                                : meet.status === "upcoming"
-                                ? "badge-primary text-primary-content"
-                                : "badge-ghost"
-                            }`}
-                          >
+                          <Badge variant={statusVariant} size="xs" class="font-mono">
                             {meet.scheduled_time || "00:00"}
-                          </span>
+                          </Badge>
                         </div>
 
                         <div class="flex items-center justify-between text-[10px] text-base-content/60">
                           <span>{meet.duration_minutes}m</span>
                           <a
-                            href={`/dashboard/admin/meets`}
+                            href="/dashboard/admin/meets"
                             class="text-primary hover:underline"
                           >
                             {isPersian ? "مدیریت" : "Edit"}
