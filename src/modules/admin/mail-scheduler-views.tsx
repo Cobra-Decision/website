@@ -527,6 +527,7 @@ export const MailSchedulerView = ({
                       name="scheduleDate"
                       label={locale === "fa" ? "تاریخ ارسال" : "Schedule Date"}
                       locale={locale}
+                      size="sm"
                     />
                   </div>
                   <FormField label={locale === "fa" ? "ساعت ارسال" : "Schedule Time"}>

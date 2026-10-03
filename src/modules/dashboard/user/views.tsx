@@ -221,12 +221,14 @@ export const UserDashboard = ({
                   name="startDate"
                   label={t("dashboard.from_date", locale)}
                   locale={locale}
+                  size="sm"
                 />
 
                 <DatePicker
                   name="endDate"
                   label={t("dashboard.to_date", locale)}
                   locale={locale}
+                  size="sm"
                 />
               </form>
             </div>

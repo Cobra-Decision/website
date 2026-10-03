@@ -117,8 +117,7 @@ export function AdminCalendarGrid({
           <Button
             size="sm"
             variant="primary"
-            hx-get="/dashboard/admin/meets/new"
-            hx-target="#modal"
+            href="/dashboard/admin/meets?modal=new"
           >
             {t("admin.add_new", locale)}
           </Button>
@@ -263,10 +262,10 @@ export function AdminCalendarGrid({
                         <div class="flex items-center justify-between text-[10px] text-base-content/60">
                           <span>{meet.duration_minutes}m</span>
                           <a
-                            href="/dashboard/admin/meets"
-                            class="text-primary hover:underline"
+                            class="text-primary hover:underline cursor-pointer bg-transparent border-0 p-0 text-[10px]"
+                            href={`/dashboard/admin/meets?modal=${meet.id}`}
                           >
-                            {isPersian ? "مدیریت" : "Edit"}
+                            {isPersian ? "ویرایش" : "Edit"}
                           </a>
                         </div>
                       </div>
@@ -288,6 +287,7 @@ export function AdminCalendarView(props: AdminCalendarViewProps) {
   return (
     <div class="space-y-6">
       <AdminCalendarGrid {...props} />
+      <div id="modal"></div>
     </div>
   );
 }
