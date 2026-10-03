@@ -28,6 +28,9 @@ import { logger } from "../../lib/logger";
 import { createDatabaseAdminRoutes } from "./database-routes";
 import { ImageCropEditor } from "../../ui/image-crop-editor";
 import { PlatformsDataView, getPlatformFunnelStats } from "./platforms-views";
+import { AdminCalendarView, AdminCalendarGrid } from "./calendar-views";
+import { gregorianToJalali } from "../../lib/datetime/jalali";
+import type { Meet } from "../events/types";
 import { Badge } from "../../ui/forms";
 
 type AdminEnv = {
@@ -1349,6 +1352,38 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
       )
       .all();
     return page(c, "Mail Editor", <MailEditorView templates={templates} locale={locale} timeZone={tz} />);
+  });
+
+  // Admin Calendar Schedule Route
+  app.get("/calendar", async (c) => {
+    const locale = getLocale(c);
+    const isPersian = locale === "fa";
+    const today = new Date();
+
+    let defaultYear = today.getFullYear();
+    let defaultMonth = today.getMonth() + 1;
+
+    if (isPersian) {
+      const [jy, jm] = gregorianToJalali(today.getFullYear(), today.getMonth() + 1, today.getDate());
+      defaultYear = jy;
+      defaultMonth = jm;
+    }
+
+    const year = parseInt(c.req.query("year") ?? String(defaultYear), 10) || defaultYear;
+    const month = parseInt(c.req.query("month") ?? String(defaultMonth), 10) || defaultMonth;
+
+    const meets = db.query<Meet, []>("SELECT * FROM meets WHERE deleted_at IS NULL ORDER BY scheduled_date ASC, scheduled_time ASC").all();
+
+    const isHtmx = Boolean(c.req.header("hx-request"));
+    if (isHtmx) {
+      return c.html(<AdminCalendarGrid year={year} month={month} meets={meets} locale={locale} />);
+    }
+
+    return page(
+      c,
+      "Calendar Schedule",
+      <AdminCalendarView year={year} month={month} meets={meets} locale={locale} />
+    );
   });
 
   // Warehouse Center - Platforms Data & Funnel Routes

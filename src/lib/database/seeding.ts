@@ -72,8 +72,9 @@ export const SYSTEM_ENDPOINTS = [
   "/dashboard/user/my-meets",
   "/dashboard/account",
 
-  // Admin Base
+  // Base Admin & Navigation
   "/dashboard/admin",
+  "/dashboard/admin/calendar",
 
   // Users CRUD
   "/dashboard/admin/users",
@@ -177,6 +178,9 @@ export const SYSTEM_ENDPOINTS = [
 ] as const;
 
 export const ADMIN_ALLOWED_ENDPOINTS = [
+  // Calendar View
+  "/dashboard/admin/calendar",
+
   // Meets CRUD
   "/dashboard/admin/meets",
   "/dashboard/admin/meets/new",

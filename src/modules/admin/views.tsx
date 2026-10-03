@@ -10,6 +10,7 @@ import type { PaginationState } from "./pagination";
 
 export type Row = Record<string, string | number | null>;
 const managementLinks = [
+  ["admin.nav.calendar", "/dashboard/admin/calendar"],
   ["admin.nav.users", "/dashboard/admin/users"],
   ["admin.nav.meets", "/dashboard/admin/meets"],
   ["admin.nav.tags", "/dashboard/admin/tags"],

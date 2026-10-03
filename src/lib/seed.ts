@@ -34,8 +34,9 @@ export async function seedSampleData(database: Database) {
     "/dashboard/user/my-meets",
     "/dashboard/account",
 
-    // Admin Base
+    // Admin Base & Navigation
     "/dashboard/admin",
+    "/dashboard/admin/calendar",
 
     // Users CRUD
     "/dashboard/admin/users",
