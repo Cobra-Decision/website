@@ -220,12 +220,12 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
     };
 
     const fieldInput = (field: string) =>
-      field === "scheduled_date" && resource === "meets" ? (
+      field === "scheduled_date" || field.includes("date") ? (
         <DatePicker
-          name="scheduled_date"
-          value={String(values.scheduled_date ?? "")}
+          name={field}
+          value={String(values[field] ?? "")}
           locale={locale}
-          required
+          required={field === "scheduled_date"}
         />
       ) : field === "description" && resource === "meets" ? (
         <div class="sm:col-span-2">
