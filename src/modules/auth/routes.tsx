@@ -14,7 +14,7 @@ import { getAllTags, setUserPreferredTags } from "../events/queries";
 import { mailService } from "../mailer/service";
 import { logger } from "../../lib/logger";
 import { Dashboard, Login, ProfileForm, Register, type Profile } from "./views";
-import { getFirstAllowedAdminPath } from "./middleware";
+import { getFirstAllowedAdminPath, getSessionCookieOptions, SESSION_DURATION, verifyAndRefreshSession } from "./middleware";
 
 type Captcha = { middleware: MiddlewareHandler; challengeHandler: Handler };
 type Claims = { sub: string; username: string; role_title: string; role_id: string };
@@ -40,18 +40,9 @@ export async function createAltcha(): Promise<Captcha> {
 }
 
 export function createAuthRoutes(database: Database, captcha: Captcha, jwtSecret: string) {
-  const hasActiveSession = async (token: string | undefined) => {
-    if (!token) return false;
-    try {
-      const claims = (await verify(token, jwtSecret, "HS256")) as unknown as Claims;
-      return Boolean(database.query("SELECT 1 FROM users WHERE id = ? AND deleted_at IS NULL").get(claims.sub));
-    } catch {
-      return false;
-    }
-  };
   const redirectAuthenticated = async (c: Parameters<Handler>[0]) => {
-    if (await hasActiveSession(getCookie(c, "session"))) {
-      const claims = (await verify(getCookie(c, "session")!, jwtSecret, "HS256")) as unknown as Claims;
+    const claims = await verifyAndRefreshSession(c, getCookie(c, "session"), jwtSecret, database);
+    if (claims) {
       const isAdminRole = claims.role_title === "Super Admin" || claims.role_title === "admin";
       return c.redirect(`/dashboard/${isAdminRole ? "admin" : "user"}`);
     }
@@ -288,17 +279,12 @@ type DashboardEnv = {
 export function createDashboardRoute(database: Database, jwtSecret: string, expectedRole: "admin" | "member" = "member") {
   const app = new Hono<DashboardEnv>();
   const loadUser = async (c: Parameters<Handler>[0]) => {
-    const token = getCookie(c, "session");
-    if (!token) return null;
-    try {
-      const claims = (await verify(token, jwtSecret, "HS256")) as unknown as Claims;
-      const user = database.query<Profile, [string]>(`SELECT u.id, u.email, u.username, u.phone, u.first_name, u.last_name, r.title role_title
-        FROM users u JOIN roles r ON r.id = u.role_id
-        WHERE u.id = ? AND u.deleted_at IS NULL AND r.deleted_at IS NULL`).get(claims.sub);
-      return user ? { claims, user } : null;
-    } catch {
-      return null;
-    }
+    const claims = await verifyAndRefreshSession(c, getCookie(c, "session"), jwtSecret, database);
+    if (!claims) return null;
+    const user = database.query<Profile, [string]>(`SELECT u.id, u.email, u.username, u.phone, u.first_name, u.last_name, r.title role_title
+      FROM users u JOIN roles r ON r.id = u.role_id
+      WHERE u.id = ? AND u.deleted_at IS NULL AND r.deleted_at IS NULL`).get(claims.sub);
+    return user ? { claims, user } : null;
   };
 
   app.use("*", async (c, next) => {
@@ -326,22 +312,17 @@ export function createDashboardRoute(database: Database, jwtSecret: string, expe
 export function createProfileRoute(database: Database, jwtSecret: string) {
   const app = new Hono();
   app.get("/", async (c) => {
-    const token = getCookie(c, "session");
-    if (!token) return c.redirect("/auth");
-    try {
-      const claims = (await verify(token, jwtSecret, "HS256")) as unknown as Claims;
-      const user = database.query<Profile, [string]>(`SELECT u.id, u.email, u.username, u.phone, u.first_name, u.last_name, r.title role_title
-        FROM users u JOIN roles r ON r.id = u.role_id
-        WHERE u.id = ? AND u.deleted_at IS NULL AND r.deleted_at IS NULL`).get(claims.sub);
-      if (!user) return c.redirect("/auth");
-      return c.html(
-        <Document title="Your Profile | CobraDecision">
-          <ProfileForm user={user} />
-        </Document>
-      );
-    } catch {
-      return c.redirect("/auth");
-    }
+    const claims = await verifyAndRefreshSession(c, getCookie(c, "session"), jwtSecret, database);
+    if (!claims) return c.redirect("/auth");
+    const user = database.query<Profile, [string]>(`SELECT u.id, u.email, u.username, u.phone, u.first_name, u.last_name, r.title role_title
+      FROM users u JOIN roles r ON r.id = u.role_id
+      WHERE u.id = ? AND u.deleted_at IS NULL AND r.deleted_at IS NULL`).get(claims.sub);
+    if (!user) return c.redirect("/auth");
+    return c.html(
+      <Document title="Your Profile | CobraDecision">
+        <ProfileForm user={user} />
+      </Document>
+    );
   });
   return app;
 }

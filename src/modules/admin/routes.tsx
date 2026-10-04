@@ -2,7 +2,7 @@ import { Hono, type Context, type Next } from "hono";
 import { getCookie } from "hono/cookie";
 import { verify } from "hono/jwt";
 import type { Database } from "bun:sqlite";
-import { clearPermissionCache, createPermissionChecker, getFirstAllowedAdminPath, getRoleAllowedEndpoints } from "../auth/middleware";
+import { clearPermissionCache, createPermissionChecker, getFirstAllowedAdminPath, getRoleAllowedEndpoints, verifyAndRefreshSession } from "../auth/middleware";
 import { AdminLayout, CrudTable, MeetRelations, type Row, Toast, AdminConfirmDeleteModal, AdminBulkConfirmDeleteModal } from "./views";
 import { parsePaginationParams, calculatePagination, type PaginationState } from "./pagination";
 import { FormMessage } from "../../ui/form-message";
@@ -41,19 +41,15 @@ type AdminEnv = {
 
 const guard = (db: Database, jwtSecret: string) => async (c: Context<AdminEnv>, next: Next) => {
   const token = getCookie(c, "session");
-  if (!token) return c.redirect("/auth");
-  try {
-    const claims = (await verify(token, jwtSecret, "HS256")) as { sub: string; role_id: string };
-    const path = c.req.path;
-    const can = createPermissionChecker(db);
-    if (!can(claims.role_id, path)) {
-      return c.html(<p class="alert alert-error">Forbidden</p>, 403);
-    }
-    c.set("auth", claims);
-    return next();
-  } catch {
-    return c.redirect("/auth");
+  const claims = await verifyAndRefreshSession(c, token, jwtSecret, db);
+  if (!claims) return c.redirect("/auth");
+  const path = c.req.path;
+  const can = createPermissionChecker(db);
+  if (!can(claims.role_id, path)) {
+    return c.html(<p class="alert alert-error">Forbidden</p>, 403);
   }
+  c.set("auth", claims);
+  return next();
 };
 
 export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECRET ?? "development-secret") {
@@ -73,14 +69,10 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
 
   app.get("/", async (c) => {
     const token = getCookie(c, "session");
-    if (!token) return c.redirect("/auth");
-    try {
-      const claims = (await verify(token, jwtSecret, "HS256")) as unknown as { role_id: string };
-      const target = getFirstAllowedAdminPath(db, claims.role_id);
-      return c.redirect(target);
-    } catch {
-      return c.redirect("/auth");
-    }
+    const claims = await verifyAndRefreshSession(c, token, jwtSecret, db);
+    if (!claims) return c.redirect("/auth");
+    const target = getFirstAllowedAdminPath(db, claims.role_id);
+    return c.redirect(target);
   });
 
   app.use("*", async (c, next) => guard(db, jwtSecret)(c, next));

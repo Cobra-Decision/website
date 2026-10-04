@@ -1,12 +1,105 @@
 import type { Context, Next } from "hono";
 import type { Database } from "bun:sqlite";
-import { getCookie } from "hono/cookie";
-import { verify } from "hono/jwt";
+import { getCookie, setCookie } from "hono/cookie";
+import { sign, verify } from "hono/jwt";
 import { database } from "../../lib/database";
 import { getTimezone } from "../../lib/i18n/context";
 
-export type Claims = { sub: string; username: string; role_title: string; role_id: string };
+export type Claims = { sub: string; username: string; role_title: string; role_id: string; iat?: number; exp?: number };
 const permissionCache = new Map<string, Set<string>>();
+export const SESSION_DURATION = 60 * 60 * 8; // 8 hours
+const REFRESH_THRESHOLD = 60 * 60 * 2; // Refresh if remaining life < 2 hours
+const MAX_REFRESH_GRACE_PERIOD = 60 * 60 * 24 * 7; // Max 7 days to revive an expired session
+
+export function getSessionCookieOptions() {
+  const isProd = process.env.NODE_ENV === "production";
+  return {
+    httpOnly: true,
+    secure: isProd,
+    sameSite: (isProd ? "None" : "Lax") as "None" | "Lax",
+    path: "/",
+    maxAge: SESSION_DURATION,
+  };
+}
+
+export async function verifyAndRefreshSession(
+  c: Context,
+  token: string | undefined,
+  jwtSecret: string,
+  db: Database = database
+): Promise<Claims | null> {
+  if (!token) return null;
+  try {
+    let claims: Claims;
+    let isExpired = false;
+    try {
+      claims = (await verify(token, jwtSecret, "HS256")) as unknown as Claims;
+    } catch {
+      claims = (await verify(token, jwtSecret, { alg: "HS256", exp: false })) as unknown as Claims;
+      isExpired = true;
+    }
+
+    const now = Math.floor(Date.now() / 1000);
+    if (isExpired && claims.exp && now - claims.exp > MAX_REFRESH_GRACE_PERIOD) {
+      return null;
+    }
+
+    let user: { id: string; username: string | null; email: string; timezone?: string | null; role_title: string; role_id: string } | null = null;
+    try {
+      user = db
+        .query<{ id: string; username: string | null; email: string; timezone?: string | null; role_title: string; role_id: string }, [string]>(
+          `SELECT u.id, u.username, u.email, u.timezone, r.title role_title, u.role_id
+           FROM users u JOIN roles r ON r.id = u.role_id
+           WHERE u.id = ? AND u.deleted_at IS NULL AND r.deleted_at IS NULL`
+        )
+        .get(claims.sub);
+    } catch {
+      // Fallback for minimal test schema variations
+      try {
+        user = db
+          .query<{ id: string; username: string | null; email: string; role_title: string; role_id: string }, [string]>(
+            `SELECT u.id, u.username, u.email, r.title role_title, u.role_id
+             FROM users u JOIN roles r ON r.id = u.role_id
+             WHERE u.id = ?`
+          )
+          .get(claims.sub);
+      } catch {}
+    }
+
+    if (!user) return null;
+
+    const reqTz = getTimezone(c, "");
+    if (reqTz && user.timezone !== undefined && reqTz !== user.timezone) {
+      try {
+        db.run(
+          "UPDATE users SET timezone = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND (timezone IS NULL OR timezone != ?)",
+          [reqTz, user.id, reqTz]
+        );
+        user.timezone = reqTz;
+      } catch {}
+    }
+
+    const isExpiredOrStale = isExpired || !claims.exp || claims.exp <= now || (claims.exp - now) < REFRESH_THRESHOLD;
+    const isDataUpdated = claims.role_id !== user.role_id || claims.role_title !== user.role_title || claims.username !== (user.username ?? user.email);
+
+    if (isExpiredOrStale || isDataUpdated) {
+      const refreshedClaims: Claims = {
+        sub: user.id,
+        username: user.username ?? user.email,
+        role_title: user.role_title,
+        role_id: user.role_id,
+        iat: now,
+        exp: now + SESSION_DURATION,
+      };
+      const newToken = await sign(refreshedClaims, jwtSecret, "HS256");
+      setCookie(c, "session", newToken, getSessionCookieOptions());
+      return refreshedClaims;
+    }
+    return claims;
+  } catch {
+    return null;
+  }
+}
 
 export const ADMIN_SECTION_ENDPOINTS = [
   "/dashboard/admin/calendar",
@@ -91,43 +184,25 @@ export function createPermissionChecker(db: Database) {
 
 const canAccess = createPermissionChecker(database);
 
-export const authGuard = (jwtSecret = process.env.JWT_SECRET ?? "development-secret") =>
+export const authGuard = (jwtSecret = process.env.JWT_SECRET ?? "development-secret", db: Database = database) =>
   async (c: Context, next: Next) => {
     const token = getCookie(c, "session");
-    if (!token) return c.redirect("/auth");
-    try {
-      const claims = (await verify(token, jwtSecret, "HS256")) as unknown as Claims;
-      c.set("auth", claims);
-
-      // Lazily sync user timezone if client passes a different valid timezone
-      const reqTz = getTimezone(c, "");
-      if (reqTz) {
-        database.run(
-          "UPDATE users SET timezone = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND (timezone IS NULL OR timezone != ?)",
-          [reqTz, claims.sub, reqTz]
-        );
-      }
-
-      return next();
-    } catch {
-      return c.redirect("/auth");
-    }
+    const claims = await verifyAndRefreshSession(c, token, jwtSecret, db);
+    if (!claims) return c.redirect("/auth");
+    c.set("auth", claims);
+    return next();
   };
 
-export const requirePermission = (jwtSecret = process.env.JWT_SECRET ?? "development-secret") =>
+export const requirePermission = (jwtSecret = process.env.JWT_SECRET ?? "development-secret", db: Database = database) =>
   async (c: Context, next: Next) => {
     const token = getCookie(c, "session");
-    if (!token) return c.html(<p class="alert alert-error">Authentication required.</p>, 401);
-    try {
-      const claims = (await verify(token, jwtSecret, "HS256")) as unknown as Claims;
-      if (!canAccess(claims.role_id, c.req.path)) {
-        return c.html(<p class="alert alert-error">You do not have permission to access this page.</p>, 403);
-      }
-      c.set("auth", claims);
-      return next();
-    } catch {
-      return c.html(<p class="alert alert-error">Invalid session.</p>, 401);
+    const claims = await verifyAndRefreshSession(c, token, jwtSecret, db);
+    if (!claims) return c.html(<p class="alert alert-error">Authentication required.</p>, 401);
+    if (!canAccess(claims.role_id, c.req.path)) {
+      return c.html(<p class="alert alert-error">You do not have permission to access this page.</p>, 403);
     }
+    c.set("auth", claims);
+    return next();
   };
 
 export function clearPermissionCache(roleId?: string) {

@@ -14,7 +14,7 @@ import { logger } from "../../../lib/logger";
 export function createAccountRoutes(database: Database, jwtSecret = process.env.JWT_SECRET ?? "development-secret") {
   const app = new Hono<{ Variables: { auth: Claims } }>();
 
-  app.use("*", authGuard(jwtSecret));
+  app.use("*", authGuard(jwtSecret, database));
 
   const loadUser = (userId: string): Profile | null => {
     return database

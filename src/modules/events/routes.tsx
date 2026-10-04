@@ -3,7 +3,7 @@ import { Hono } from "hono";
 import { getCookie } from "hono/cookie";
 import { verify } from "hono/jwt";
 import { Document } from "../../ui/layout";
-import type { Claims } from "../auth/middleware";
+import { type Claims, verifyAndRefreshSession } from "../auth/middleware";
 import { attendMeet, getMeetById, leaveMeet, recordMeetVisit } from "./queries";
 import { DynamicCtaButton, MeetAccessBanner, MeetingDetailPage } from "./views";
 import { RsvpButton } from "../dashboard/user/views";
@@ -15,18 +15,13 @@ import { isBotOrCrawler } from "../../lib/bot-detector";
 export function createEventsRoutes(database: Database, jwtSecret = process.env.JWT_SECRET ?? "development-secret") {
   const app = new Hono();
 
-  const getSessionUser = async (cookieHeader: string | undefined): Promise<Claims | null> => {
-    if (!cookieHeader) return null;
-    try {
-      return (await verify(cookieHeader, jwtSecret, "HS256")) as unknown as Claims;
-    } catch {
-      return null;
-    }
+  const getSessionUser = async (c: any): Promise<Claims | null> => {
+    return verifyAndRefreshSession(c, getCookie(c, "session"), jwtSecret, database);
   };
 
   app.get("/:id", async (c) => {
     const id = c.req.param("id");
-    const user = await getSessionUser(getCookie(c, "session"));
+    const user = await getSessionUser(c);
     const isSuperAdmin = user
       ? database
           .query<{ title: string }, [string]>(
@@ -91,7 +86,7 @@ export function createEventsRoutes(database: Database, jwtSecret = process.env.J
   app.post("/:id/attend", async (c) => {
     const id = c.req.param("id");
     const locale = getLocale(c);
-    const user = await getSessionUser(getCookie(c, "session"));
+    const user = await getSessionUser(c);
     if (!user) return c.html(<a href="/auth" class="btn btn-primary w-full">Sign In to Attend</a>, 401);
 
     const isSuperAdmin = database
@@ -179,7 +174,7 @@ export function createEventsRoutes(database: Database, jwtSecret = process.env.J
   app.delete("/:id/attend", async (c) => {
     const id = c.req.param("id");
     const locale = getLocale(c);
-    const user = await getSessionUser(getCookie(c, "session"));
+    const user = await getSessionUser(c);
     if (!user) return c.html(<a href="/auth" class="btn btn-primary w-full">Sign In to Attend</a>, 401);
 
     const isSuperAdmin = database
