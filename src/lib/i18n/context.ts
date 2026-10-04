@@ -18,6 +18,12 @@ export function getLocale(c?: Context): Locale {
 
 export function getTimezone(c?: Context, defaultTz = "Asia/Tehran"): string {
   if (!c) return defaultTz;
+
+  const authUser = (c.get as any)?.("auth")?.user || (c.get as any)?.("user");
+  if (authUser?.timezone && typeof authUser.timezone === "string" && authUser.timezone.trim()) {
+    return authUser.timezone.trim();
+  }
+
   const headerTz = c.req.header("hx-timezone") || c.req.header("x-timezone");
   if (headerTz && headerTz.trim()) return decodeURIComponent(headerTz.trim());
 

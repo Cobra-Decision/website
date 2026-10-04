@@ -891,7 +891,8 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
           const values = editable.map((field) => String(submitted[field] ?? "").trim() || null);
           db.run(`INSERT INTO users (id,${editable.join(",")},password_hash) VALUES (?,${editable.map(() => "?").join(",")},?)`, [id, ...values, await Bun.password.hash(password)]);
         } else if (resource === "meets") {
-          const scheduledAtUtc = submitted.scheduled_date && submitted.scheduled_time ? toUtcIso(String(submitted.scheduled_date), String(submitted.scheduled_time)) : null;
+          const tz = getTimezone(c);
+          const scheduledAtUtc = submitted.scheduled_date && submitted.scheduled_time ? toUtcIso(String(submitted.scheduled_date), String(submitted.scheduled_time), tz) : null;
           const normalizedTopics = normalizeTopics(submitted.topics ? String(submitted.topics) : null);
           const meetFields = [...fields, "scheduled_at_utc"];
           const values = fields.map((field) => {
@@ -1028,7 +1029,8 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
           const password = String(body.password ?? "");
           db.run(`UPDATE users SET ${editable.map((field) => `${field}=?`).join(",")}${password ? ",password_hash=?" : ""},updated_at=CURRENT_TIMESTAMP WHERE id=?`, [...values, ...(password ? [await Bun.password.hash(password)] : []), id]);
         } else if (resource === "meets") {
-          const scheduledAtUtc = submitted.scheduled_date && submitted.scheduled_time ? toUtcIso(String(submitted.scheduled_date), String(submitted.scheduled_time)) : null;
+          const tz = getTimezone(c);
+          const scheduledAtUtc = submitted.scheduled_date && submitted.scheduled_time ? toUtcIso(String(submitted.scheduled_date), String(submitted.scheduled_time), tz) : null;
           const normalizedTopics = normalizeTopics(submitted.topics ? String(submitted.topics) : null);
           const meetFields = [...fields, "scheduled_at_utc"];
           const values = fields.map((field) => {
@@ -1371,18 +1373,19 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
 
     const year = parseInt(c.req.query("year") ?? String(defaultYear), 10) || defaultYear;
     const month = parseInt(c.req.query("month") ?? String(defaultMonth), 10) || defaultMonth;
+    const tz = getTimezone(c);
 
     const meets = db.query<Meet, []>("SELECT * FROM meets WHERE deleted_at IS NULL ORDER BY scheduled_date ASC, scheduled_time ASC").all();
 
     const isHtmx = Boolean(c.req.header("hx-request"));
     if (isHtmx) {
-      return c.html(<AdminCalendarGrid year={year} month={month} meets={meets} locale={locale} />);
+      return c.html(<AdminCalendarGrid year={year} month={month} meets={meets} locale={locale} timeZone={tz} />);
     }
 
     return page(
       c,
       "Calendar Schedule",
-      <AdminCalendarView year={year} month={month} meets={meets} locale={locale} />
+      <AdminCalendarView year={year} month={month} meets={meets} locale={locale} timeZone={tz} />
     );
   });
 
@@ -1641,8 +1644,9 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
     const sendNow = String(body.sendNow ?? "") === "true" || String(body.sendNow ?? "") === "1";
     const scheduleDate = String(body.scheduleDate ?? "").trim();
     const scheduleTime = String(body.scheduleTime ?? "12:00").trim() || "12:00";
+    const tz = getTimezone(c);
     const rawScheduledFor = String(body.scheduledFor ?? "").trim();
-    const scheduledFor = rawScheduledFor || (scheduleDate ? `${scheduleDate}T${scheduleTime}:00` : "");
+    const scheduledFor = rawScheduledFor ? toUtcIso(rawScheduledFor.split("T")[0], rawScheduledFor.split("T")[1] || "00:00", tz) : (scheduleDate ? toUtcIso(scheduleDate, scheduleTime, tz) : "");
 
     if (!title || !subject || !emailBody || (!scheduledFor && !sendNow)) {
       return renderMailScheduler(c, toast("admin.error", "Title, subject, and body are required.", "error"));

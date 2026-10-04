@@ -1,27 +1,91 @@
 import type { Locale } from "../../lib/i18n/translations";
 import { formatLocalizedNumber, toEnglishDigits, toPersianDigits } from "../../lib/i18n/context";
 
-const tehranOffsetMinutes = 210;
-
-export function toUtcIso(date: string, time: string) {
-  const cleanDate = toEnglishDigits(date);
-  const cleanTime = toEnglishDigits(time);
-  const [year, month, day] = cleanDate.split("-").map(Number);
-  const [hour, minute] = cleanTime.split(":").map(Number);
-  return new Date(Date.UTC(year, month - 1, day, hour, minute - tehranOffsetMinutes)).toISOString();
+function getSafeTimeZone(timeZone?: string): string {
+  if (!timeZone) return "Asia/Tehran";
+  try {
+    Intl.DateTimeFormat(undefined, { timeZone });
+    return timeZone;
+  } catch {
+    return "Asia/Tehran";
+  }
 }
 
 /**
- * Converts a Tehran date & time plus duration into UTC calendar strings
+ * Calculates the exact UTC ISO string for a local date (YYYY-MM-DD) and time (HH:MM)
+ * in any specified IANA timezone using standard Intl & Date.
+ */
+export function toUtcIso(date: string, time: string, timeZone = "Asia/Tehran"): string {
+  const cleanDate = toEnglishDigits(date || "").trim();
+  const cleanTime = toEnglishDigits(time || "").trim();
+  const [year, month, day] = cleanDate.split("-").map(Number);
+  const [hour, minute] = (cleanTime || "00:00").split(":").map(Number);
+
+  if (!year || !month || !day || isNaN(hour) || isNaN(minute)) {
+    return new Date().toISOString();
+  }
+
+  const tz = getSafeTimeZone(timeZone);
+
+  // Approximate UTC timestamp assuming local time was UTC
+  const approxUtc = Date.UTC(year, month - 1, day, hour, minute, 0, 0);
+
+  // Format parts in target timezone to find the exact offset
+  const dtf = new Intl.DateTimeFormat("en-US", {
+    timeZone: tz,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  });
+
+  const getTzOffsetMs = (dateMs: number) => {
+    const parts = dtf.formatToParts(new Date(dateMs));
+    let y = 0, m = 0, d = 0, h = 0, min = 0, s = 0;
+    for (const p of parts) {
+      if (p.type === "year") y = Number(p.value);
+      else if (p.type === "month") m = Number(p.value);
+      else if (p.type === "day") d = Number(p.value);
+      else if (p.type === "hour") h = Number(p.value);
+      else if (p.type === "minute") min = Number(p.value);
+      else if (p.type === "second") s = Number(p.value);
+    }
+    // Handle 24h edge cases in some Intl implementations (e.g. 24 -> 00)
+    if (h === 24) h = 0;
+    const tzAsUtc = Date.UTC(y, m - 1, d, h, min, s, 0);
+    return tzAsUtc - dateMs;
+  };
+
+  // Iteratively resolve exact instant (handles DST transitions cleanly)
+  let offsetMs = getTzOffsetMs(approxUtc);
+  let exactUtc = approxUtc - offsetMs;
+  const recheckedOffsetMs = getTzOffsetMs(exactUtc);
+  if (recheckedOffsetMs !== offsetMs) {
+    exactUtc = approxUtc - recheckedOffsetMs;
+  }
+
+  return new Date(exactUtc).toISOString();
+}
+
+/**
+ * Converts a date & time in timeZone plus duration into UTC calendar strings
  * (Google compact format e.g. 20261015T163000Z and standard ISO 8601 e.g. 2026-10-15T16:30:00Z).
  */
-export function formatCalendarUtc(dateStr: string, timeStr: string, durationMinutes = 60): {
+export function formatCalendarUtc(
+  dateStr: string,
+  timeStr: string,
+  durationMinutes = 60,
+  timeZone = "Asia/Tehran"
+): {
   startUtc: string;
   endUtc: string;
   startIso: string;
   endIso: string;
 } {
-  const startIso = toUtcIso(dateStr, timeStr);
+  const startIso = toUtcIso(dateStr, timeStr, timeZone);
   const startDate = new Date(startIso);
   const endDate = new Date(startDate.getTime() + (durationMinutes || 60) * 60 * 1000);
 
@@ -48,6 +112,7 @@ export function buildCalendarLinks({
   date,
   time,
   durationMinutes = 60,
+  timeZone = "Asia/Tehran",
 }: {
   title: string;
   description?: string;
@@ -55,6 +120,7 @@ export function buildCalendarLinks({
   date: string;
   time: string;
   durationMinutes?: number;
+  timeZone?: string;
 }): {
   googleCalendarUrl: string;
   outlookCalendarUrl: string;
@@ -63,7 +129,7 @@ export function buildCalendarLinks({
   startIso: string;
   endIso: string;
 } {
-  const { startUtc, endUtc, startIso, endIso } = formatCalendarUtc(date, time, durationMinutes);
+  const { startUtc, endUtc, startIso, endIso } = formatCalendarUtc(date, time, durationMinutes, timeZone);
 
   const googleParams = new URLSearchParams({
     action: "TEMPLATE",
@@ -114,14 +180,7 @@ export function formatLocalizedDate(dateString: string, locale: Locale = "en", t
     }
     if (isNaN(dateObj.getTime())) return dateString;
 
-    const tzOption = (() => {
-      try {
-        Intl.DateTimeFormat(undefined, { timeZone });
-        return timeZone;
-      } catch {
-        return "Asia/Tehran";
-      }
-    })();
+    const tzOption = getSafeTimeZone(timeZone);
 
     if (locale === "fa") {
       return new Intl.DateTimeFormat("fa-IR", {
@@ -163,14 +222,7 @@ export function formatUtcDateTime(
     const dateObj = new Date(clean);
     if (isNaN(dateObj.getTime())) return { date: utcTimestamp, time: "", full: utcTimestamp };
 
-    const tz = (() => {
-      try {
-        Intl.DateTimeFormat(undefined, { timeZone });
-        return timeZone;
-      } catch {
-        return "Asia/Tehran";
-      }
-    })();
+    const tz = getSafeTimeZone(timeZone);
 
     const date = new Intl.DateTimeFormat(locale === "fa" ? "fa-IR" : "en-US", {
       year: "numeric",
@@ -199,14 +251,15 @@ export function isMeetLinkActive(
   scheduledDate: string,
   scheduledTime: string,
   scheduledAtUtc?: string | null,
-  windowMinutes = 15
+  windowMinutes = 15,
+  timeZone = "Asia/Tehran"
 ): boolean {
   try {
     let startTimestamp: number;
     if (scheduledAtUtc) {
       startTimestamp = new Date(scheduledAtUtc).getTime();
     } else if (scheduledDate && scheduledTime) {
-      startTimestamp = new Date(toUtcIso(scheduledDate, scheduledTime)).getTime();
+      startTimestamp = new Date(toUtcIso(scheduledDate, scheduledTime, timeZone)).getTime();
     } else {
       return true;
     }

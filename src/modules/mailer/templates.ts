@@ -242,16 +242,17 @@ export function renderOtpEmailTemplate(otp: string, database?: Database) {
 
 export function renderAttendanceConfirmationTemplate(
   meet: MeetEmailData,
-  user: { firstName?: string | null; lastName?: string | null; username?: string | null; email: string },
+  user: { firstName?: string | null; lastName?: string | null; username?: string | null; email: string; timezone?: string | null },
   baseUrl = "http://localhost:3000",
   database?: Database
 ) {
   const cleanBase = normalizeBaseUrl(baseUrl);
   const name = [user.firstName, user.lastName].filter(Boolean).join(" ") || user.firstName || user.username || user.email;
   const meetLink = `${cleanBase}/meets/${meet.id}?ref=gmail`;
-  const meetDateShamsi = formatLocalizedDate(meet.scheduledDate, "fa");
+  const userTz = user.timezone || "Asia/Tehran";
+  const meetDateShamsi = formatLocalizedDate(meet.scheduledDate, "fa", userTz);
   const dashboardUrl = `${cleanBase}/dashboard/user`;
-  const cal = formatCalendarUtc(meet.scheduledDate, meet.scheduledTime, meet.durationMinutes);
+  const cal = formatCalendarUtc(meet.scheduledDate, meet.scheduledTime, meet.durationMinutes, userTz);
 
   const vars = {
     name,
@@ -315,7 +316,7 @@ export function renderAttendanceConfirmationTemplate(
 
 export function renderAttendeesReminderTemplate(
   meet: MeetEmailData,
-  user: { firstName?: string | null; lastName?: string | null; username?: string | null; email: string },
+  user: { firstName?: string | null; lastName?: string | null; username?: string | null; email: string; timezone?: string | null },
   baseUrl = "http://localhost:3000",
   database?: Database,
   templateTitle = "attendees_reminder"
@@ -323,9 +324,10 @@ export function renderAttendeesReminderTemplate(
   const cleanBase = normalizeBaseUrl(baseUrl);
   const name = [user.firstName, user.lastName].filter(Boolean).join(" ") || user.firstName || user.username || user.email;
   const meetLink = `${cleanBase}/meets/${meet.id}?ref=gmail`;
-  const meetDateShamsi = formatLocalizedDate(meet.scheduledDate, "fa");
+  const userTz = user.timezone || "Asia/Tehran";
+  const meetDateShamsi = formatLocalizedDate(meet.scheduledDate, "fa", userTz);
   const dashboardUrl = `${cleanBase}/dashboard/user`;
-  const cal = formatCalendarUtc(meet.scheduledDate, meet.scheduledTime, meet.durationMinutes);
+  const cal = formatCalendarUtc(meet.scheduledDate, meet.scheduledTime, meet.durationMinutes, userTz);
 
   const vars = {
     name,
@@ -387,7 +389,7 @@ export function renderAttendeesReminderTemplate(
 
 export function renderTagReminderTemplate(
   meet: MeetEmailData,
-  user: { firstName?: string | null; lastName?: string | null; username?: string | null; email: string },
+  user: { firstName?: string | null; lastName?: string | null; username?: string | null; email: string; timezone?: string | null },
   matchedTags: string[],
   baseUrl = "http://localhost:3000",
   database?: Database,
@@ -396,9 +398,10 @@ export function renderTagReminderTemplate(
   const cleanBase = normalizeBaseUrl(baseUrl);
   const name = [user.firstName, user.lastName].filter(Boolean).join(" ") || user.firstName || user.username || user.email;
   const meetLink = `${cleanBase}/meets/${meet.id}?ref=gmail`;
-  const meetDateShamsi = formatLocalizedDate(meet.scheduledDate, "fa");
+  const userTz = user.timezone || "Asia/Tehran";
+  const meetDateShamsi = formatLocalizedDate(meet.scheduledDate, "fa", userTz);
   const dashboardUrl = `${cleanBase}/dashboard/user`;
-  const cal = formatCalendarUtc(meet.scheduledDate, meet.scheduledTime, meet.durationMinutes);
+  const cal = formatCalendarUtc(meet.scheduledDate, meet.scheduledTime, meet.durationMinutes, userTz);
 
   const vars = {
     name,

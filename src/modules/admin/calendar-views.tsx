@@ -1,6 +1,7 @@
 import type { Meet } from "../events/types";
 import type { Locale } from "../../lib/i18n/translations";
 import { isRtl, toPersianDigits, t } from "../../lib/i18n/context";
+import { formatUtcDateTime } from "../events/datetime";
 import {
   gregorianToJalali,
   jalaliToGregorian,
@@ -21,6 +22,7 @@ export interface AdminCalendarViewProps {
   month: number;
   meets: Meet[];
   locale?: Locale;
+  timeZone?: string;
 }
 
 export function AdminCalendarGrid({
@@ -28,6 +30,7 @@ export function AdminCalendarGrid({
   month,
   meets,
   locale = "en",
+  timeZone = "Asia/Tehran",
 }: AdminCalendarViewProps) {
   const isPersian = locale === "fa";
   const rtl = isRtl(locale);
@@ -55,6 +58,36 @@ export function AdminCalendarGrid({
   let yearLabel = String(year);
   let weekdays = isPersian ? JALALI_WEEKDAYS_FA : GREGORIAN_WEEKDAYS_EN;
 
+  // Helper to get meet's local date (YYYY-MM-DD) and time (HH:MM) in viewer's timeZone
+  const getMeetLocalDateAndItem = (m: Meet): { localDate: string; displayMeet: Meet } => {
+    if (m.scheduled_at_utc) {
+      try {
+        const dtf = new Intl.DateTimeFormat("en-CA", {
+          timeZone,
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+        });
+        const dtfTime = new Intl.DateTimeFormat("en-GB", {
+          timeZone,
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: false,
+        });
+        const dateObj = new Date(m.scheduled_at_utc);
+        const localDate = dtf.format(dateObj); // YYYY-MM-DD
+        const localTime = dtfTime.format(dateObj);
+        return {
+          localDate,
+          displayMeet: { ...m, scheduled_date: localDate, scheduled_time: localTime },
+        };
+      } catch {
+        return { localDate: m.scheduled_date, displayMeet: m };
+      }
+    }
+    return { localDate: m.scheduled_date, displayMeet: m };
+  };
+
   // Map of YYYY-MM-DD or Jalali day to meets
   const dayMeetsMap: Record<number, { isoDate: string; items: Meet[] }> = {};
 
@@ -70,7 +103,10 @@ export function AdminCalendarGrid({
     for (let d = 1; d <= daysCount; d++) {
       const [gY, gM, gD] = jalaliToGregorian(year, month, d);
       const iso = `${gY}-${pPad(gM)}-${pPad(gD)}`;
-      const matched = meets.filter((m) => m.scheduled_date === iso);
+      const matched = meets
+        .map(getMeetLocalDateAndItem)
+        .filter(({ localDate }) => localDate === iso)
+        .map(({ displayMeet }) => displayMeet);
       dayMeetsMap[d] = { isoDate: iso, items: matched };
     }
   } else {
@@ -80,7 +116,10 @@ export function AdminCalendarGrid({
 
     for (let d = 1; d <= daysCount; d++) {
       const iso = `${year}-${pPad(month)}-${pPad(d)}`;
-      const matched = meets.filter((m) => m.scheduled_date === iso);
+      const matched = meets
+        .map(getMeetLocalDateAndItem)
+        .filter(({ localDate }) => localDate === iso)
+        .map(({ displayMeet }) => displayMeet);
       dayMeetsMap[d] = { isoDate: iso, items: matched };
     }
   }
