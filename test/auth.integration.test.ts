@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, expect, test } from "bun:test";
 import { Database } from "bun:sqlite";
 import type { MiddlewareHandler } from "hono";
+import { sign } from "hono/jwt";
 import { createApp } from "../src/app";
 import { initializeDatabase } from "../src/modules/auth/database";
 import { getLandingCache, initCache } from "../src/lib/cache";
@@ -310,6 +311,38 @@ test("admin edit delete bulk and endpoint mapping forms persist changes", async 
   const tagId = id("tags", "title", "After tag");
   expect((await app.request(`/dashboard/admin/tags/${tagId}`, { method: "DELETE", headers: { cookie } })).status).toBe(200);
   expect(database.query<{ deleted_at: string }, [string]>("SELECT deleted_at FROM tags WHERE id=?").get(tagId)).not.toEqual({ deleted_at: null });
+});
+
+test("automatically refreshes expired or near-expiry JWT session and syncs client timezone", async () => {
+  initializeEventsDatabase(database);
+  await initializeDatabase(database, { email: "admin@example.com", password: "secret123" });
+  const user = database.query<{ id: string; role_id: string; timezone: string | null }, [string]>("SELECT id, role_id, timezone FROM users WHERE email = ?").get("admin@example.com")!;
+
+  // Sign an already-expired token for an active user
+  const past = Math.floor(Date.now() / 1000) - 3600;
+  const jwtSecret = process.env.JWT_SECRET ?? "development-secret";
+  const expiredToken = await sign(
+    { sub: user.id, username: "admin@example.com", role_title: "Super Admin", role_id: user.role_id, iat: past - 28800, exp: past },
+    jwtSecret,
+    "HS256"
+  );
+
+  // Request protected route with expired token + new timezone header
+  const res = await app.request("/dashboard/user", {
+    headers: {
+      cookie: `session=${expiredToken}`,
+      "x-timezone": "Europe/London",
+    },
+  });
+
+  expect(res.status).toBe(200);
+  const setCookieHeader = res.headers.get("set-cookie");
+  expect(setCookieHeader).toBeTruthy();
+  expect(setCookieHeader).toContain("session=");
+
+  // Verify user timezone updated in database
+  const updatedUser = database.query<{ timezone: string }, [string]>("SELECT timezone FROM users WHERE id = ?").get(user.id)!;
+  expect(updatedUser.timezone).toBe("Europe/London");
 });
 
 test("meet tags and attendees can be managed independently", async () => {

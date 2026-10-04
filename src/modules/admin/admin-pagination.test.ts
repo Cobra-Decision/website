@@ -64,7 +64,13 @@ describe("Admin Resource Pagination Integration", () => {
     }
 
     // Seed 25 users
-    for (let i = 1; i <= 25; i++) {
+    const superAdminUserId = "super-admin-user";
+    db.run(
+      "INSERT INTO users (id, email, username, password_hash, role_id) VALUES (?, 'admin@example.com', 'superadmin', 'hash', ?)",
+      [superAdminUserId, superRoleId]
+    );
+
+    for (let i = 1; i <= 24; i++) {
       db.run(
         "INSERT INTO users (id, email, username, password_hash, role_id) VALUES (?, ?, ?, 'hash', ?)",
         [generateId(), `user${i.toString().padStart(2, "0")}@example.com`, `user${i.toString().padStart(2, "0")}`, superRoleId]
@@ -151,7 +157,12 @@ describe("Admin Resource Pagination Integration", () => {
     expect(htmlSuper).toContain("15");
 
     // Normal Editor sees only 12 public meets
-    const editorToken = await sign({ sub: "editor-user", role_id: normalRoleId }, jwtSecret);
+    const editorUserId = "editor-user";
+    db.run(
+      "INSERT INTO users (id, email, username, password_hash, role_id) VALUES (?, 'editor@example.com', 'editor', 'hash', ?)",
+      [editorUserId, normalRoleId]
+    );
+    const editorToken = await sign({ sub: editorUserId, role_id: normalRoleId }, jwtSecret);
     const resEditor = await app.request("/meets?page=1&limit=10", {
       headers: { Cookie: `session=${editorToken}` },
     });
