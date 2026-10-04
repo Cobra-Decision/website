@@ -4,6 +4,7 @@ import { MailPlaceholdersToolbar } from "./mail-placeholders-component";
 import type { Locale } from "../../lib/i18n/translations";
 import { t, formatLocalizedNumber } from "../../lib/i18n/context";
 import { Button, Input, Textarea, Select, Checkbox, FormField, Badge } from "../../ui/forms";
+import { Table, TableRow, TableCell } from "../../ui/table";
 
 export const MailerDashboardView = ({
   stats,
@@ -399,70 +400,65 @@ export const MailerDashboardView = ({
             {locale === "fa" ? "ایمیل‌های اخیر ذخیره‌شده در بافر حلقه‌ای حافظه." : "Recent emails captured in the in-memory circular buffer."}
           </p>
 
-          <div class="overflow-x-auto">
-            <table class="table table-sm table-zebra w-full">
-              <thead>
-                <tr>
-                  <th>{t("admin.platforms.timestamp", locale)}</th>
-                  <th>{locale === "fa" ? "گیرنده" : "Recipient"}</th>
-                  <th>{t("admin.mail.email_subject", locale)}</th>
-                  <th>{t("admin.mail.format", locale)}</th>
-                  <th>{locale === "fa" ? "سرویس‌دهنده" : "Provider"}</th>
-                  <th>{locale === "fa" ? "زمان ایجاد" : "Created At"}</th>
-                  <th>{locale === "fa" ? "ارسال / خطا" : "Sent / Error"}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {buffer.length === 0 ? (
-                  <tr>
-                    <td colSpan={7} class="text-center py-6 text-base-content/50">
-                      {t("admin.mail.no_logs", locale)}
-                    </td>
-                  </tr>
-                ) : (
-                  buffer.map((msg) => (
-                    <tr key={msg.id}>
-                      <td>
-                        <Badge
-                          variant={
-                            msg.status === "sent"
-                              ? "success"
-                              : msg.status === "failed"
-                              ? "error"
-                              : "warning"
-                          }
-                          size="sm"
-                          class={msg.status === "sent" || msg.status === "failed" ? "text-white" : ""}
-                        >
-                          {msg.status}
-                        </Badge>
-                      </td>
-                      <td class="font-mono text-xs">{msg.to}</td>
-                      <td class="font-medium max-w-xs truncate">{msg.subject}</td>
-                      <td>
-                        <Badge variant="ghost" size="xs">{msg.format ?? "html"}</Badge>
-                      </td>
-                      <td class="text-xs opacity-75">{msg.provider}</td>
-                      <td class="text-xs opacity-75">
-                        {new Date(msg.createdAt).toLocaleTimeString()}
-                      </td>
-                      <td class="text-xs">
-                        {msg.status === "sent" && msg.sentAt ? (
-                          <span class="text-success">{new Date(msg.sentAt).toLocaleTimeString()}</span>
-                        ) : msg.status === "failed" ? (
-                          <span class="text-error truncate max-w-xs inline-block" title={msg.error}>
-                            {msg.error}
-                          </span>
-                        ) : (
-                          <span class="opacity-50">—</span>
-                        )}
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+          <Table
+            columns={[
+              { header: t("admin.status", locale), sortable: true, key: "status" },
+              { header: locale === "fa" ? "گیرنده" : "Recipient", sortable: true, key: "to" },
+              { header: t("admin.mail.email_subject", locale), sortable: true, key: "subject" },
+              { header: t("admin.mail.format", locale), sortable: true, key: "format" },
+              { header: locale === "fa" ? "سرویس‌دهنده" : "Provider", sortable: true, key: "provider" },
+              { header: locale === "fa" ? "زمان ایجاد" : "Created At", sortable: true, key: "createdAt" },
+              { header: locale === "fa" ? "ارسال / خطا" : "Sent / Error", sortable: true, key: "sentError" },
+            ]}
+            empty={buffer.length === 0}
+            emptyMessage={t("admin.mail.no_logs", locale)}
+          >
+            {buffer.map((msg) => (
+              <TableRow key={msg.id}>
+                <TableCell sortVal={msg.status}>
+                  <Badge
+                    variant={
+                      msg.status === "sent"
+                        ? "success"
+                        : msg.status === "failed"
+                        ? "error"
+                        : "warning"
+                    }
+                    size="sm"
+                    class={msg.status === "sent" || msg.status === "failed" ? "text-white" : ""}
+                  >
+                    {msg.status}
+                  </Badge>
+                </TableCell>
+                <TableCell sortVal={msg.to} class="font-mono text-xs">
+                  {msg.to}
+                </TableCell>
+                <TableCell sortVal={msg.subject} class="font-medium max-w-xs truncate">
+                  {msg.subject}
+                </TableCell>
+                <TableCell sortVal={msg.format ?? "html"}>
+                  <Badge variant="ghost" size="xs">{msg.format ?? "html"}</Badge>
+                </TableCell>
+                <TableCell sortVal={msg.provider} class="text-xs opacity-75">
+                  {msg.provider}
+                </TableCell>
+                <TableCell sortVal={new Date(msg.createdAt).getTime()} class="text-xs opacity-75">
+                  {new Date(msg.createdAt).toLocaleTimeString()}
+                </TableCell>
+                <TableCell sortVal={msg.sentAt ? new Date(msg.sentAt).getTime() : msg.error ?? ""} class="text-xs">
+                  {msg.status === "sent" && msg.sentAt ? (
+                    <span class="text-success">{new Date(msg.sentAt).toLocaleTimeString()}</span>
+                  ) : msg.status === "failed" ? (
+                    <span class="text-error truncate max-w-xs inline-block" title={msg.error}>
+                      {msg.error}
+                    </span>
+                  ) : (
+                    <span class="opacity-50">—</span>
+                  )}
+                </TableCell>
+              </TableRow>
+            ))}
+          </Table>
         </div>
       </div>
     </div>

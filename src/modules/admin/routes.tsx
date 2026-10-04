@@ -1329,8 +1329,9 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
         "SELECT id, email, first_name, last_name, username FROM users WHERE deleted_at IS NULL ORDER BY email ASC"
       )
       .all();
+    const locale = getLocale(c);
 
-    return page(c, "Mail Management", <MailerDashboardView stats={stats} buffer={buffer} tags={tags} users={users} />);
+    return page(c, "Mail Management", <MailerDashboardView stats={stats} buffer={buffer} tags={tags} users={users} locale={locale} />);
   };
 
   app.get("/mailer", async (c) => renderMailerPage(c));
@@ -1516,11 +1517,12 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
     }
     const updatedRule = db.query<EmailAutomationRuleRow, [string]>("SELECT * FROM email_automation_rules WHERE id = ? AND deleted_at IS NULL").get(id);
     const isHtmx = c.req.header("hx-request") === "true";
+    const locale = getLocale(c);
     if (isHtmx && updatedRule) {
       const templates = db.query<EmailTemplateRow, []>("SELECT * FROM emails_schema WHERE deleted_at IS NULL ORDER BY title ASC").all();
       return c.html(
         <>
-          <AutomationRuleCard rule={updatedRule} templates={templates} />
+          <AutomationRuleCard rule={updatedRule} templates={templates} locale={locale} />
           {toast("admin.created", updatedRule.is_enabled ? "Trigger enabled." : "Trigger disabled.")}
         </>
       );
@@ -1555,11 +1557,12 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
     }
     const updatedRule = db.query<EmailAutomationRuleRow, [string]>("SELECT * FROM email_automation_rules WHERE id = ? AND deleted_at IS NULL").get(id);
     const isHtmx = c.req.header("hx-request") === "true";
+    const locale = getLocale(c);
     if (isHtmx && updatedRule) {
       const templates = db.query<EmailTemplateRow, []>("SELECT * FROM emails_schema WHERE deleted_at IS NULL ORDER BY title ASC").all();
       return c.html(
         <>
-          <AutomationRuleCard rule={updatedRule} templates={templates} />
+          <AutomationRuleCard rule={updatedRule} templates={templates} locale={locale} />
           {toast("admin.created", "Trigger configuration saved.")}
         </>
       );
@@ -1612,11 +1615,12 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
     }
     const updatedRule = db.query<EmailAutomationRuleRow, [string]>("SELECT * FROM email_automation_rules WHERE id = ? AND deleted_at IS NULL").get(id);
     const isHtmx = c.req.header("hx-request") === "true";
+    const locale = getLocale(c);
     if (isHtmx && updatedRule) {
       const templates = db.query<EmailTemplateRow, []>("SELECT * FROM emails_schema WHERE deleted_at IS NULL ORDER BY title ASC").all();
       return c.html(
         <>
-          <AutomationRuleCard rule={updatedRule} templates={templates} />
+          <AutomationRuleCard rule={updatedRule} templates={templates} locale={locale} />
           {toast("admin.created", "Trigger executed successfully.")}
         </>
       );

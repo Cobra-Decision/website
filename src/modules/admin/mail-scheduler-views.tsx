@@ -5,6 +5,7 @@ import { formatUtcDateTime } from "../events/datetime";
 import type { Locale } from "../../lib/i18n/translations";
 import { t, formatLocalizedNumber } from "../../lib/i18n/context";
 import { Button, Input, Textarea, Select, Checkbox, Toggle, FormField, Badge, DatePicker } from "../../ui/forms";
+import { Table, TableRow, TableCell } from "../../ui/table";
 
 export const AutomationRuleCard = ({
   rule,
@@ -707,108 +708,97 @@ export const MailSchedulerView = ({
             {t("admin.mail.scheduler_subtitle", locale)}
           </p>
 
-          <div class="overflow-x-auto">
-            <table class="table table-sm table-zebra w-full">
-              <thead>
-                <tr>
-                  <th>{t("admin.platforms.timestamp", locale)}</th>
-                  <th>{t("admin.mail.template_title", locale)}</th>
-                  <th>{t("admin.mail.recipient_mode", locale)}</th>
-                  <th>{t("admin.mail.format", locale)}</th>
-                  <th>{locale === "fa" ? "زمانبندی شده برای" : "Scheduled For"}</th>
-                  <th>{t("admin.mail.sent_count", locale)}</th>
-                  <th>{t("admin.actions", locale)}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {scheduledList.length === 0 ? (
-                  <tr>
-                    <td colSpan={7} class="text-center py-6 text-base-content/50">
-                      {t("admin.mail.no_logs", locale)}
-                    </td>
-                  </tr>
-                ) : (
-                  scheduledList.map((job) => (
-                    <tr key={job.id}>
-                      <td>
-                        <Badge
-                          variant={
-                            job.status === "sent"
-                              ? "success"
-                              : job.status === "processing"
-                              ? "info"
-                              : job.status === "failed"
-                              ? "error"
-                              : job.status === "cancelled"
-                              ? "ghost"
-                              : "warning"
-                          }
-                          size="sm"
-                          class={job.status === "sent" || job.status === "processing" || job.status === "failed" ? "text-white" : ""}
-                        >
-                          {job.status}
-                        </Badge>
-                      </td>
-                      <td class="font-medium">
-                        <div>{job.title}</div>
-                        <div class="text-2xs text-base-content/60 truncate max-w-xs">{job.subject}</div>
-                      </td>
-                      <td>
-                        <Badge outline size="xs" class="uppercase font-mono">
-                          {job.target_mode}
-                        </Badge>
-                      </td>
-                      <td>
-                        <Badge variant="ghost" size="xs" class="uppercase font-mono">
-                          {job.format}
-                        </Badge>
-                      </td>
-                      <td class="text-xs" title={job.scheduled_for}>
-                        {formatUtcDateTime(job.scheduled_for, locale, timeZone).full || new Date(job.scheduled_for).toLocaleString()}
-                      </td>
-                      <td class="text-xs font-bold text-center">
-                        {formatLocalizedNumber(job.sent_count, locale)}
-                      </td>
-                      <td>
-                        <div class="flex items-center gap-1">
-                          {job.status === "pending" && (
-                            <form
-                              hx-post={`/dashboard/admin/mail-scheduler/cancel?id=${job.id}`}
-                              hx-target="main"
-                              hx-select="main > *"
-                            >
-                              <Button type="submit" size="xs" variant="warning" outline>
-                                {t("admin.cancel", locale)}
-                              </Button>
-                            </form>
-                          )}
-                          <form
-                            hx-post={`/dashboard/admin/mail-scheduler/repeat?id=${job.id}`}
-                            hx-target="main"
-                            hx-select="main > *"
-                          >
-                            <Button type="submit" size="xs" variant="info" outline title="Repeat this broadcast in queue">
-                              {locale === "fa" ? "تکرار" : "Repeat"}
-                            </Button>
-                          </form>
-                          <form
-                            hx-post={`/dashboard/admin/mail-scheduler/delete?id=${job.id}`}
-                            hx-confirm={locale === "fa" ? "آیا از حذف این ارسال زمانبندی شده مطمئن هستید؟" : "Are you sure you want to delete this scheduled job?"}
-                            hx-target="main"
-                            hx-select="main > *"
-                          >
-                            <Button type="submit" size="xs" variant="ghost" class="text-error">
-                              {t("admin.delete", locale)}
-                            </Button>
-                          </form>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+          <Table
+            columns={[
+              { header: t("admin.status", locale), sortable: true, key: "status" },
+              { header: t("admin.mail.template_title", locale), sortable: true, key: "title" },
+              { header: t("admin.mail.recipient_mode", locale), sortable: true, key: "mode" },
+              { header: t("admin.mail.format", locale), sortable: true, key: "format" },
+              { header: locale === "fa" ? "زمانبندی شده برای" : "Scheduled For", sortable: true, key: "scheduled_for" },
+              { header: t("admin.mail.sent_count", locale), sortable: true, type: "number", key: "sent_count" },
+              { header: t("admin.actions", locale), class: "text-right" },
+            ]}
+            empty={scheduledList.length === 0}
+            emptyMessage={t("admin.mail.no_logs", locale)}
+          >
+            {scheduledList.map((job) => (
+              <TableRow key={job.id}>
+                <TableCell sortVal={job.status}>
+                  <Badge
+                    variant={
+                      job.status === "sent"
+                        ? "success"
+                        : job.status === "processing"
+                        ? "info"
+                        : job.status === "failed"
+                        ? "error"
+                        : job.status === "cancelled"
+                        ? "ghost"
+                        : "warning"
+                    }
+                    size="sm"
+                    class={job.status === "sent" || job.status === "processing" || job.status === "failed" ? "text-white" : ""}
+                  >
+                    {job.status}
+                  </Badge>
+                </TableCell>
+                <TableCell sortVal={job.title} class="font-medium">
+                  <div>{job.title}</div>
+                  <div class="text-2xs text-base-content/60 truncate max-w-xs">{job.subject}</div>
+                </TableCell>
+                <TableCell sortVal={job.target_mode}>
+                  <Badge outline size="xs" class="uppercase font-mono">
+                    {job.target_mode}
+                  </Badge>
+                </TableCell>
+                <TableCell sortVal={job.format}>
+                  <Badge variant="ghost" size="xs" class="uppercase font-mono">
+                    {job.format}
+                  </Badge>
+                </TableCell>
+                <TableCell sortVal={new Date(job.scheduled_for).getTime()} class="text-xs" title={job.scheduled_for}>
+                  {formatUtcDateTime(job.scheduled_for, locale, timeZone).full || new Date(job.scheduled_for).toLocaleString()}
+                </TableCell>
+                <TableCell sortVal={job.sent_count} class="text-xs font-bold text-center">
+                  {formatLocalizedNumber(job.sent_count, locale)}
+                </TableCell>
+                <TableCell class="text-right">
+                  <div class="flex items-center justify-end gap-1">
+                    {job.status === "pending" && (
+                      <form
+                        hx-post={`/dashboard/admin/mail-scheduler/cancel?id=${job.id}`}
+                        hx-target="main"
+                        hx-select="main > *"
+                      >
+                        <Button type="submit" size="xs" variant="warning" outline>
+                          {t("admin.cancel", locale)}
+                        </Button>
+                      </form>
+                    )}
+                    <form
+                      hx-post={`/dashboard/admin/mail-scheduler/repeat?id=${job.id}`}
+                      hx-target="main"
+                      hx-select="main > *"
+                    >
+                      <Button type="submit" size="xs" variant="info" outline title="Repeat this broadcast in queue">
+                        {locale === "fa" ? "تکرار" : "Repeat"}
+                      </Button>
+                    </form>
+                    <form
+                      hx-post={`/dashboard/admin/mail-scheduler/delete?id=${job.id}`}
+                      hx-confirm={locale === "fa" ? "آیا از حذف این ارسال زمانبندی شده مطمئن هستید؟" : "Are you sure you want to delete this scheduled job?"}
+                      hx-target="main"
+                      hx-select="main > *"
+                    >
+                      <Button type="submit" size="xs" variant="ghost" class="text-error">
+                        {t("admin.delete", locale)}
+                      </Button>
+                    </form>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+          </Table>
         </div>
       </div>
     </div>
