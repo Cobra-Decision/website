@@ -4,6 +4,8 @@ export const SOCIAL_LINKS = {
   youtube: "https://www.youtube.com/@CobraDecision",
   github: "https://github.com/Cobra-Decision",
   linkedin: "https://www.linkedin.com/company/cobra-decision",
+  twitter: "https://x.com/CobraDecision",
+  mastodon: "https://mastodon.social/@CobraDecision",
 } as const;
 
 export const SOCIAL_MEDIA_LIST = [
@@ -12,4 +14,6 @@ export const SOCIAL_MEDIA_LIST = [
   { name: "YouTube", href: SOCIAL_LINKS.youtube, target: "_blank", rel: "noopener noreferrer" },
   { name: "GitHub", href: SOCIAL_LINKS.github, target: "_blank", rel: "noopener noreferrer" },
   { name: "LinkedIn", href: SOCIAL_LINKS.linkedin, target: "_blank", rel: "noopener noreferrer" },
+  { name: "Twitter", href: SOCIAL_LINKS.twitter, target: "_blank", rel: "noopener noreferrer" },
+  { name: "Mastodon", href: SOCIAL_LINKS.mastodon, target: "_blank", rel: "noopener noreferrer me" },
 ] as const;

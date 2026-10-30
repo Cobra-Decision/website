@@ -27,7 +27,7 @@ export const Footer = ({ locale = "en" }: { locale?: Locale }) => {
         </div>
         <div>
           <p class="font-semibold">{t("footer.find_us", locale)}</p>
-          <div class="mt-4 grid gap-2 text-sm text-neutral-content/65">
+          <div class="mt-4 grid grid-cols-2 gap-x-8 gap-y-2 text-sm text-neutral-content/65">
             {SOCIAL_MEDIA_LIST.map((item) => (
               <a
                 key={item.name}
