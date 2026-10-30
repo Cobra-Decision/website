@@ -32,7 +32,7 @@ test("auth pages load the shared UI stack and ALTCHA", async () => {
     expect(html).not.toContain("unpkg.com");
     expect(html).toContain("htmx:beforeSwap");
     expect(html).toContain('src="/altcha.js"');
-    expect(html).toContain('<altcha-widget challenge="/auth/altcha/challenge"');
+    expect(html).toContain('<altcha-widget challenge="/auth/altcha/challenge" auto="onload"');
   }
 });
 
