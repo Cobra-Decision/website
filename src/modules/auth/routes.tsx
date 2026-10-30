@@ -1,7 +1,6 @@
 import type { Database } from "bun:sqlite";
 import { Hono, type Handler, type MiddlewareHandler } from "hono";
 import { deleteCookie, getCookie, setCookie } from "hono/cookie";
-import { sign, verify } from "hono/jwt";
 import { create, deriveHmacKeySecret, randomInt } from "altcha-lib/frameworks/hono";
 import { deriveKey } from "altcha-lib/algorithms/pbkdf2";
 import { Document } from "../../ui/layout";
@@ -14,18 +13,23 @@ import { getAllTags, setUserPreferredTags } from "../events/queries";
 import { mailService } from "../mailer/service";
 import { logger } from "../../lib/logger";
 import { Dashboard, Login, ProfileForm, Register, type Profile } from "./views";
-import { getFirstAllowedAdminPath, getSessionCookieOptions, SESSION_DURATION, verifyAndRefreshSession } from "./middleware";
+import {
+  SESSION_COOKIE,
+  getSessionCookieOptions,
+  signSessionToken,
+  verifySessionToken,
+  verifyAndRefreshSession,
+  type SessionClaims,
+} from "./session";
 
 type Captcha = { middleware: MiddlewareHandler; challengeHandler: Handler };
-type Claims = { sub: string; username: string; role_title: string; role_id: string };
-const sessionDuration = 60 * 60 * 8;
+type Claims = SessionClaims;
 const isProd = process.env.NODE_ENV === "production";
-const cookieOptions = {
+const baseCookieOptions = {
   httpOnly: true,
   secure: isProd,
   sameSite: (isProd ? "None" : "Lax") as "None" | "Lax",
   path: "/",
-  maxAge: sessionDuration,
 };
 
 export async function createAltcha(): Promise<Captcha> {
@@ -41,7 +45,7 @@ export async function createAltcha(): Promise<Captcha> {
 
 export function createAuthRoutes(database: Database, captcha: Captcha, jwtSecret: string) {
   const redirectAuthenticated = async (c: Parameters<Handler>[0]) => {
-    const claims = await verifyAndRefreshSession(c, getCookie(c, "session"), jwtSecret, database);
+    const claims = await verifyAndRefreshSession(c, getCookie(c, SESSION_COOKIE), jwtSecret, database);
     if (claims) {
       const isAdminRole = claims.role_title === "Super Admin" || claims.role_title === "admin";
       return c.redirect(`/dashboard/${isAdminRole ? "admin" : "user"}`);
@@ -97,18 +101,21 @@ export function createAuthRoutes(database: Database, captcha: Captcha, jwtSecret
       const clientTz = getTimezone(c);
       if (tgLinkId) {
         database.run("UPDATE users SET telegram_id = ?, timezone = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?", [tgLinkId, clientTz, user.id]);
-        deleteCookie(c, "tg_link_id", cookieOptions);
+        deleteCookie(c, "tg_link_id", baseCookieOptions);
       } else {
         database.run("UPDATE users SET timezone = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?", [clientTz, user.id]);
       }
 
-      const now = Math.floor(Date.now() / 1000);
-      const token = await sign(
-        { sub: user.id, username: user.username ?? user.email, role_title: user.role_title, role_id: user.role_id, iat: now, exp: now + sessionDuration },
-        jwtSecret,
-        "HS256"
+      const { token } = await signSessionToken(
+        {
+          sub: user.id,
+          username: user.username ?? user.email,
+          role_title: user.role_title,
+          role_id: user.role_id,
+        },
+        jwtSecret
       );
-      setCookie(c, "session", token, cookieOptions);
+      setCookie(c, SESSION_COOKIE, token, getSessionCookieOptions());
       logger.auth("AUTH_LOGIN_SUCCESS", {
         actor: { userId: user.id, email: user.email, role: user.role_title, ip: c.req.header("x-forwarded-for") ?? "local", userAgent: c.req.header("user-agent") },
       });
@@ -225,7 +232,7 @@ export function createAuthRoutes(database: Database, captcha: Captcha, jwtSecret
           setUserPreferredTags(database, userId, input.tagIds);
           database.run("DELETE FROM registration_otps WHERE email = ?", [email]);
         })();
-        if (tgLinkId) deleteCookie(c, "tg_link_id", cookieOptions);
+        if (tgLinkId) deleteCookie(c, "tg_link_id", baseCookieOptions);
 
         refreshLandingCache(database);
         logger.auth("AUTH_REGISTER_SUCCESS", {
@@ -254,17 +261,12 @@ export function createAuthRoutes(database: Database, captcha: Captcha, jwtSecret
       }
     })
     .post("/logout", async (c) => {
-      const token = getCookie(c, "session");
-      let claims: Claims | null = null;
-      if (token) {
-        try {
-          claims = (await verify(token, jwtSecret, "HS256")) as unknown as Claims;
-        } catch {}
-      }
+      const token = getCookie(c, SESSION_COOKIE);
+      const claims = await verifySessionToken(token, jwtSecret);
       logger.auth("AUTH_LOGOUT", {
         actor: { userId: claims?.sub, email: claims?.username, role: claims?.role_title, ip: c.req.header("x-forwarded-for") ?? "local" },
       });
-      deleteCookie(c, "session", cookieOptions);
+      deleteCookie(c, SESSION_COOKIE, getSessionCookieOptions());
       c.header("HX-Redirect", "/auth");
       return c.body(null);
     });
@@ -279,7 +281,7 @@ type DashboardEnv = {
 export function createDashboardRoute(database: Database, jwtSecret: string, expectedRole: "admin" | "member" = "member") {
   const app = new Hono<DashboardEnv>();
   const loadUser = async (c: Parameters<Handler>[0]) => {
-    const claims = await verifyAndRefreshSession(c, getCookie(c, "session"), jwtSecret, database);
+    const claims = await verifyAndRefreshSession(c, getCookie(c, SESSION_COOKIE), jwtSecret, database);
     if (!claims) return null;
     const user = database.query<Profile, [string]>(`SELECT u.id, u.email, u.username, u.phone, u.first_name, u.last_name, r.title role_title
       FROM users u JOIN roles r ON r.id = u.role_id
@@ -312,7 +314,7 @@ export function createDashboardRoute(database: Database, jwtSecret: string, expe
 export function createProfileRoute(database: Database, jwtSecret: string) {
   const app = new Hono();
   app.get("/", async (c) => {
-    const claims = await verifyAndRefreshSession(c, getCookie(c, "session"), jwtSecret, database);
+    const claims = await verifyAndRefreshSession(c, getCookie(c, SESSION_COOKIE), jwtSecret, database);
     if (!claims) return c.redirect("/auth");
     const user = database.query<Profile, [string]>(`SELECT u.id, u.email, u.username, u.phone, u.first_name, u.last_name, r.title role_title
       FROM users u JOIN roles r ON r.id = u.role_id

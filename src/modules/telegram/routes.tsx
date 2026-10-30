@@ -1,7 +1,6 @@
 import type { Database } from "bun:sqlite";
 import { Hono } from "hono";
 import { setCookie } from "hono/cookie";
-import { sign } from "hono/jwt";
 import { Document } from "../../ui/layout";
 import { FormMessage } from "../../ui/form-message";
 import { generateId } from "../../lib/id";
@@ -9,17 +8,13 @@ import { getAllTags, setUserPreferredTags } from "../events/queries";
 import { mailService } from "../mailer/service";
 import { logger } from "../../lib/logger";
 import { validateTelegramInitData } from "./crypto";
+import {
+  SESSION_COOKIE,
+  getSessionCookieOptions,
+  signSessionToken,
+} from "../auth/session";
 
-const sessionDuration = 60 * 60 * 8;
 const isProd = process.env.NODE_ENV === "production";
-const cookieOptions = {
-  httpOnly: true,
-  secure: isProd,
-  // Inside Telegram Web iframes (web.telegram.org), cookies must be SameSite=None + Secure (or Lax in non-https dev)
-  sameSite: (isProd ? "None" : "Lax") as "None" | "Lax",
-  path: "/",
-  maxAge: sessionDuration,
-};
 
 export function createTelegramRoutes(
   database: Database,
@@ -135,20 +130,16 @@ export function createTelegramRoutes(
 
     if (existingUser) {
       // User is already linked -> Auto-login with JWT
-      const now = Math.floor(Date.now() / 1000);
-      const token = await sign(
+      const { token } = await signSessionToken(
         {
           sub: existingUser.id,
           username: existingUser.username ?? existingUser.email,
           role_title: existingUser.role_title,
           role_id: existingUser.role_id,
-          iat: now,
-          exp: now + sessionDuration,
         },
-        jwtSecret,
-        "HS256"
+        jwtSecret
       );
-      setCookie(c, "session", token, cookieOptions);
+      setCookie(c, SESSION_COOKIE, token, getSessionCookieOptions());
       logger.auth("TELEGRAM_AUTO_LOGIN_SUCCESS", {
         actor: { userId: existingUser.id, email: existingUser.email, role: existingUser.role_title },
         data: { telegramId: tgId, redirectUrl },
