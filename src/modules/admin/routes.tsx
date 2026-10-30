@@ -161,11 +161,25 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
     return { rows, totalCount };
   };
 
-  const tableResponse = (resource: keyof typeof config, toastTitle?: string, fallback = "", isSuper = true, page = 1, limit = 10) => {
+  const tableResponse = (
+    c: Context,
+    resource: keyof typeof config,
+    toastTitle?: string,
+    fallback = "",
+    isSuper = true,
+    page?: number,
+    limit?: number
+  ) => {
     refreshLandingCache(db);
     clearPermissionCache();
-    const { rows, totalCount } = rowsFor(resource, {}, isSuper, page, limit);
-    const pagination = calculatePagination(totalCount, page, limit);
+    const locale = getLocale(c);
+    const tz = getTimezone(c);
+    const queryParams = c.req.query();
+    const { page: parsedPage, limit: parsedLimit } = parsePaginationParams(queryParams);
+    const effectivePage = page ?? parsedPage;
+    const effectiveLimit = limit ?? parsedLimit;
+    const { rows, totalCount } = rowsFor(resource, queryParams, isSuper, effectivePage, effectiveLimit);
+    const pagination = calculatePagination(totalCount, effectivePage, effectiveLimit);
     return (
       <>
         <CrudTable
@@ -173,9 +187,12 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
           columns={[...config[resource].columns]}
           searchFields={[...config[resource].searchFields]}
           rows={rows}
+          query={queryParams}
+          locale={locale}
+          timeZone={tz}
           pagination={pagination}
         />
-        {toastTitle && toast(toastTitle, fallback)}
+        {toastTitle && toast(toastTitle, fallback, "success", locale)}
       </>
     );
   };
@@ -524,12 +541,17 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
     );
   };
 
-  const toast = (title: string, fallback: string, type: "info" | "error" | "success" | "warning" = "success") => {
+  const toast = (
+    title: string,
+    fallback: string,
+    type: "info" | "error" | "success" | "warning" = "success",
+    locale: import("../../lib/i18n/translations").Locale = "en"
+  ) => {
     refreshErrorCache(db);
     const cached = getErrorMessage(title);
     const description = (title === "admin.error" && fallback) ? fallback : (cached?.description || fallback);
     const message = cached ? { type: cached.type, title: cached.title, description } : { type, title, description: fallback };
-    return <Toast type={message.type} title={message.title} description={message.description} />;
+    return <Toast type={message.type} title={message.title} description={message.description} locale={locale} />;
   };
 
   const relationPanel = (meetId: string, locale: import("../../lib/i18n/translations").Locale = "en") => (
@@ -853,7 +875,7 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
       const ids = (Array.isArray(rawIds) ? rawIds : rawIds ? [rawIds] : []).map(String).filter(Boolean);
       if (!ids.length) {
         return c.html(
-          toast("admin.nothing_selected", "Select at least one record.", "warning"),
+          toast("admin.nothing_selected", "Select at least one record.", "warning", locale),
           400
         );
       }
@@ -975,7 +997,7 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
           });
           db.run(`INSERT INTO ${table} (id,${fields.join(",")}) VALUES (?,${fields.map(() => "?").join(",")})`, [id, ...values]);
         }
-        return c.html(tableResponse(resource, "admin.created", "Created", isSuperAdmin(c)));
+        return c.html(tableResponse(c, resource, "admin.created", "Created", isSuperAdmin(c)));
       } catch {
         return failForm(c, resource, resource === "users" ? "That email, username, or phone is already used." : "A record with that title already exists.", submitted);
       }
@@ -985,7 +1007,7 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
       const body = await c.req.parseBody({ all: true });
       const rawIds = body["ids"] || body["ids[]"];
       const ids = (Array.isArray(rawIds) ? rawIds : rawIds ? [rawIds] : []).map(String).filter(Boolean);
-      if (!ids.length) return c.html(tableResponse(resource, "admin.nothing_selected", "Select at least one record.", isSuperAdmin(c)), 400);
+      if (!ids.length) return c.html(tableResponse(c, resource, "admin.nothing_selected", "Select at least one record.", isSuperAdmin(c)), 400);
       for (const id of ids) {
         if (!(resource === "roles" && db.query("SELECT 1 FROM roles WHERE id=? AND title='Super Admin'").get(id))) {
           db.run(`UPDATE ${table} SET deleted_at=CURRENT_TIMESTAMP, updated_at=CURRENT_TIMESTAMP WHERE id=?`, [id]);
@@ -999,7 +1021,7 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
           }
         }
       }
-      return c.html(tableResponse(resource, "admin.deleted", "Deleted", isSuperAdmin(c)));
+      return c.html(tableResponse(c, resource, "admin.deleted", "Deleted", isSuperAdmin(c)));
     });
 
     app.post(`/${resource}/:id`, async (c) => {
@@ -1113,7 +1135,7 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
           });
           db.run(`UPDATE ${table} SET ${fields.map((field) => `${field}=?`).join(",")}, updated_at=CURRENT_TIMESTAMP WHERE id=?`, [...values, id]);
         }
-        return c.html(tableResponse(resource, "admin.created", "Updated", isSuperAdmin(c)));
+        return c.html(tableResponse(c, resource, "admin.created", "Updated", isSuperAdmin(c)));
       } catch {
         return failForm(c, resource, resource === "users" ? "That email, username, or phone is already used." : "A record with that title already exists.", submitted, id);
       }
@@ -1121,7 +1143,8 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
 
     app.delete(`/${resource}/:id`, (c) => {
       const id = c.req.param("id");
-      if (resource === "roles" && db.query("SELECT 1 FROM roles WHERE id=? AND title='Super Admin'").get(id)) return c.html(toast("admin.super_admin_protected", "Protected"), 403);
+      const locale = getLocale(c);
+      if (resource === "roles" && db.query("SELECT 1 FROM roles WHERE id=? AND title='Super Admin'").get(id)) return c.html(toast("admin.super_admin_protected", "Protected", "error", locale), 403);
       db.run(`UPDATE ${table} SET deleted_at=CURRENT_TIMESTAMP, updated_at=CURRENT_TIMESTAMP WHERE id=?`, [id]);
       if (resource === "meets") {
         refreshLandingCache(db);
@@ -1131,40 +1154,44 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
           data: { meetId: id },
         });
       }
-      return c.html(tableResponse(resource, "admin.deleted", "Deleted", isSuperAdmin(c)));
+      return c.html(tableResponse(c, resource, "admin.deleted", "Deleted", isSuperAdmin(c)));
     });
   }
 
   app.post("/meets/:id/tags", async (c) => {
     const meetId = c.req.param("id");
+    const locale = getLocale(c);
     const tagId = String((await c.req.parseBody()).tag_id);
-    if (!validRelation("tags", tagId)) return c.html(<>{relationPanel(meetId)}{toast("admin.invalid_relation", "Choose a valid tag.", "error")}</>, 400);
+    if (!validRelation("tags", tagId)) return c.html(<>{relationPanel(meetId, locale)}{toast("admin.invalid_relation", "Choose a valid tag.", "error", locale)}</>, 400);
     db.run("INSERT OR IGNORE INTO meet_tags (meet_id,tag_id) VALUES (?,?)", [meetId, tagId]);
     refreshLandingCache(db);
-    return c.html(<>{relationPanel(meetId)}{toast("admin.created", "Tag added.")}</>);
+    return c.html(<>{relationPanel(meetId, locale)}{toast("admin.created", "Tag added.", "success", locale)}</>);
   });
 
   app.delete("/meets/:id/tags/:tagId", (c) => {
     const meetId = c.req.param("id");
+    const locale = getLocale(c);
     db.run("DELETE FROM meet_tags WHERE meet_id=? AND tag_id=?", [meetId, c.req.param("tagId")]);
     refreshLandingCache(db);
-    return c.html(<>{relationPanel(meetId)}{toast("admin.deleted", "Tag removed.")}</>);
+    return c.html(<>{relationPanel(meetId, locale)}{toast("admin.deleted", "Tag removed.", "success", locale)}</>);
   });
 
   app.post("/meets/:id/attendees", async (c) => {
     const meetId = c.req.param("id");
+    const locale = getLocale(c);
     const userId = String((await c.req.parseBody()).user_id);
-    if (!validRelation("users", userId)) return c.html(<>{relationPanel(meetId)}{toast("admin.invalid_relation", "Choose a valid attendee.", "error")}</>, 400);
+    if (!validRelation("users", userId)) return c.html(<>{relationPanel(meetId, locale)}{toast("admin.invalid_relation", "Choose a valid attendee.", "error", locale)}</>, 400);
     db.run("INSERT OR IGNORE INTO meet_attendees (meet_id,user_id) VALUES (?,?)", [meetId, userId]);
     refreshLandingCache(db);
-    return c.html(<>{relationPanel(meetId)}{toast("admin.created", "Attendee added.")}</>);
+    return c.html(<>{relationPanel(meetId, locale)}{toast("admin.created", "Attendee added.", "success", locale)}</>);
   });
 
   app.delete("/meets/:id/attendees/:userId", (c) => {
     const meetId = c.req.param("id");
+    const locale = getLocale(c);
     db.run("DELETE FROM meet_attendees WHERE meet_id=? AND user_id=?", [meetId, c.req.param("userId")]);
     refreshLandingCache(db);
-    return c.html(<>{relationPanel(meetId)}{toast("admin.deleted", "Attendee removed.")}</>);
+    return c.html(<>{relationPanel(meetId, locale)}{toast("admin.deleted", "Attendee removed.", "success", locale)}</>);
   });
 
   app.post("/roles/:id/endpoints", async (c) => {

@@ -208,10 +208,13 @@ test("Admin CRUD for meets: add, edit, single delete, bulk delete, meet relation
 
   const editRes = await app.request(`/dashboard/admin/meets/${meetRecord.id}`, {
     method: "POST",
-    headers: { cookie: adminCookie },
+    headers: { cookie: `${adminCookie}; locale=fa` },
     body: editForm,
   });
   expect(editRes.status).toBe(200);
+  const editHtml = await editRes.text();
+  expect(editHtml).toContain("+ افزودن جدید");
+  expect(editHtml).not.toContain("+ Add New");
   const updatedMeet = database.query<{ title: string; status: string; duration_minutes: number }, [string]>(
     "SELECT title, status, duration_minutes FROM meets WHERE id=?"
   ).get(meetRecord.id)!;
@@ -364,4 +367,29 @@ test("Admin files delete: 404 for missing file, 400 for invalid name, 207 on par
   const partialText = await bulkPartialRes.text();
   expect(partialText).toContain("1 file(s) deleted, 1 failed.");
   expect(await Bun.file(join(TEST_STORAGE_DIR, "existing_file.png")).exists()).toBe(false);
+});
+
+test("Admin CRUD for users preserves Persian locale on save", async () => {
+  const role = database.query<{ id: string }, []>("SELECT id FROM roles WHERE title = 'member'").get()!;
+  const testUser = generateId();
+  database.run(
+    "INSERT INTO users (id, email, password_hash, role_id) VALUES (?, 'persian_test@example.com', 'hash', ?)",
+    [testUser, role.id]
+  );
+
+  const editForm = new FormData();
+  editForm.set("email", "persian_test_updated@example.com");
+  editForm.set("username", "persian_user");
+  editForm.set("role_id", role.id);
+
+  const res = await app.request(`/dashboard/admin/users/${testUser}`, {
+    method: "POST",
+    headers: { cookie: `${adminCookie}; locale=fa` },
+    body: editForm,
+  });
+
+  expect(res.status).toBe(200);
+  const html = await res.text();
+  expect(html).toContain("+ افزودن جدید");
+  expect(html).not.toContain("+ Add New");
 });
