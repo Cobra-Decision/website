@@ -28,11 +28,18 @@ export function getAssetBaseUrl(): string {
 
 export function sanitizeFilename(filename: string): string | null {
   if (!filename || typeof filename !== "string") return null;
-  const base = basename(filename.trim());
-  if (base.includes("..") || base.includes("/") || base.includes("\\") || base.includes("\0")) {
+  const raw = filename.trim();
+  if (
+    raw.includes("/") ||
+    raw.includes("\\") ||
+    raw.includes("\0") ||
+    raw.includes("..") ||
+    raw.startsWith(".")
+  ) {
     return null;
   }
-  if (!/^[a-zA-Z0-9_\-\.]+$/.test(base)) {
+  const base = basename(raw);
+  if (base !== raw || !/^[a-zA-Z0-9_\-\.]+$/.test(base)) {
     return null;
   }
   return base;
@@ -92,7 +99,9 @@ export function createFileAdminRoutes(
     type: "info" | "error" | "success" | "warning" = "success"
   ) => {
     const locale = getLocale(c);
-    const message = getErrorMessage(title) ?? { type, title, description: fallback };
+    const cached = getErrorMessage(title);
+    const description = title === "admin.error" && fallback ? fallback : (cached?.description || fallback);
+    const message = cached ? { type: cached.type, title: cached.title, description } : { type, title, description: fallback };
     return <Toast type={message.type} title={message.title} description={message.description} locale={locale} />;
   };
 
@@ -169,7 +178,14 @@ export function createFileAdminRoutes(
       const queried = c.req.queries("filenames") ?? (c.req.query("filenames") ? [c.req.query("filenames")!] : []);
       rawFilenames = queried;
     }
-    const filenames = rawFilenames.map((f) => sanitizeFilename(String(f))).filter((f): f is string => Boolean(f));
+    const filenames = Array.from(
+      new Set(
+        rawFilenames
+          .filter((f): f is string => typeof f === "string" && Boolean(f))
+          .map((f) => sanitizeFilename(f))
+          .filter((f): f is string => Boolean(f))
+      )
+    );
 
     if (!filenames.length) {
       const files = await listFiles();
@@ -363,9 +379,14 @@ export function createFileAdminRoutes(
       : rawFilenames
       ? [rawFilenames]
       : [];
-    const filenames = filenamesList
-      .map((f) => sanitizeFilename(String(f)))
-      .filter((f): f is string => Boolean(f));
+    const filenames = Array.from(
+      new Set(
+        filenamesList
+          .filter((f): f is string => typeof f === "string" && Boolean(f))
+          .map((f) => sanitizeFilename(f))
+          .filter((f): f is string => Boolean(f))
+      )
+    );
 
     if (!filenames.length) {
       const files = await listFiles();
@@ -379,17 +400,22 @@ export function createFileAdminRoutes(
     }
 
     const storageDir = getStorageDir();
+    let deletedCount = 0;
+    let failedCount = 0;
+
     for (const filename of filenames) {
       try {
         await unlink(join(storageDir, filename));
+        deletedCount++;
         logger.file("FILE_DELETED", {
           actor: { ip: c.req.header("x-forwarded-for") ?? "local" },
           data: { filename, bulk: true },
         });
-      } catch (err) {
-        console.error(`Failed to delete file ${filename}:`, err);
+      } catch (err: any) {
+        failedCount++;
+        const isNotFound = err?.code === "ENOENT";
         logger.file("FILE_DELETE_FAILED", {
-          level: "ERROR",
+          level: isNotFound ? "WARN" : "ERROR",
           actor: { ip: c.req.header("x-forwarded-for") ?? "local" },
           data: { filename, bulk: true },
           error: err,
@@ -398,11 +424,36 @@ export function createFileAdminRoutes(
     }
 
     const files = await listFiles();
+    if (failedCount === 0) {
+      return c.html(
+        <>
+          <FileGrid files={files} locale={locale} />
+          {toast(c, "admin.deleted", `${deletedCount} file(s) deleted.`)}
+        </>
+      );
+    }
+
+    if (deletedCount > 0) {
+      return c.html(
+        <>
+          <FileGrid files={files} locale={locale} />
+          {toast(
+            c,
+            "admin.warning",
+            `${deletedCount} file(s) deleted, ${failedCount} failed.`,
+            "warning"
+          )}
+        </>,
+        207
+      );
+    }
+
     return c.html(
       <>
         <FileGrid files={files} locale={locale} />
-        {toast(c, "admin.deleted", `${filenames.length} file(s) deleted.`)}
-      </>
+        {toast(c, "admin.error", `Failed to delete ${failedCount} file(s).`, "error")}
+      </>,
+      500
     );
   });
 
@@ -435,9 +486,10 @@ export function createFileAdminRoutes(
           {toast(c, "admin.deleted", `File ${filename} deleted.`)}
         </>
       );
-    } catch (err) {
+    } catch (err: any) {
+      const isNotFound = err?.code === "ENOENT";
       logger.file("FILE_DELETE_FAILED", {
-        level: "ERROR",
+        level: isNotFound ? "WARN" : "ERROR",
         actor: { ip: c.req.header("x-forwarded-for") ?? "local" },
         data: { filename },
         error: err,
@@ -446,9 +498,14 @@ export function createFileAdminRoutes(
       return c.html(
         <>
           <FileGrid files={files} locale={locale} />
-          {toast(c, "admin.error", "Failed to delete file.", "error")}
+          {toast(
+            c,
+            "admin.error",
+            isNotFound ? "File not found." : "Failed to delete file.",
+            "error"
+          )}
         </>,
-        500
+        isNotFound ? 404 : 500
       );
     }
   });

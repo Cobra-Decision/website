@@ -8,6 +8,7 @@ import { initializeLandingDatabase } from "../../src/modules/landing/database";
 import { initializeMailerDatabase } from "../../src/modules/mailer/database";
 import { generateId } from "../../src/lib/id";
 import { seedSampleData } from "../../src/lib/seed";
+import { sanitizeFilename } from "../../src/modules/admin/files/routes";
 import { join } from "node:path";
 import { writeFile, rm } from "node:fs/promises";
 
@@ -310,4 +311,57 @@ test("Admin CRUD for files: upload, rename, duplicate, single delete, bulk delet
   expect(bulkDeleteRes.status).toBe(200);
   expect(await Bun.file(join(TEST_STORAGE_DIR, "file_a.png")).exists()).toBe(false);
   expect(await Bun.file(join(TEST_STORAGE_DIR, "file_b.png")).exists()).toBe(false);
+});
+
+test("sanitizeFilename blocks traversal, hidden files, and separators", () => {
+  expect(sanitizeFilename("image.png")).toBe("image.png");
+  expect(sanitizeFilename("my-photo_2026.jpeg")).toBe("my-photo_2026.jpeg");
+  expect(sanitizeFilename(".env")).toBeNull();
+  expect(sanitizeFilename(".gitkeep")).toBeNull();
+  expect(sanitizeFilename("..")).toBeNull();
+  expect(sanitizeFilename(".")).toBeNull();
+  expect(sanitizeFilename("../../photo.jpg")).toBeNull();
+  expect(sanitizeFilename("../secret.txt")).toBeNull();
+  expect(sanitizeFilename("sub/photo.jpg")).toBeNull();
+  expect(sanitizeFilename("sub\\photo.jpg")).toBeNull();
+  expect(sanitizeFilename("photo\0.jpg")).toBeNull();
+  expect(sanitizeFilename("photo..jpg")).toBeNull();
+  expect(sanitizeFilename("")).toBeNull();
+  expect(sanitizeFilename(null as any)).toBeNull();
+  expect(sanitizeFilename(undefined as any)).toBeNull();
+});
+
+test("Admin files delete: 404 for missing file, 400 for invalid name, 207 on partial bulk delete", async () => {
+  // 1. Missing file delete returns 404
+  const notFoundRes = await app.request("/dashboard/admin/files/non_existent_file.pdf", {
+    method: "DELETE",
+    headers: { cookie: adminCookie },
+  });
+  expect(notFoundRes.status).toBe(404);
+  const notFoundText = await notFoundRes.text();
+  expect(notFoundText).toContain("File not found.");
+
+  // 2. Invalid filename returns 400
+  const invalidRes = await app.request("/dashboard/admin/files/%2E%2E%2Fetc%2Fpasswd", {
+    method: "DELETE",
+    headers: { cookie: adminCookie },
+  });
+  expect(invalidRes.status).toBe(400);
+
+  // 3. Partial bulk delete returns 207 with accurate count
+  await writeFile(join(TEST_STORAGE_DIR, "existing_file.png"), "test content");
+
+  const bulkPartialForm = new FormData();
+  bulkPartialForm.append("filenames", "existing_file.png");
+  bulkPartialForm.append("filenames", "missing_file_xyz.png");
+
+  const bulkPartialRes = await app.request("/dashboard/admin/files/bulk-delete", {
+    method: "POST",
+    headers: { cookie: adminCookie },
+    body: bulkPartialForm,
+  });
+  expect(bulkPartialRes.status).toBe(207);
+  const partialText = await bulkPartialRes.text();
+  expect(partialText).toContain("1 file(s) deleted, 1 failed.");
+  expect(await Bun.file(join(TEST_STORAGE_DIR, "existing_file.png")).exists()).toBe(false);
 });
