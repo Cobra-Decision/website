@@ -37,16 +37,12 @@ export function createApp({
     c.res.headers.set("Content-Security-Policy", "frame-ancestors 'self' https://web.telegram.org https://*.telegram.org https://telegram.org;");
     c.res.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
 
-    const isHtmx = c.req.header("HX-Request") === "true";
-    if (isHtmx) {
+    // Symmetric Vary prevents proxy cache contamination between HTMX partials and full documents
+    c.res.headers.append("Vary", "HX-Request, HX-Boosted");
+
+    // Safe-by-default: dynamic routes get no-store unless a static middleware set Cache-Control
+    if (!c.res.headers.has("Cache-Control")) {
       c.res.headers.set("Cache-Control", "no-store, no-cache, must-revalidate");
-      c.res.headers.append("Vary", "HX-Request");
-    } else {
-      const path = c.req.path;
-      const isDynamic = path === "/" || path.startsWith("/dashboard") || path.startsWith("/meets") || path.startsWith("/auth") || path.startsWith("/api");
-      if (isDynamic) {
-        c.res.headers.set("Cache-Control", "no-store, no-cache, must-revalidate");
-      }
     }
   });
 
@@ -70,7 +66,14 @@ export function createApp({
     },
     serveStatic({ path: "./public/sw.js" })
   );
-  app.use("/offline.html", staticCacheMiddleware, serveStatic({ path: "./public/offline.html" }));
+  app.use(
+    "/offline.html",
+    async (c, next) => {
+      await next();
+      c.res.headers.set("Cache-Control", "no-cache, must-revalidate");
+    },
+    serveStatic({ path: "./public/offline.html" })
+  );
   app.use("/altcha.js", staticCacheMiddleware, serveStatic({ path: "node_modules/altcha/dist/main/altcha.min.js" }));
   app.use("/htmx.js", staticCacheMiddleware, serveStatic({ path: "node_modules/htmx.org/dist/htmx.min.js" }));
   app.use("/alpine.js", staticCacheMiddleware, serveStatic({ path: "node_modules/alpinejs/dist/cdn.min.js" }));

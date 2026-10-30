@@ -1,6 +1,7 @@
 const CACHE_NAME = "cobradecision-static-v3";
 const STATIC_ASSETS = [
   "/offline.html",
+  "/app.css",
   "/favicon.svg",
   "/manifest.webmanifest",
   "/vazirmatn.css",
@@ -37,20 +38,7 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // HTMX and dynamic routes must never be cached by service worker
-  const isHtmx = request.headers.get("HX-Request") === "true";
-  const isDynamic =
-    url.pathname.startsWith("/dashboard") ||
-    url.pathname.startsWith("/meets") ||
-    url.pathname.startsWith("/api") ||
-    url.pathname.startsWith("/auth");
-
-  if (isHtmx || isDynamic) {
-    event.respondWith(fetch(request, { cache: "no-store" }));
-    return;
-  }
-
-  // Handle navigation requests: network first, fallback to offline page
+  // 1. Navigation requests: network first, fallback to offline page
   if (request.mode === "navigate") {
     event.respondWith(
       fetch(request).catch(() => caches.match("/offline.html"))
@@ -58,8 +46,11 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Handle static assets only: stale-while-revalidate for faster response & auto-refresh
-  const isStaticAsset = url.pathname.match(/\.(css|js|woff2|woff|ttf|svg|png|jpg|jpeg|ico|webmanifest)$/);
+  // 2. Static assets only: stale-while-revalidate (exclude sw.js itself)
+  const isStaticAsset =
+    url.pathname !== "/sw.js" &&
+    url.pathname.match(/\.(css|js|woff2|woff|ttf|svg|png|jpg|jpeg|ico|webmanifest|webp|avif)$/);
+
   if (isStaticAsset) {
     event.respondWith(
       caches.match(request).then((cachedResponse) => {
@@ -74,5 +65,8 @@ self.addEventListener("fetch", (event) => {
         return cachedResponse || fetchPromise;
       })
     );
+    return;
   }
+
+  // 3. All other requests (HTMX, API, dynamic JSON/HTML): bypass SW completely
 });
