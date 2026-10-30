@@ -18,6 +18,7 @@ import { DatePicker } from "../../ui/forms";
 import { getLocale, getTimezone, toEnglishDigits } from "../../lib/i18n/context";
 import { t } from "../../lib/i18n/translations";
 import { toUtcIso } from "../events/datetime";
+import { extractMeetUrl } from "../events/url";
 import { mailService } from "../mailer/service";
 import { MailerDashboardView } from "./mailer-views";
 import { MailEditorView } from "./mail-editor-views";
@@ -291,7 +292,32 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
           name={field}
           type={inputType(field)}
           value={field === "password" ? "" : String(values[field] ?? "")}
-          placeholder={field === "image_url" ? "URL (https://...) or path (/uploads/...)" : field === "video_url" ? "YouTube link or /uploads/... video path" : field === "file_url" ? "URL or OS file path" : ""}
+          placeholder={
+            field === "image_url"
+              ? "URL (https://...) or path (/uploads/...)"
+              : field === "video_url"
+              ? "YouTube link or /uploads/... video path"
+              : field === "file_url"
+              ? "URL or OS file path"
+              : field === "meet_url"
+              ? "URL or <iframe> embed"
+              : ""
+          }
+          {...(field === "meet_url"
+            ? {
+                "x-on:paste": `
+                  const text = $event.clipboardData?.getData('text') || '';
+                  if (text.includes('<iframe') || /^src=/i.test(text.trim())) {
+                    const m = text.match(/\\bsrc=["']?([^"'\\s>]+)/i);
+                    if (m) {
+                      $event.preventDefault();
+                      $el.value = m[1];
+                      $el.dispatchEvent(new Event('input'));
+                    }
+                  }
+                `,
+              }
+            : {})}
           required={field === "title" || field === "email" || field === "scheduled_date" || field === "scheduled_time" || (!id && field === "password")}
         />
       );
@@ -858,6 +884,11 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
       if (error) return failForm(c, resource, error, submitted);
 
       if (resource === "meets") {
+        if (submitted.meet_url) {
+          const extracted = extractMeetUrl(String(submitted.meet_url));
+          if (!extracted) return failForm(c, resource, "Invalid meeting room URL or embed code.", submitted);
+          submitted.meet_url = extracted;
+        }
         if (body.image_file instanceof File && body.image_file.size > 0) {
           const uploadResult = await handleImageUpload(body.image_file);
           if (uploadResult.error) return failForm(c, resource, uploadResult.error, submitted);
@@ -988,6 +1019,11 @@ export function createAdminRoutes(db: Database, jwtSecret = process.env.JWT_SECR
       if (error) return failForm(c, resource, error, submitted, id);
 
       if (resource === "meets") {
+        if (submitted.meet_url) {
+          const extracted = extractMeetUrl(String(submitted.meet_url));
+          if (!extracted) return failForm(c, resource, "Invalid meeting room URL or embed code.", submitted, id);
+          submitted.meet_url = extracted;
+        }
         const existingMeet = db.query<{ image_url: string | null; file_url: string | null; video_url: string | null }, [string]>("SELECT image_url, file_url, video_url FROM meets WHERE id=?").get(id);
         if (body.image_file instanceof File && body.image_file.size > 0) {
           const uploadResult = await handleImageUpload(body.image_file);

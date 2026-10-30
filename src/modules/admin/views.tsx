@@ -214,7 +214,8 @@ function renderCellContent(column: string, rawVal: string | number | null, local
     );
   }
 
-  if (column.endsWith("_url") || str.startsWith("http://") || str.startsWith("https://") || str.startsWith("/uploads/")) {
+  const isSafeUrl = /^https?:\/\//i.test(str) || str.startsWith("/uploads/");
+  if (isSafeUrl && (column.endsWith("_url") || str.startsWith("/uploads/"))) {
     return (
       <a
         href={str}

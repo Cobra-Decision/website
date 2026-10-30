@@ -194,4 +194,44 @@ describe("Admin Resource Pagination Integration", () => {
     expect(html2).toContain("11");
     expect(html2).toContain("15");
   });
+
+  it("extracts clean meet_url when raw iframe is submitted to meets POST", async () => {
+    const app = createAdminRoutes(db, jwtSecret);
+    const formData = new FormData();
+    formData.append("title", "Iframe Test Meet");
+    formData.append("scheduled_date", "2026-11-15");
+    formData.append("scheduled_time", "19:00");
+    formData.append("status", "live");
+    formData.append("meet_url", '<iframe allow="camera; microphone; fullscreen; display-capture; autoplay" src="jitsi.cobradecision.ir/from-mvp-to-full-launch-cobradecisioni-ir" style="height: 100%; width: 100%; border: 0px;"></iframe>');
+
+    const res = await app.request("/meets", {
+      method: "POST",
+      headers: { Cookie: `session=${superAdminToken}` },
+      body: formData,
+    });
+
+    expect(res.status).toBe(200);
+    const row = db.query<{ meet_url: string }, [string]>("SELECT meet_url FROM meets WHERE title=?").get("Iframe Test Meet");
+    expect(row).toBeDefined();
+    expect(row?.meet_url).toBe("https://jitsi.cobradecision.ir/from-mvp-to-full-launch-cobradecisioni-ir");
+  });
+
+  it("rejects malicious javascript scheme in meet_url", async () => {
+    const app = createAdminRoutes(db, jwtSecret);
+    const formData = new FormData();
+    formData.append("title", "XSS Meet");
+    formData.append("scheduled_date", "2026-11-15");
+    formData.append("scheduled_time", "19:00");
+    formData.append("meet_url", "javascript:alert(1)");
+
+    const res = await app.request("/meets", {
+      method: "POST",
+      headers: { Cookie: `session=${superAdminToken}` },
+      body: formData,
+    });
+
+    expect(res.status).toBe(400);
+    const html = await res.text();
+    expect(html).toContain("Invalid meeting room URL");
+  });
 });
