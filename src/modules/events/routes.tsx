@@ -163,9 +163,7 @@ export function createEventsRoutes(database: Database, jwtSecret = process.env.J
     return c.html(
       <>
         <DynamicCtaButton meetId={id} isAuthenticated={true} isAttending={true} meetStatus={meet.status} locale={locale} />
-        <div id="meet-access-box" hx-swap-oob="outerHTML" class="w-full">
-          <MeetAccessBanner meet={meet} isAuthenticated={true} isAttending={true} locale={locale} />
-        </div>
+        <MeetAccessBanner meet={meet} isAuthenticated={true} isAttending={true} locale={locale} hxSwapOob={true} />
         <span id="meet-attendee-count" hx-swap-oob="innerHTML">{formattedAttendeeCount}</span>
       </>
     );
@@ -205,9 +203,7 @@ export function createEventsRoutes(database: Database, jwtSecret = process.env.J
     return c.html(
       <>
         <DynamicCtaButton meetId={id} isAuthenticated={true} isAttending={false} meetStatus={meet.status} locale={locale} />
-        <div id="meet-access-box" hx-swap-oob="outerHTML" class="w-full">
-          <MeetAccessBanner meet={meet} isAuthenticated={true} isAttending={false} locale={locale} />
-        </div>
+        <MeetAccessBanner meet={meet} isAuthenticated={true} isAttending={false} locale={locale} hxSwapOob={true} />
         <span id="meet-attendee-count" hx-swap-oob="innerHTML">{formattedAttendeeCount}</span>
       </>
     );

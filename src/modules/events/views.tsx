@@ -4,6 +4,7 @@ import { renderMarkdown } from "../../lib/markdown";
 import type { Locale } from "../../lib/i18n/translations";
 import { t, formatLocalizedNumber } from "../../lib/i18n/context";
 import { formatLocalizedDate, formatLocalizedTime, isMeetLinkActive } from "./datetime";
+import { extractMeetUrl } from "./url";
 import { PublicHeader } from "../../ui/public-header";
 import { MeetStatusBadge, MeetAccessBadge, MeetPublishBadge } from "../../ui/meet-badges";
 import { VideoIcon, FileTextIcon, DownloadIcon, ChevronDownIcon, ChevronUpIcon } from "../../ui/icons";
@@ -156,11 +157,13 @@ export const MeetAccessBanner = ({
   isAuthenticated = false,
   isAttending = false,
   locale = "en",
+  hxSwapOob = false,
 }: {
   meet: MeetWithDetails;
   isAuthenticated?: boolean;
   isAttending?: boolean;
   locale?: Locale;
+  hxSwapOob?: boolean;
 }) => {
   if (meet.status === "completed" || !meet.meet_url) {
     return null;
@@ -169,11 +172,44 @@ export const MeetAccessBanner = ({
   const isPublic = meet.access_status === "public";
   const canAccessMeetUrl = Boolean(isPublic || isAttending);
   const isLinkActive = isMeetLinkActive(meet.scheduled_date, meet.scheduled_time, meet.scheduled_at_utc, 15);
+  const cleanMeetUrl = extractMeetUrl(meet.meet_url);
+
+  if (!cleanMeetUrl) {
+    return null;
+  }
 
   return (
-    <div id="meet-access-box" class="w-full">
+    <div id="meet-access-box" class="w-full" hx-swap-oob={hxSwapOob ? "outerHTML" : undefined}>
       {canAccessMeetUrl ? (
-        isLinkActive ? (
+        meet.status === "live" ? (
+          <div class="space-y-4 rounded-2xl border border-success/30 bg-base-100 p-4 sm:p-6 shadow-sm">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-base-200 pb-4">
+              <div class="space-y-1">
+                <h3 class="text-lg font-bold text-base-content">{t("meet.live_embed_title", locale)}</h3>
+                <p class="text-xs text-base-content/70">{t("meet.room_live", locale)}</p>
+              </div>
+              <a
+                class="btn btn-sm btn-outline btn-success gap-1.5 self-start sm:self-auto"
+                href={cleanMeetUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <span>{t("meet.open_external", locale)}</span>
+                <span class="text-xs">↗</span>
+              </a>
+            </div>
+
+            <div class="relative w-full aspect-video md:aspect-auto md:h-[620px] rounded-xl overflow-hidden bg-black shadow-inner">
+              <iframe
+                src={cleanMeetUrl}
+                title={meet.title}
+                class="absolute inset-0 h-full w-full border-0"
+                allow="camera; microphone; fullscreen; display-capture; autoplay"
+                allowFullScreen
+              />
+            </div>
+          </div>
+        ) : isLinkActive ? (
           <div class="rounded-2xl border border-primary/20 bg-primary/5 p-6 text-center sm:text-start sm:flex sm:items-center sm:justify-between shadow-sm transition-all">
             <div>
               <h3 class="text-lg font-bold text-base-content">{t("meet.ready_to_join", locale)}</h3>
@@ -181,7 +217,7 @@ export const MeetAccessBanner = ({
             </div>
             <a
               class="btn btn-primary mt-4 sm:mt-0 shadow-md font-semibold"
-              href={meet.meet_url}
+              href={cleanMeetUrl}
               target="_blank"
               rel="noopener noreferrer"
             >

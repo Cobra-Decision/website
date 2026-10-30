@@ -6,6 +6,7 @@ import { createMeet, filterMeets, getMeetById } from "./queries";
 import { seedRoles, seedUsers, seedTags } from "../../lib/database/seeding";
 import { generateId } from "../../lib/id";
 import { createApp } from "../../app";
+import { MeetAccessBanner } from "./views";
 import type { MiddlewareHandler } from "hono";
 
 test("filterMeets filters by status correctly", async () => {
@@ -302,3 +303,20 @@ test("meet detail & attend routes enforce authorization on private and restricte
 
   db.close();
 });
+
+test("MeetAccessBanner renders iframe for live meet when user has access", () => {
+  const mockLiveMeet = {
+    id: "live-1",
+    title: "Live Tech Session",
+    status: "live",
+    access_status: "public",
+    meet_url: "jitsi.cobradecision.ir/from-mvp-to-full-launch-cobradecisioni-ir",
+  } as any;
+
+  const html = MeetAccessBanner({ meet: mockLiveMeet, isAuthenticated: false, isAttending: false, locale: "en" })?.toString() ?? "";
+  expect(html).toContain("<iframe");
+  expect(html).toContain('src="https://jitsi.cobradecision.ir/from-mvp-to-full-launch-cobradecisioni-ir"');
+  expect(html).toContain('allow="camera; microphone; fullscreen; display-capture; autoplay"');
+  expect(html).toContain("Live Interactive Presentation");
+});
+
