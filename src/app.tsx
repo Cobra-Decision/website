@@ -30,12 +30,24 @@ export function createApp({
 }) {
   const app = new Hono();
 
-  // Security Headers Middleware
+  // Security & Freshness Headers Middleware
   app.use("*", async (c, next) => {
     await next();
     c.res.headers.set("X-Content-Type-Options", "nosniff");
     c.res.headers.set("Content-Security-Policy", "frame-ancestors 'self' https://web.telegram.org https://*.telegram.org https://telegram.org;");
     c.res.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+
+    const isHtmx = c.req.header("HX-Request") === "true";
+    if (isHtmx) {
+      c.res.headers.set("Cache-Control", "no-store, no-cache, must-revalidate");
+      c.res.headers.append("Vary", "HX-Request");
+    } else {
+      const path = c.req.path;
+      const isDynamic = path === "/" || path.startsWith("/dashboard") || path.startsWith("/meets") || path.startsWith("/auth") || path.startsWith("/api");
+      if (isDynamic) {
+        c.res.headers.set("Cache-Control", "no-store, no-cache, must-revalidate");
+      }
+    }
   });
 
   // Static Assets with 1 Year Immutable Cache
@@ -50,7 +62,14 @@ export function createApp({
   app.use("/favicon.svg", staticCacheMiddleware, serveStatic({ path: "./public/favicon.svg" }));
   app.use("/placeholder-meet.svg", staticCacheMiddleware, serveStatic({ path: "./public/placeholder-meet.svg" }));
   app.use("/manifest.webmanifest", staticCacheMiddleware, serveStatic({ path: "./public/manifest.webmanifest" }));
-  app.use("/sw.js", serveStatic({ path: "./public/sw.js" }));
+  app.use(
+    "/sw.js",
+    async (c, next) => {
+      await next();
+      c.res.headers.set("Cache-Control", "no-cache, no-store, must-revalidate");
+    },
+    serveStatic({ path: "./public/sw.js" })
+  );
   app.use("/offline.html", staticCacheMiddleware, serveStatic({ path: "./public/offline.html" }));
   app.use("/altcha.js", staticCacheMiddleware, serveStatic({ path: "node_modules/altcha/dist/main/altcha.min.js" }));
   app.use("/htmx.js", staticCacheMiddleware, serveStatic({ path: "node_modules/htmx.org/dist/htmx.min.js" }));
