@@ -42,20 +42,19 @@ export function getSessionCookieOptions(): CookieOptions {
   };
 }
 
-function isSessionClaims(payload: JWTPayload): payload is JWTPayload & SessionClaims {
+function isValidPayload(payload: unknown): payload is JWTPayload & { sub: string } {
   return (
-    typeof payload.sub === "string" &&
-    payload.sub.length > 0 &&
-    typeof payload.username === "string" &&
-    typeof payload.role_title === "string" &&
-    typeof payload.role_id === "string" &&
-    payload.role_id.length > 0 &&
-    typeof payload.iat === "number" &&
-    Number.isSafeInteger(payload.iat) &&
-    payload.iat >= 0 &&
-    typeof payload.exp === "number" &&
-    Number.isSafeInteger(payload.exp) &&
-    payload.exp > payload.iat
+    typeof payload === "object" &&
+    payload !== null &&
+    typeof (payload as JWTPayload).sub === "string" &&
+    ((payload as JWTPayload).sub as string).length > 0 &&
+    ((payload as JWTPayload).iat === undefined ||
+      (typeof (payload as JWTPayload).iat === "number" &&
+        Number.isSafeInteger((payload as JWTPayload).iat) &&
+        ((payload as JWTPayload).iat as number) >= 0)) &&
+    ((payload as JWTPayload).exp === undefined ||
+      (typeof (payload as JWTPayload).exp === "number" &&
+        Number.isSafeInteger((payload as JWTPayload).exp)))
   );
 }
 
@@ -87,7 +86,7 @@ export async function verifySessionToken(
   // 1. First attempt: standard strict HS256 signature + expiration check
   try {
     const payload = (await verify(token, jwtSecret, SESSION_ALGORITHM)) as unknown as JWTPayload;
-    if (isSessionClaims(payload)) return payload;
+    if (isValidPayload(payload)) return payload as unknown as SessionClaims;
   } catch {
     // If not standard valid, check if grace period is enabled
     if (options.allowGrace) {
@@ -97,11 +96,12 @@ export async function verifySessionToken(
           exp: false,
         })) as unknown as JWTPayload;
         if (
-          isSessionClaims(payload) &&
+          isValidPayload(payload) &&
+          typeof payload.exp === "number" &&
           payload.exp <= now &&
           now - payload.exp <= MAX_REFRESH_GRACE_PERIOD
         ) {
-          return payload;
+          return payload as unknown as SessionClaims;
         }
       } catch {}
     }
@@ -139,7 +139,20 @@ export async function verifyAndRefreshSession(
       )
       .get(claims.sub);
   } catch {
-    return null;
+    try {
+      user = db
+        .query<
+          { id: string; username: string | null; email: string; role_title: string; role_id: string },
+          [string]
+        >(
+          `SELECT u.id, u.username, u.email, r.title role_title, u.role_id
+           FROM users u JOIN roles r ON r.id = u.role_id
+           WHERE u.id = ? AND u.deleted_at IS NULL AND r.deleted_at IS NULL`
+        )
+        .get(claims.sub);
+    } catch {
+      return null;
+    }
   }
 
   if (!user) return null;
@@ -160,8 +173,8 @@ export async function verifyAndRefreshSession(
   }
 
   const now = Math.floor(Date.now() / 1000);
-  const isExpired = claims.exp <= now;
-  const isStale = isExpired || claims.exp - now < REFRESH_THRESHOLD;
+  const isExpired = typeof claims.exp === "number" ? claims.exp <= now : false;
+  const isStale = isExpired || typeof claims.exp !== "number" || claims.exp - now < REFRESH_THRESHOLD;
   const isDataUpdated =
     claims.role_id !== user.role_id ||
     claims.role_title !== user.role_title ||
